@@ -10,7 +10,10 @@ export interface IPayment extends Document {
   paymentMethod: "sslcommerz" | "bkash" | "nagad" | "stripe";
   transactionId: string;
   paymentId?: string;
-  status: "pending" | "completed" | "failed" | "refunded" | "cancelled";
+  status: "pending" | "completed" | "failed" | "refunded" | "cancelled" | "refund_pending";
+  refundReason?: string;
+  refundRequestedAt?: Date;
+  refundCompletedAt?: Date;
   invoiceNumber: string;
   billingInfo: {
     name: string;
@@ -66,9 +69,12 @@ const PaymentSchema = new Schema<IPayment>(
     },
     status: {
       type: String,
-      enum: ["pending", "completed", "failed", "refunded", "cancelled"],
+      enum: ["pending", "completed", "failed", "refunded", "cancelled", "refund_pending"],
       default: "pending",
     },
+    refundReason: { type: String, default: "" },
+    refundRequestedAt: { type: Date },
+    refundCompletedAt: { type: Date },
     invoiceNumber: {
       type: String,
       required: true,

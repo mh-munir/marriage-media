@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Settings, Bell, Shield, Smartphone, Link as LinkIcon, Copy, Check } from "lucide-react";
+import { Settings, Bell, Shield, Smartphone, Link as LinkIcon, Copy, Check, Key } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PushNotificationManager } from "@/components/notifications/push-notification-manager";
 
 export default function SettingsPage() {
   const [preferences, setPreferences] = React.useState<Record<string, unknown>>({});
@@ -109,11 +110,12 @@ export default function SettingsPage() {
             <p className="text-muted-foreground mb-8">Manage your account settings and preferences</p>
           </motion.div>
 
-          <Tabs defaultValue="notifications">
-            <TabsList className="mb-6">
+            <Tabs defaultValue="notifications">
+            <TabsList className="mb-6 flex-wrap">
               <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-2" />Notifications</TabsTrigger>
+              <TabsTrigger value="push"><Smartphone className="h-4 w-4 mr-2" />Push</TabsTrigger>
               <TabsTrigger value="security"><Shield className="h-4 w-4 mr-2" />Security</TabsTrigger>
-              <TabsTrigger value="devices"><Smartphone className="h-4 w-4 mr-2" />Devices</TabsTrigger>
+              <TabsTrigger value="devices"><Key className="h-4 w-4 mr-2" />Devices</TabsTrigger>
               <TabsTrigger value="referral"><LinkIcon className="h-4 w-4 mr-2" />Referral</TabsTrigger>
             </TabsList>
 
@@ -152,6 +154,17 @@ export default function SettingsPage() {
                       />
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="push">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Push Notifications</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <PushNotificationManager />
                 </CardContent>
               </Card>
             </TabsContent>

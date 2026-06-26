@@ -17,6 +17,8 @@ export { default as DeviceSession } from "./DeviceSession";
 export { default as LoginHistory } from "./LoginHistory";
 export { default as NotificationPreference } from "./NotificationPreference";
 export { default as EmailTemplate } from "./EmailTemplate";
+export { default as CallHistory } from "./CallHistory";
+export { default as AuditLog } from "./AuditLog";
 
 export type { IUser } from "./User";
 export type { IProfile } from "./Profile";
@@ -37,3 +39,5 @@ export type { IDeviceSession } from "./DeviceSession";
 export type { ILoginHistory } from "./LoginHistory";
 export type { INotificationPreference } from "./NotificationPreference";
 export type { IEmailTemplate } from "./EmailTemplate";
+export type { ICallHistory } from "./CallHistory";
+export type { IAuditLog } from "./AuditLog";
