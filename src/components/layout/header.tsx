@@ -10,15 +10,20 @@ import {
   X,
   Sun,
   Moon,
-  Search,
   Bell,
   User,
   LogOut,
   Settings,
   Crown,
   ChevronDown,
+  Search,
+  MessageCircle,
+  Shield,
+  type LucideIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
+import { useAuthStore } from "@/stores/auth-store";
+import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -31,7 +36,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn, getInitials } from "@/lib/utils";
 
-const publicLinks = [
+interface NavLink {
+  href: string;
+  label: string;
+  icon?: LucideIcon;
+}
+
+const publicLinks: NavLink[] = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/pricing", label: "Pricing" },
@@ -40,12 +51,12 @@ const publicLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
-const dashboardLinks = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard/search", label: "Search" },
-  { href: "/dashboard/interests", label: "Interests" },
-  { href: "/dashboard/messages", label: "Messages" },
-  { href: "/dashboard/favorites", label: "Favorites" },
+const dashboardLinks: NavLink[] = [
+  { href: "/dashboard", label: "Dashboard", icon: User },
+  { href: "/dashboard/search", label: "Search", icon: Search },
+  { href: "/dashboard/interests", label: "Interests", icon: Heart },
+  { href: "/dashboard/messages", label: "Messages", icon: MessageCircle },
+  { href: "/dashboard/favorites", label: "Favorites", icon: Heart },
 ];
 
 export function Header() {
@@ -54,10 +65,8 @@ export function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
-
-  // Mock auth state - replace with real auth context
-  const isLoggedIn = false;
-  const user = null as { firstName: string; lastName: string } | null;
+  const { user: authUser, isAuthenticated } = useAuthStore();
+  const { logout } = useAuth();
 
   React.useEffect(() => {
     setMounted(true);
@@ -67,25 +76,26 @@ export function Header() {
   }, []);
 
   const isDashboard = pathname.startsWith("/dashboard");
-  const links = isDashboard ? dashboardLinks : publicLinks;
+  const isAdmin = pathname.startsWith("/admin");
+  const links = isDashboard || isAdmin ? dashboardLinks : publicLinks;
 
   return (
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         isScrolled
-          ? "bg-background/80 backdrop-blur-xl border-b border-border shadow-sm"
+          ? "glass border-b border-border/50 shadow-sm"
           : "bg-transparent"
       )}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25 group-hover:shadow-rose-500/40 transition-shadow">
+          <Link href="/" className="flex items-center gap-2.5 group">
+<div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-purple-600 shadow-lg shadow-rose-500/25 group-hover:shadow-rose-500/40 transition-all duration-300 group-hover:scale-105">
               <Heart className="h-5 w-5 text-white" fill="white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">
+            <span className="text-xl font-bold tracking-tight hidden sm:block">
               Marriage<span className="text-primary">Media</span>
             </span>
           </Link>
@@ -97,10 +107,10 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "px-3.5 py-2 text-sm font-medium rounded-xl transition-all duration-200",
                   pathname === link.href
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "text-primary bg-primary/10 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/80"
                 )}
               >
                 {link.label}
@@ -116,6 +126,7 @@ export function Header() {
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="rounded-xl"
+              aria-label="Toggle theme"
             >
               {mounted && (
                 <motion.div
@@ -132,10 +143,10 @@ export function Header() {
               )}
             </Button>
 
-            {isLoggedIn ? (
+            {isAuthenticated && authUser ? (
               <>
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="rounded-xl relative">
+                <Button variant="ghost" size="icon" className="rounded-xl relative" aria-label="Notifications">
                   <Bell className="h-5 w-5" />
                   <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-white flex items-center justify-center">
                     3
@@ -146,16 +157,28 @@ export function Header() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="rounded-xl gap-2 px-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="" alt="" />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {user ? getInitials(`${user.firstName} ${user.lastName}`) : "U"}
+                      <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                        <AvatarImage src={authUser.avatar} alt="" />
+<AvatarFallback className="bg-linear-to-br from-primary/10 to-purple-500/10 text-primary text-xs font-semibold">
+                          {authUser.firstName
+                            ? getInitials(`${authUser.firstName} ${authUser.lastName || ""}`)
+                            : "U"}
                         </AvatarFallback>
                       </Avatar>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 glass">
+                    <div className="px-3 py-2 border-b border-border">
+                      <p className="text-sm font-medium">{authUser.firstName || "User"}</p>
+                      <p className="text-xs text-muted-foreground">{authUser.email}</p>
+                      {authUser.isPremium && (
+                        <Badge variant="secondary" className="mt-1 text-xs">
+                          <Crown className="h-3 w-3 mr-1" />
+                          Premium
+                        </Badge>
+                      )}
+                    </div>
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
@@ -168,14 +191,25 @@ export function Header() {
                         Profile Settings
                       </Link>
                     </DropdownMenuItem>
+                    {authUser.role === "admin" && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin" className="cursor-pointer">
+                          <Shield className="mr-2 h-4 w-4" />
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
                       <Link href="/pricing" className="cursor-pointer">
                         <Crown className="mr-2 h-4 w-4" />
-                        Upgrade to Premium
+                        {authUser.isPremium ? "Manage Premium" : "Upgrade to Premium"}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer text-destructive">
+                    <DropdownMenuItem
+                      className="cursor-pointer text-destructive"
+                      onClick={() => logout()}
+                    >
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
                     </DropdownMenuItem>
@@ -199,6 +233,7 @@ export function Header() {
               size="icon"
               className="md:hidden rounded-xl"
               onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -213,7 +248,7 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl"
+            className="md:hidden border-t border-border/50 glass"
           >
             <nav className="mx-auto max-w-7xl px-4 py-4 space-y-1">
               {links.map((link) => (
@@ -222,16 +257,17 @@ export function Header() {
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    "block px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
+                    "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors",
                     pathname === link.href
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   )}
                 >
+                  {link.icon && <link.icon className="h-4 w-4" />}
                   {link.label}
                 </Link>
               ))}
-              {!isLoggedIn && (
+              {!isAuthenticated && (
                 <div className="pt-4 space-y-2">
                   <Button variant="outline" asChild className="w-full rounded-xl">
                     <Link href="/login" onClick={() => setMobileOpen(false)}>

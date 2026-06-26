@@ -1,11 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Inter, Poppins, Playfair_Display } from "next/font/google";
+import { Providers } from "@/providers/providers";
+import { ThemeInit } from "@/components/theme-init";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-playfair",
   display: "swap",
 });
 
@@ -27,6 +42,8 @@ export const metadata: Metadata = {
     "biye",
     "dating",
     "relationship",
+    "AI matchmaking",
+    "verified profiles",
   ],
   authors: [{ name: "Marriage Media" }],
   creator: "Marriage Media",
@@ -93,20 +110,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      data-scroll-behavior="smooth"
+    >
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="canonical" href="https://marriagemedia.com" />
+        <meta name="theme-color" content="#e11d48" />
+        <ThemeInit />
       </head>
-      <body className={`${inter.variable} font-sans`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+      <body
+        className={`${inter.variable} ${poppins.variable} ${playfair.variable} font-sans antialiased`}
+      >
+        <Providers>
           {children}
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
