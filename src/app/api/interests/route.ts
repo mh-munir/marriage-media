@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Interest, Profile, User, Notification } from "@/models";
 import { requireAuth } from "@/lib/auth";
@@ -69,6 +70,68 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ interests });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    await connectToDatabase();
+    const user = await requireAuth(request);
+    const body = (await request.json()) as { interestId?: string; action?: "accept" | "reject" | "cancel" };
+    const { interestId, action } = body;
+
+    if (!interestId || !Types.ObjectId.isValid(interestId)) {
+      return NextResponse.json({ error: "Valid interestId is required" }, { status: 400 });
+    }
+
+    const interest = await Interest.findOne({
+      _id: interestId,
+      $or: [{ senderId: user._id }, { receiverId: user._id }],
+    });
+
+    if (!interest) {
+      return NextResponse.json({ error: "Interest not found" }, { status: 404 });
+    }
+
+    if (action === "accept") {
+      if (interest.receiverId.toString() !== user._id.toString()) {
+        return NextResponse.json({ error: "Only the receiver can accept this interest" }, { status: 403 });
+      }
+      interest.status = "accepted";
+      await interest.save();
+      await Notification.create({
+        userId: interest.senderId,
+        type: "interest",
+        title: "Interest Accepted",
+        message: "Your interest was accepted by the other person.",
+        link: "/dashboard/interests",
+      });
+      return NextResponse.json({ interest });
+    }
+
+    if (action === "reject") {
+      if (interest.receiverId.toString() !== user._id.toString()) {
+        return NextResponse.json({ error: "Only the receiver can reject this interest" }, { status: 403 });
+      }
+      interest.status = "rejected";
+      await interest.save();
+      return NextResponse.json({ interest });
+    }
+
+    if (action === "cancel") {
+      if (interest.senderId.toString() !== user._id.toString()) {
+        return NextResponse.json({ error: "Only the sender can withdraw this interest" }, { status: 403 });
+      }
+      interest.status = "cancelled";
+      await interest.save();
+      return NextResponse.json({ interest });
+    }
+
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
     const status = message === "Unauthorized" ? 401 : 500;

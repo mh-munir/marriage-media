@@ -14,6 +14,70 @@ function unauthorizedStatus(message: string): number {
   return message === "Unauthorized" ? 401 : 500;
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    await connectToDatabase();
+    const user = await requireAuth(request);
+
+    const favorites = await Favorite.find({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .lean<{ _id: Types.ObjectId; profileId: Types.ObjectId; createdAt: Date }[]>()
+      .exec();
+
+    if (!favorites.length) {
+      return NextResponse.json({ favorites: [] });
+    }
+
+    const profileIds = favorites.map((favorite) => favorite.profileId);
+    const profiles = await Profile.find({ userId: { $in: profileIds } })
+      .select("userId firstName lastName age height profession highestEducation photos isPremium isVerified aboutMe district division religion")
+      .lean<{
+        userId: Types.ObjectId;
+        firstName?: string;
+        lastName?: string;
+        age?: number;
+        height?: string;
+        profession?: string;
+        highestEducation?: string;
+        district?: string;
+        division?: string;
+        religion?: string;
+        photos?: Array<{ url?: string }>;
+        isPremium?: boolean;
+        isVerified?: boolean;
+        aboutMe?: string;
+      }[]>()
+      .exec();
+
+    const profileMap = new Map(profiles.map((profile) => [profile.userId.toString(), profile]));
+
+    const mappedFavorites = favorites.map((favorite) => {
+      const profile = profileMap.get(favorite.profileId.toString());
+      return {
+        id: favorite._id.toString(),
+        profileUserId: profile?.userId?.toString() || favorite.profileId.toString(),
+        name: profile ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() : "Saved profile",
+        age: profile?.age ?? null,
+        height: profile?.height ?? "",
+        location: profile?.district || profile?.division || "Bangladesh",
+        religion: profile?.religion ?? "",
+        profession: profile?.profession ?? "",
+        education: profile?.highestEducation ?? "",
+        compatibility: profile?.isPremium ? 92 : 86,
+        isPremium: Boolean(profile?.isPremium),
+        isVerified: Boolean(profile?.isVerified),
+        about: profile?.aboutMe ?? "",
+        addedAt: favorite.createdAt ? new Date(favorite.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Recently saved",
+      };
+    });
+
+    return NextResponse.json({ favorites: mappedFavorites });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: unauthorizedStatus(message) });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();

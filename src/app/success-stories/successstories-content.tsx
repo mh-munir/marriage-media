@@ -21,77 +21,55 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const successStories = [
-  {
-    id: "1",
-    names: "Farhana & Imran",
-    location: "Dhaka",
-    marriageDate: "March 2026",
-    story:
-      "We matched on Marriage Media in December 2025. The AI algorithm noticed our shared values and interests. After weeks of chatting, we decided to meet. It was love at first sight! We got married just 3 months later. The platform's verification process gave us confidence that we were talking to genuine people.",
-    image: "",
-    monthsOnPlatform: 1,
-  },
-  {
-    id: "2",
-    names: "Nusrat & Fahim",
-    location: "Chittagong",
-    marriageDate: "January 2026",
-    story:
-      "As a working professional, I hardly had time for traditional matchmaking. Marriage Media's advanced filters helped me find someone who shared my professional ambitions and family values. Fahim was everything I was looking for. We're now happily married with a beautiful daughter.",
-    image: "",
-    monthsOnPlatform: 2,
-  },
-  {
-    id: "3",
-    names: "Sabrina & Rafi",
-    location: "Sylhet",
-    marriageDate: "November 2025",
-    story:
-      "I was skeptical about online matrimony, but my cousin convinced me to try Marriage Media. I'm so glad I did! The platform is easy to use, safe, and the profiles are genuine. Rafi and I connected over our love for travel and cooking. Now we travel the world together!",
-    image: "",
-    monthsOnPlatform: 3,
-  },
-  {
-    id: "4",
-    names: "Tasnia & Karim",
-    location: "Rajshahi",
-    marriageDate: "April 2026",
-    story:
-      "Karim's profile caught my eye because of his detailed about section and verified badge. We started chatting and discovered we had so much in common - from our career goals to our favorite books. The video call feature helped us connect before meeting in person. Best decision ever!",
-    image: "",
-    monthsOnPlatform: 1,
-  },
-  {
-    id: "5",
-    names: "Maliha & Saif",
-    location: "Khulna",
-    marriageDate: "February 2026",
-    story:
-      "Both our families were looking for suitable matches when we found each other on Marriage Media. The family involvement features were perfect for us - our parents could see each other's profiles and preferences. It made the whole process smooth and comfortable for everyone.",
-    image: "",
-    monthsOnPlatform: 2,
-  },
-  {
-    id: "6",
-    names: "Nadia & Arif",
-    location: "Dhaka",
-    marriageDate: "December 2025",
-    story:
-      "We were both premium members and the AI matching suggested we were 94% compatible. After our first meeting at a coffee shop, we knew the algorithm was right! The platform's safety features, like the ability to share contact info only after mutual consent, made us feel secure throughout.",
-    image: "",
-    monthsOnPlatform: 1,
-  },
-];
+interface StoryCard {
+  id: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  slug: string;
+  imageUrl: string | null;
+  publishedAt: string | null;
+}
 
 const stats = [
-  { label: "Happy Couples", value: "10,000+", icon: Heart },
-  { label: "Success Rate", value: "85%", icon: Star },
-  { label: "Average Match Time", value: "3 Months", icon: Calendar },
-  { label: "Cities Covered", value: "64+", icon: MapPin },
+  { label: "Happy Couples", value: "Live", icon: Heart },
+  { label: "Success Rate", value: "Database", icon: Star },
+  { label: "Average Match Time", value: "Live", icon: Calendar },
+  { label: "Cities Covered", value: "Live", icon: MapPin },
 ];
 
 export default function SuccessStoriesPage() {
+  const [stories, setStories] = React.useState<StoryCard[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    async function loadStories() {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/success-stories?limit=6");
+        const data = (await response.json()) as { stories?: StoryCard[] };
+        if (isMounted) {
+          setStories(Array.isArray(data.stories) ? data.stories : []);
+        }
+      } catch {
+        if (isMounted) {
+          setStories([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadStories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   return (
     <div className="min-h-screen">
       <Header />
@@ -152,63 +130,63 @@ export default function SuccessStoriesPage() {
       {/* Stories Grid */}
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {successStories.map((story, index) => (
-              <motion.div
-                key={story.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="h-full hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    {/* Couple Header */}
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="h-16 w-16 rounded-full bg-linear-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
-                        {story.names
-                          .split(" & ")
-                          .map((n) => n.charAt(0))
-                          .join("")}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg">{story.names}</h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          {story.location}
+          {isLoading ? (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Loading success stories from the database...
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {stories.map((story, index) => (
+                <motion.div
+                  key={story.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="h-full hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="h-16 w-16 rounded-full bg-linear-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                          {story.title.slice(0, 2).toUpperCase()}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          <Calendar className="h-3 w-3" />
-                          Married {story.marriageDate}
+                        <div>
+                          <h3 className="font-semibold text-lg">{story.title}</h3>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            {story.category}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <Calendar className="h-3 w-3" />
+                            {story.publishedAt ? new Date(story.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recently published"}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Story */}
-                    <div className="relative mb-4">
-                      <Quote className="h-6 w-6 text-primary/20 absolute -top-1 -left-1" />
-                      <p className="text-sm text-muted-foreground leading-relaxed pl-6">
-                        {story.story}
-                      </p>
-                    </div>
+                      <div className="relative mb-4">
+                        <Quote className="h-6 w-6 text-primary/20 absolute -top-1 -left-1" />
+                        <p className="text-sm text-muted-foreground leading-relaxed pl-6">
+                          {story.excerpt}
+                        </p>
+                      </div>
 
-                    {/* Meta */}
-                    <div className="flex items-center justify-between pt-4 border-t border-border">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Sparkles className="h-3 w-3 text-primary" />
-                        Found match in {story.monthsOnPlatform} month{story.monthsOnPlatform > 1 ? "s" : ""}
+                      <div className="flex items-center justify-between pt-4 border-t border-border">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Sparkles className="h-3 w-3 text-primary" />
+                          Published from the live blog feed
+                        </div>
+                        <div className="flex gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

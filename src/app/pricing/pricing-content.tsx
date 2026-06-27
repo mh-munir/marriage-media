@@ -23,71 +23,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const plans = [
-  {
-    name: "Free",
-    price: "0",
-    period: "forever",
-    description: "Get started with basic features",
-    icon: Heart,
-    features: [
-      { text: "Create Profile", included: true },
-      { text: "Basic Search", included: true },
-      { text: "5 Interests per day", included: true },
-      { text: "Save Favorites", included: true },
-      { text: "View Profile Photos", included: true },
-    ],
-    notIncluded: [
-      "Unlimited Chat",
-      "View Contact Info",
-      "AI Match Recommendations",
-      "Profile Boost",
-      "See Who Viewed You",
-      "Featured Badge",
-    ],
-    cta: "Get Started Free",
-    popular: false,
-  },
-  {
-    name: "Premium",
-    price: "999",
-    period: "/month",
-    description: "Everything you need to find your match",
-    icon: Crown,
-    features: [
-      { text: "Everything in Free", included: true },
-      { text: "Unlimited Interests", included: true },
-      { text: "Unlimited Chat", included: true },
-      { text: "View Contact Info", included: true },
-      { text: "AI Match Recommendations", included: true },
-      { text: "Profile Boost (1x/month)", included: true },
-      { text: "See Who Viewed You", included: true },
-      { text: "Featured Badge", included: true },
-      { text: "Priority Support", included: true },
-    ],
-    notIncluded: [],
-    cta: "Start Premium",
-    popular: true,
-  },
-  {
-    name: "Gold",
-    price: "1,999",
-    period: "/month",
-    description: "Maximum visibility and features",
-    icon: Sparkles,
-    features: [
-      { text: "Everything in Premium", included: true },
-      { text: "Top Search Results", included: true },
-      { text: "Profile Highlight", included: true },
-      { text: "Dedicated Matchmaker", included: true },
-      { text: "Profile Boost (3x/month)", included: true },
-      { text: "VIP Support", included: true },
-    ],
-    notIncluded: [],
-    cta: "Go Gold",
-    popular: false,
-  },
-];
+interface PricingPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  period: string;
+  popular: boolean;
+  features: string[];
+  notIncluded: string[];
+  icon: string;
+}
+
+interface Testimonial {
+  name: string;
+  location: string;
+  plan: string;
+  story: string;
+}
+
+interface FAQItem {
+  q: string;
+  a: string;
+}
+
+interface PricingData {
+  plans: PricingPlan[];
+  testimonials: Testimonial[];
+  faqs: FAQItem[];
+  couponCount?: number;
+}
 
 const premiumBenefits = [
   {
@@ -112,29 +77,43 @@ const premiumBenefits = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Farhana & Imran",
-    location: "Dhaka",
-    plan: "Premium",
-    story: "Upgraded to Premium and found my match within 2 weeks! The AI recommendations were spot on.",
-  },
-  {
-    name: "Nusrat & Fahim",
-    location: "Chittagong",
-    plan: "Gold",
-    story: "The Gold plan's dedicated matchmaker helped us find each other. Best investment ever!",
-  },
-  {
-    name: "Sabrina & Rafi",
-    location: "Sylhet",
-    plan: "Premium",
-    story: "Being able to see who viewed my profile and send unlimited interests made all the difference.",
-  },
-];
-
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "quarterly" | "yearly">("monthly");
+  const [pricingData, setPricingData] = React.useState<PricingData | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    async function loadPricingData() {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/pricing");
+        const data = (await response.json()) as PricingData;
+        if (isMounted) {
+          setPricingData(data);
+        }
+      } catch {
+        if (isMounted) {
+          setPricingData(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadPricingData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const plans = pricingData?.plans ?? [];
+  const testimonials = pricingData?.testimonials ?? [];
+  const faqs = pricingData?.faqs ?? [];
 
   return (
     <div className="min-h-screen">
@@ -218,7 +197,7 @@ export default function PricingPage() {
                   <CardContent className="p-8">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <plan.icon className="h-5 w-5 text-primary" />
+                        {plan.icon === "crown" ? <Crown className="h-5 w-5 text-primary" /> : plan.icon === "sparkles" ? <Sparkles className="h-5 w-5 text-primary" /> : <Heart className="h-5 w-5 text-primary" />}
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">{plan.name}</h3>
@@ -240,16 +219,16 @@ export default function PricingPage() {
                       asChild
                     >
                       <Link href="/register">
-                        {plan.cta}
+                        {plan.popular ? "Start Premium" : plan.name === "Gold" ? "Go Gold" : "Get Started Free"}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
 
                     <div className="space-y-3">
                       {plan.features.map((feature) => (
-                        <div key={feature.text} className="flex items-center gap-2">
+                        <div key={feature} className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                          <span className="text-sm">{feature.text}</span>
+                          <span className="text-sm">{feature}</span>
                         </div>
                       ))}
                       {plan.notIncluded.map((feature) => (
@@ -375,24 +354,7 @@ export default function PricingPage() {
             <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
           </motion.div>
           <div className="space-y-4">
-            {[
-              {
-                q: "Can I upgrade my plan later?",
-                a: "Yes, you can upgrade from Free to Premium or Gold at any time. The price will be prorated for the remaining days in your billing cycle.",
-              },
-              {
-                q: "Is there a refund policy?",
-                a: "Yes, we offer a 7-day money-back guarantee. If you're not satisfied with your premium experience, contact us for a full refund.",
-              },
-              {
-                q: "What payment methods do you accept?",
-                a: "We accept bKash, Nagad, SSLCommerz, and Stripe. All payments are secure and encrypted.",
-              },
-              {
-                q: "Can I cancel my subscription?",
-                a: "Yes, you can cancel anytime from your dashboard. You'll continue to enjoy premium features until the end of your billing period.",
-              },
-            ].map((faq) => (
+            {faqs.map((faq) => (
               <Card key={faq.q}>
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">{faq.q}</h3>
