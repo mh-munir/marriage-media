@@ -1,7 +1,90 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
-import { Profile } from "@/models";
+import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
+
+type ProfilePhoto = {
+  url?: string;
+  isPrimary?: boolean;
+  isApproved?: boolean;
+};
+
+type SearchProfile = {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  gender?: string;
+  age?: number;
+  height?: string;
+  religion?: string;
+  caste?: string;
+  motherTongue?: string;
+  country?: string;
+  division?: string;
+  district?: string;
+  area?: string;
+  highestEducation?: string;
+  profession?: string;
+  workingWith?: string;
+  familyStatus?: string;
+  aboutMe?: string;
+  photos?: ProfilePhoto[];
+  isPremium?: boolean;
+  isVerified?: boolean;
+  isProfileBoosted?: boolean;
+  boostedAt?: Date;
+  premiumExpiry?: Date;
+  lastActiveAt?: Date;
+  profileViews?: number;
+  maritalStatus?: string;
+  profileCreatedBy?: string;
+  createdAt?: Date;
+};
+
+const PROFILE_SELECT =
+  "userId firstName lastName gender age height religion caste motherTongue country division district area highestEducation profession workingWith familyStatus aboutMe photos isPremium isVerified isProfileBoosted boostedAt premiumExpiry lastActiveAt profileViews maritalStatus profileCreatedBy createdAt";
+
+function parsePositiveInt(value: string | null, fallback: number, max: number): number {
+  const parsed = Number.parseInt(value || "", 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
+function getSort(sortBy: string | null): Record<string, 1 | -1> {
+  switch (sortBy) {
+    case "newest":
+      return { createdAt: -1, _id: -1 };
+    case "oldest":
+      return { createdAt: 1, _id: 1 };
+    case "age-asc":
+      return { age: 1, lastActiveAt: -1 };
+    case "age-desc":
+      return { age: -1, lastActiveAt: -1 };
+    case "recently-active":
+      return { lastActiveAt: -1, isPremium: -1 };
+    case "profile-completeness":
+    case "views-desc":
+      return { profileViews: -1, lastActiveAt: -1 };
+    case "premium":
+      return { isPremium: -1, premiumExpiry: -1, lastActiveAt: -1 };
+    case "verified":
+      return { isVerified: -1, lastActiveAt: -1 };
+    default:
+      return {
+        isProfileBoosted: -1,
+        isPremium: -1,
+        isVerified: -1,
+        lastActiveAt: -1,
+      };
+  }
+}
+
+function getPrimaryPhoto(photos: ProfilePhoto[] | undefined): string | null {
+  const approved = photos?.filter((photo) => photo.isApproved && photo.url) ?? [];
+  return approved.find((photo) => photo.isPrimary)?.url ?? approved[0]?.url ?? null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,6 +164,11 @@ export async function GET(request: NextRequest) {
     const profession = searchParams.get("profession");
     if (profession) {
       filter.profession = profession;
+    }
+
+    const workingWith = searchParams.get("workingWith");
+    if (workingWith) {
+      filter.workingWith = workingWith;
     }
 
     // 13. Income Range
@@ -236,54 +324,81 @@ export async function GET(request: NextRequest) {
     }
 
     // Pagination
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "12"), 50);
+    const page = parsePositiveInt(searchParams.get("page"), 1, 10_000);
+    const limit = parsePositiveInt(searchParams.get("limit"), 12, 50);
     const skip = (page - 1) * limit;
 
     // Sort
-    const sortBy = searchParams.get("sortBy") || "relevance";
-    let sort: Record<string, 1 | -1>;
-
-    switch (sortBy) {
-      case "newest":
-        sort = { createdAt: -1 };
-        break;
-      case "oldest":
-        sort = { createdAt: 1 };
-        break;
-      case "age-asc":
-        sort = { age: 1 };
-        break;
-      case "age-desc":
-        sort = { age: -1 };
-        break;
-      case "recently-active":
-        sort = { lastActiveAt: -1 };
-        break;
-      case "profile-completeness":
-        sort = { profileViews: -1, lastActiveAt: -1 };
-        break;
-      default:
-        // Default: boosted first, then premium, then by last active
-        sort = {
-          isProfileBoosted: -1,
-          isPremium: -1,
-          lastActiveAt: -1,
-        };
-    }
+    const sort = getSort(searchParams.get("sortBy"));
 
     const [profiles, total] = await Promise.all([
       Profile.find(filter)
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .select("firstName lastName gender age height weight bloodGroup religion caste motherTongue languages country division district area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues diet smoke drink hobbies aboutMe photos isPremium isVerified isProfileBoosted boostedAt lastActiveAt profileViews maritalStatus profileCreatedBy")
-        .lean(),
+        .select(PROFILE_SELECT)
+        .lean<SearchProfile[]>()
+        .exec(),
       Profile.countDocuments(filter),
     ]);
 
+    const now = new Date();
+    const onlineSince = now.getTime() - 15 * 60 * 1000;
+    const profileUserIds = profiles.map((profile) => profile.userId);
+    const favorites = profileUserIds.length
+      ? await Favorite.find({
+          userId: user._id,
+          profileId: { $in: profileUserIds },
+        })
+          .select("profileId")
+          .lean<{ profileId: Types.ObjectId }[]>()
+          .exec()
+      : [];
+    const favoriteIds = new Set(favorites.map((favorite) => favorite.profileId.toString()));
+
+    const enrichedProfiles = profiles.map((profile) => {
+      const lastActiveAt = profile.lastActiveAt instanceof Date ? profile.lastActiveAt : null;
+
+      return {
+        _id: profile._id.toString(),
+        userId: profile.userId.toString(),
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        gender: profile.gender || "",
+        age: profile.age ?? null,
+        height: profile.height || "",
+        religion: profile.religion || "",
+        caste: profile.caste || "",
+        motherTongue: profile.motherTongue || "",
+        country: profile.country || "",
+        division: profile.division || "",
+        district: profile.district || "",
+        area: profile.area || "",
+        highestEducation: profile.highestEducation || "",
+        profession: profile.profession || "",
+        workingWith: profile.workingWith || "",
+        familyStatus: profile.familyStatus || "",
+        aboutMe: profile.aboutMe || "",
+        imageUrl: getPrimaryPhoto(profile.photos),
+        isPremium: Boolean(
+          profile.isPremium &&
+            profile.premiumExpiry instanceof Date &&
+            profile.premiumExpiry > now
+        ),
+        isVerified: Boolean(profile.isVerified),
+        isProfileBoosted: Boolean(profile.isProfileBoosted),
+        isFavorite: favoriteIds.has(profile.userId.toString()),
+        isOnline: Boolean(lastActiveAt && lastActiveAt.getTime() >= onlineSince),
+        lastActiveAt: lastActiveAt?.toISOString() ?? null,
+        profileViews: profile.profileViews ?? 0,
+        maritalStatus: profile.maritalStatus || "",
+        profileCreatedBy: profile.profileCreatedBy || "",
+        createdAt: profile.createdAt?.toISOString() ?? null,
+      };
+    });
+
     return NextResponse.json({
-      profiles,
+      profiles: enrichedProfiles,
       pagination: {
         page,
         limit,

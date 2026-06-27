@@ -14,6 +14,8 @@ import {
   Star,
   ArrowRight,
   UserPlus,
+  Loader2,
+  Bell,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -21,24 +23,152 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthStore } from "@/stores/auth-store";
+import { useNotificationStore } from "@/stores/notification-store";
+import { getInitials } from "@/lib/utils";
 
-const stats = [
-  { label: "Profile Views", value: "24", icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { label: "Interests Received", value: "12", icon: Heart, color: "text-rose-500", bg: "bg-rose-500/10" },
-  { label: "Mutual Interests", value: "5", icon: UserPlus, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { label: "Messages", value: "3", icon: MessageCircle, color: "text-purple-500", bg: "bg-purple-500/10" },
-];
+interface ProfileSummary {
+  profileViews?: number;
+  profileCompleted?: number;
+  firstName?: string;
+  lastName?: string;
+  age?: number;
+  profession?: string;
+  division?: string;
+  district?: string;
+  area?: string;
+  photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>;
+}
 
-const recentMatches = [
-  { name: "Fatima K.", age: 24, location: "Dhaka", profession: "Engineer", compatibility: 92 },
-  { name: "Ayesha R.", age: 26, location: "Chittagong", profession: "Doctor", compatibility: 87 },
-  { name: "Nadia S.", age: 23, location: "Sylhet", profession: "Teacher", compatibility: 84 },
-  { name: "Samira H.", age: 25, location: "Rajshahi", profession: "Lawyer", compatibility: 81 },
-];
+interface RecommendedMatch {
+  userId: string;
+  firstName?: string;
+  lastName?: string;
+  age?: number;
+  profession?: string;
+  division?: string;
+  district?: string;
+  area?: string;
+  compatibility?: number;
+  photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>;
+}
+
+function formatCount(value: number): string {
+  return new Intl.NumberFormat("en", {
+    notation: value >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function getPrimaryPhoto(photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>): string | undefined {
+  const approved = photos?.filter((photo) => photo.isApproved && photo.url) ?? [];
+  return approved.find((photo) => photo.isPrimary)?.url ?? approved[0]?.url ?? undefined;
+}
+
+function getLocation(profile: Pick<ProfileSummary, "division" | "district" | "area">): string {
+  return [profile.area, profile.district, profile.division].filter(Boolean).join(", ") || "Location not added";
+}
 
 export default function DashboardPage() {
-  const profileCompletion = 65;
+  const { user } = useAuthStore();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
+  const [profile, setProfile] = React.useState<ProfileSummary | null>(null);
+  const [recommendations, setRecommendations] = React.useState<RecommendedMatch[]>([]);
+  const [interestCount, setInterestCount] = React.useState(0);
+  const [conversationStats, setConversationStats] = React.useState({ total: 0, unread: 0 });
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    void fetchNotifications(true);
+  }, [fetchNotifications]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      setIsLoading(true);
+
+      try {
+        const [profileRes, interestsRes, conversationsRes, recommendationsRes] = await Promise.all([
+          fetch("/api/profile"),
+          fetch("/api/interests?type=received"),
+          fetch("/api/chat/conversations"),
+          fetch("/api/search/recommendations?limit=4"),
+        ]);
+
+        const profileData = profileRes.ok ? await profileRes.json() : null;
+        const interestsData = interestsRes.ok ? await interestsRes.json() : { interests: [] };
+        const conversationsData = conversationsRes.ok ? await conversationsRes.json() : { conversations: [] };
+        const recommendationsData = recommendationsRes.ok ? await recommendationsRes.json() : { profiles: [] };
+
+        if (!isMounted) return;
+
+        const nextProfile = profileData?.profile as ProfileSummary | undefined;
+        setProfile(nextProfile ?? null);
+        setInterestCount(Array.isArray(interestsData.interests) ? interestsData.interests.length : 0);
+
+        const conversations = Array.isArray(conversationsData.conversations) ? conversationsData.conversations : [];
+        const unread = conversations.reduce((sum, conversation) => sum + (conversation?.unreadCount || 0), 0);
+        setConversationStats({ total: conversations.length, unread });
+        setRecommendations(Array.isArray(recommendationsData.profiles) ? recommendationsData.profiles : []);
+      } catch {
+        if (isMounted) {
+          setProfile(null);
+          setInterestCount(0);
+          setConversationStats({ total: 0, unread: 0 });
+          setRecommendations([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const profileCompletion = profile?.profileCompleted ?? user?.profileCompleted ?? 0;
+  const displayName = user?.firstName || user?.email?.split("@")[0] || "there";
+
+  const stats = React.useMemo(
+    () => [
+      {
+        label: "Profile Views",
+        value: isLoading ? "—" : formatCount(profile?.profileViews ?? 0),
+        icon: Eye,
+        color: "text-blue-500",
+        bg: "bg-blue-500/10",
+      },
+      {
+        label: "Interests Received",
+        value: isLoading ? "—" : formatCount(interestCount),
+        icon: Heart,
+        color: "text-rose-500",
+        bg: "bg-rose-500/10",
+      },
+      {
+        label: "Unread Alerts",
+        value: isLoading ? "—" : formatCount(unreadCount),
+        icon: Bell,
+        color: "text-emerald-500",
+        bg: "bg-emerald-500/10",
+      },
+      {
+        label: "Unread Messages",
+        value: isLoading ? "—" : formatCount(conversationStats.unread),
+        icon: MessageCircle,
+        color: "text-purple-500",
+        bg: "bg-purple-500/10",
+      },
+    ],
+    [conversationStats.unread, interestCount, isLoading, profile?.profileViews, unreadCount]
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,19 +176,17 @@ export default function DashboardPage() {
 
       <main className="pt-20 pb-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Welcome Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back! 👋</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, {displayName}! 👋</h1>
             <p className="text-muted-foreground">
-              Here's what's happening with your profile today.
+              Here&apos;s what&apos;s happening with your profile today.
             </p>
           </motion.div>
 
-          {/* Profile Completion Banner */}
           {profileCompletion < 100 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -71,7 +199,7 @@ export default function DashboardPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold mb-1">Complete your profile</h3>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Profiles with 100% completion get 3x more views and interests.
+                        Profiles with 100% completion get more visibility and better match suggestions.
                       </p>
                       <div className="flex items-center gap-3">
                         <Progress value={profileCompletion} className="flex-1 max-w-xs" />
@@ -90,7 +218,6 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* Stats Grid */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -115,7 +242,6 @@ export default function DashboardPage() {
           </motion.div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Recommended Matches */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -133,50 +259,66 @@ export default function DashboardPage() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {recentMatches.map((match) => (
-                      <div
-                        key={match.name}
-                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-colors"
-                      >
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                            {match.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium truncate">{match.name}</h4>
-                            <Badge variant="secondary" className="text-xs">
-                              {match.age} yrs
-                            </Badge>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : recommendations.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                      Complete your profile and start exploring to unlock match recommendations.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {recommendations.map((match) => {
+                        const name = [match.firstName, match.lastName].filter(Boolean).join(" ") || "Match";
+                        const location = getLocation(match);
+                        return (
+                          <div
+                            key={match.userId}
+                            className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-colors"
+                          >
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={getPrimaryPhoto(match.photos)} alt={name} />
+                              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                {getInitials(name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium truncate">{name}</h4>
+                                {typeof match.age === "number" ? (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {match.age} yrs
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {match.profession || "Profile shared"} · {location}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center gap-1">
+                                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                                <span className="text-sm font-semibold text-emerald-500">
+                                  {match.compatibility ?? 0}%
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">match</span>
+                            </div>
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href="/dashboard/search">
+                                <ArrowRight className="h-4 w-4" />
+                              </Link>
+                            </Button>
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {match.profession} · {match.location}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex items-center gap-1">
-                            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                            <span className="text-sm font-semibold text-emerald-500">
-                              {match.compatibility}%
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground">match</span>
-                        </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/profile/${match.name}`}>
-                            <ArrowRight className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Quick Actions */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -215,7 +357,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              {/* Premium Upsell */}
               <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-3">

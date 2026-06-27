@@ -4,6 +4,29 @@ import { Profile, User } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { calculateAge } from "@/lib/utils";
 
+function calculateProfileCompletion(body: Record<string, unknown>) {
+  const completionFields = [
+    body.firstName,
+    body.lastName,
+    body.gender,
+    body.dateOfBirth,
+    body.height,
+    body.maritalStatus,
+    body.religion,
+    body.motherTongue,
+    body.country,
+    body.division,
+    body.district,
+    body.highestEducation,
+    body.profession,
+    body.aboutMe,
+    body.partnerPreference,
+  ];
+
+  const completedFields = completionFields.filter((value) => Boolean(value && String(value).trim())).length;
+  return Math.round((completedFields / completionFields.length) * 100);
+}
+
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
@@ -51,15 +74,7 @@ export async function POST(request: NextRequest) {
       age,
     });
 
-    // Calculate profile completion
-    const completionFields = [
-      body.firstName, body.lastName, body.gender, body.dateOfBirth,
-      body.height, body.maritalStatus, body.religion, body.highestEducation,
-      body.profession, body.country, body.division, body.district,
-      body.aboutMe,
-    ];
-    const completedFields = completionFields.filter(Boolean).length;
-    const completionPercentage = Math.round((completedFields / completionFields.length) * 100);
+    const completionPercentage = calculateProfileCompletion(body);
 
     // Update user profile completion
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
@@ -96,6 +111,9 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    const completionPercentage = calculateProfileCompletion(body);
+    await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
 
     return NextResponse.json({ profile });
   } catch (error: unknown) {

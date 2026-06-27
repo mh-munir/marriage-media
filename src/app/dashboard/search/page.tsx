@@ -1,56 +1,104 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Search,
-  Heart,
-  Star,
-  MapPin,
-  GraduationCap,
-  Briefcase,
   ArrowLeft,
-  Sparkles,
-  Shield,
-  Crown,
-  X,
-  TrendingUp,
-  Clock,
-  Bookmark,
-  BookmarkCheck,
-  Trash2,
-  Bell,
-  BellOff,
+  Briefcase,
   ChevronLeft,
   ChevronRight,
-  Loader2,
-  MapPinned,
-  Flame,
+  Crown,
   Eye,
-  User,
+  GraduationCap,
+  Heart,
+  Loader2,
+  MapPin,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Star,
+  Wifi,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   SearchFiltersPanel,
   type SearchFilters,
 } from "@/components/search/search-filters";
 
-/* ──────── Helpers ──────── */
+type BrowseProfile = {
+  _id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  age: number | null;
+  height: string;
+  religion: string;
+  caste: string;
+  division: string;
+  district: string;
+  area: string;
+  highestEducation: string;
+  profession: string;
+  aboutMe: string;
+  imageUrl: string | null;
+  isPremium: boolean;
+  isVerified: boolean;
+  isProfileBoosted: boolean;
+  isFavorite: boolean;
+  isOnline: boolean;
+  lastActiveAt: string | null;
+  profileViews?: number;
+  maritalStatus: string;
+  createdAt: string | null;
+  viewCount?: number;
+  lastViewedAt?: string;
+};
 
-function getInitials(firstName: string, lastName: string) {
-  return `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
-}
+type PaginationState = {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+};
 
-function buildSearchUrl(filters: SearchFilters, page: number) {
+type ProfileResponse = {
+  profiles?: BrowseProfile[];
+  pagination?: Partial<PaginationState>;
+  error?: string;
+};
+
+const PAGE_SIZE = 12;
+
+const emptyPagination: PaginationState = {
+  page: 1,
+  limit: PAGE_SIZE,
+  total: 0,
+  pages: 0,
+};
+
+const sortOptions = [
+  { value: "relevance", label: "Best Match" },
+  { value: "recently-active", label: "Recently Active" },
+  { value: "newest", label: "Newest Members" },
+  { value: "age-asc", label: "Age: Low to High" },
+  { value: "age-desc", label: "Age: High to Low" },
+  { value: "premium", label: "Premium First" },
+  { value: "verified", label: "Verified First" },
+  { value: "views-desc", label: "Most Viewed" },
+];
+
+function buildSearchUrl(filters: Partial<SearchFilters>, page: number, sortBy: string) {
   const params = new URLSearchParams();
+
   if (filters.searchQuery) params.set("q", filters.searchQuery);
   if (filters.gender) params.set("gender", filters.gender);
   if (filters.ageMin) params.set("ageMin", filters.ageMin);
@@ -79,149 +127,583 @@ function buildSearchUrl(filters: SearchFilters, page: number) {
   if (filters.hasPhoto) params.set("hasPhoto", "true");
   if (filters.isVerified) params.set("isVerified", "true");
   if (filters.isPremium) params.set("isPremium", "true");
-  if (filters.hobbies.length > 0) params.set("hobbies", filters.hobbies.join(","));
+  if (filters.hobbies?.length) params.set("hobbies", filters.hobbies.join(","));
   if (filters.activeWithinDays) params.set("activeWithinDays", filters.activeWithinDays);
-  if (filters.sortBy && filters.sortBy !== "relevance") params.set("sortBy", filters.sortBy);
   if (filters.caste) params.set("caste", filters.caste);
+
+  params.set("sortBy", sortBy);
   params.set("page", String(page));
-  params.set("limit", "12");
+  params.set("limit", String(PAGE_SIZE));
+
   return `/api/profile/search?${params.toString()}`;
 }
 
-/* ──────── Profile Card ──────── */
+function normalizePagination(pagination?: Partial<PaginationState>): PaginationState {
+  return {
+    page: pagination?.page ?? 1,
+    limit: pagination?.limit ?? PAGE_SIZE,
+    total: pagination?.total ?? 0,
+    pages: pagination?.pages ?? 0,
+  };
+}
 
-interface ProfileCardProps {
-  profile: Record<string, unknown>;
-  index: number;
-  compatibility?: number;
-  proximity?: string;
-  trendingScore?: number;
-  rank?: number;
-  viewCount?: number;
-  lastViewedAt?: string;
-  showViewCount?: boolean;
+function profileName(profile: BrowseProfile): string {
+  return [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Marriage Media Member";
+}
+
+function initials(profile: BrowseProfile): string {
+  return `${profile.firstName?.[0] || ""}${profile.lastName?.[0] || ""}`.toUpperCase() || "MM";
+}
+
+function formatLocation(profile: BrowseProfile): string {
+  return [profile.area, profile.district, profile.division].filter(Boolean).join(", ") || "Location not added";
+}
+
+function formatCount(value: number): string {
+  return new Intl.NumberFormat("en", {
+    notation: value >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+async function fetchJson(url: string, init?: RequestInit): Promise<ProfileResponse> {
+  const response = await fetch(url, init);
+  const data = (await response.json()) as ProfileResponse;
+
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed with ${response.status}`);
+  }
+
+  return data;
+}
+
+export default function DashboardSearchPage() {
+  const [view, setView] = React.useState<"browse" | "recent">("browse");
+  const [filters, setFilters] = React.useState<Partial<SearchFilters>>({});
+  const [sortBy, setSortBy] = React.useState("relevance");
+  const [profiles, setProfiles] = React.useState<BrowseProfile[]>([]);
+  const [pagination, setPagination] = React.useState<PaginationState>(emptyPagination);
+  const [recentProfiles, setRecentProfiles] = React.useState<BrowseProfile[]>([]);
+  const [recentPagination, setRecentPagination] = React.useState<PaginationState>(emptyPagination);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isAppending, setIsAppending] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [infiniteScroll, setInfiniteScroll] = React.useState(true);
+  const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
+  const requestIdRef = React.useRef(0);
+
+  const hasNextPage =
+    view === "browse"
+      ? pagination.page < pagination.pages
+      : recentPagination.page < recentPagination.pages;
+
+  const loadBrowseProfiles = React.useCallback(
+    async (page: number, mode: "replace" | "append" = "replace") => {
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+      setError("");
+
+      if (mode === "append") {
+        setIsAppending(true);
+      } else {
+        setIsLoading(true);
+      }
+
+      try {
+        const data = await fetchJson(buildSearchUrl(filters, page, sortBy));
+        if (requestId !== requestIdRef.current) return;
+
+        const nextProfiles = data.profiles ?? [];
+        setProfiles((prev) => (mode === "append" ? mergeProfiles(prev, nextProfiles) : nextProfiles));
+        setPagination(normalizePagination(data.pagination));
+      } catch (loadError) {
+        if (requestId !== requestIdRef.current) return;
+        setError(loadError instanceof Error ? loadError.message : "Unable to load profiles.");
+        if (mode === "replace") {
+          setProfiles([]);
+          setPagination(emptyPagination);
+        }
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setIsLoading(false);
+          setIsAppending(false);
+        }
+      }
+    },
+    [filters, sortBy]
+  );
+
+  const loadRecentProfiles = React.useCallback(
+    async (page: number, mode: "replace" | "append" = "replace") => {
+      setError("");
+
+      if (mode === "append") {
+        setIsAppending(true);
+      } else {
+        setIsLoading(true);
+      }
+
+      try {
+        const data = await fetchJson(`/api/search/recently-viewed?page=${page}&limit=${PAGE_SIZE}`);
+        const nextProfiles = data.profiles ?? [];
+        setRecentProfiles((prev) => (mode === "append" ? mergeProfiles(prev, nextProfiles) : nextProfiles));
+        setRecentPagination(normalizePagination(data.pagination));
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "Unable to load recently viewed profiles.");
+        if (mode === "replace") {
+          setRecentProfiles([]);
+          setRecentPagination(emptyPagination);
+        }
+      } finally {
+        setIsLoading(false);
+        setIsAppending(false);
+      }
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    void loadBrowseProfiles(1);
+  }, [loadBrowseProfiles]);
+
+  React.useEffect(() => {
+    if (view === "recent") {
+      void loadRecentProfiles(1);
+    }
+  }, [loadRecentProfiles, view]);
+
+  React.useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !infiniteScroll || !hasNextPage || isLoading || isAppending) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        if (view === "browse") {
+          void loadBrowseProfiles(pagination.page + 1, "append");
+        } else {
+          void loadRecentProfiles(recentPagination.page + 1, "append");
+        }
+      },
+      { rootMargin: "480px 0px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [
+    hasNextPage,
+    infiniteScroll,
+    isAppending,
+    isLoading,
+    loadBrowseProfiles,
+    loadRecentProfiles,
+    pagination.page,
+    recentPagination.page,
+    view,
+  ]);
+
+  const handleFilterChange = React.useCallback((nextFilters: SearchFilters) => {
+    setFilters(nextFilters);
+    if (nextFilters.sortBy) {
+      setSortBy(nextFilters.sortBy);
+    }
+  }, []);
+
+  const handleSearch = React.useCallback(() => {
+    setView("browse");
+    void loadBrowseProfiles(1);
+  }, [loadBrowseProfiles]);
+
+  const handleSortChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const nextSort = event.target.value;
+      setSortBy(nextSort);
+      setFilters((prev) => ({ ...prev, sortBy: nextSort }));
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    if (view === "browse") {
+      void loadBrowseProfiles(1);
+    }
+  }, [loadBrowseProfiles, sortBy, view]);
+
+  const toggleFavorite = React.useCallback(async (profileUserId: string) => {
+    const update = (list: BrowseProfile[]) =>
+      list.map((profile) =>
+        profile.userId === profileUserId
+          ? { ...profile, isFavorite: !profile.isFavorite }
+          : profile
+      );
+
+    setProfiles(update);
+    setRecentProfiles(update);
+
+    try {
+      const data = await fetchJson("/api/profile/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileUserId }),
+      });
+
+      const confirmed = Boolean((data as { isFavorite?: boolean }).isFavorite);
+      const confirmUpdate = (list: BrowseProfile[]) =>
+        list.map((profile) =>
+          profile.userId === profileUserId ? { ...profile, isFavorite: confirmed } : profile
+        );
+      setProfiles(confirmUpdate);
+      setRecentProfiles(confirmUpdate);
+    } catch (favoriteError) {
+      setProfiles(update);
+      setRecentProfiles(update);
+      setError(favoriteError instanceof Error ? favoriteError.message : "Unable to update favorite.");
+    }
+  }, []);
+
+  const recordProfileView = React.useCallback(async (profileUserId: string) => {
+    try {
+      await fetchJson("/api/search/recently-viewed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileUserId }),
+      });
+      setProfiles((prev) =>
+        prev.map((profile) =>
+          profile.userId === profileUserId
+            ? { ...profile, profileViews: (profile.profileViews ?? 0) + 1 }
+            : profile
+        )
+      );
+    } catch (viewError) {
+      setError(viewError instanceof Error ? viewError.message : "Unable to record profile view.");
+    }
+  }, []);
+
+  const currentProfiles = view === "browse" ? profiles : recentProfiles;
+  const currentPagination = view === "browse" ? pagination : recentPagination;
+  const currentEmptyTitle = view === "browse" ? "No profiles found" : "No recently viewed profiles";
+  const currentEmptyDescription =
+    view === "browse"
+      ? "Try adjusting your filters, broadening your age range, or changing the sort order."
+      : "Profiles you view from Browse Profiles will appear here.";
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main id="main-content" className="pt-20 pb-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Link
+            href="/dashboard"
+            className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Link>
+
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <Badge variant="secondary" className="mb-3">
+                <Sparkles className="mr-1 h-3.5 w-3.5" />
+                Browse Profiles
+              </Badge>
+              <h1 className="text-2xl font-bold sm:text-3xl">Discover Matches</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+                Search live profiles from the database with filters, sorting, favorites, and recent view history.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="grid grid-cols-2 rounded-xl border border-border bg-card p-1">
+                <Button
+                  type="button"
+                  variant={view === "browse" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setView("browse")}
+                >
+                  <Search className="h-4 w-4" />
+                  Browse
+                </Button>
+                <Button
+                  type="button"
+                  variant={view === "recent" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setView("recent")}
+                >
+                  <Eye className="h-4 w-4" />
+                  Recent
+                </Button>
+              </div>
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                <span className="text-muted-foreground">Infinite scroll</span>
+                <input
+                  type="checkbox"
+                  checked={infiniteScroll}
+                  onChange={(event) => setInfiniteScroll(event.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+              </label>
+            </div>
+          </div>
+
+          {view === "browse" ? (
+            <SearchFiltersPanel
+              onFilterChange={handleFilterChange}
+              onSearch={handleSearch}
+              isLoading={isLoading}
+              resultCount={pagination.total}
+              initialFilters={{ ...filters, sortBy }}
+            />
+          ) : null}
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-muted-foreground">
+              {isLoading ? (
+                "Loading profiles..."
+              ) : (
+                <>
+                  Showing <span className="font-medium text-foreground">{currentProfiles.length}</span> of{" "}
+                  <span className="font-medium text-foreground">{formatCount(currentPagination.total)}</span> profiles
+                </>
+              )}
+            </div>
+
+            {view === "browse" ? (
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={sortBy}
+                  onChange={handleSortChange}
+                  className="h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Sort profiles"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => void loadRecentProfiles(1)}>
+                <RotateCcw className="h-4 w-4" />
+                Refresh
+              </Button>
+            )}
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
+
+          <section className="mt-6">
+            {isLoading ? (
+              <ProfileGridSkeleton />
+            ) : currentProfiles.length > 0 ? (
+              <ProfileGrid
+                profiles={currentProfiles}
+                onFavorite={toggleFavorite}
+                onView={recordProfileView}
+              />
+            ) : (
+              <EmptyState title={currentEmptyTitle} description={currentEmptyDescription} />
+            )}
+
+            {isAppending ? (
+              <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <ProfileSkeleton />
+                <ProfileSkeleton />
+                <ProfileSkeleton />
+              </div>
+            ) : null}
+
+            <div ref={loadMoreRef} className="h-8" />
+
+            <Pagination
+              pagination={currentPagination}
+              isLoading={isLoading || isAppending}
+              onPageChange={(page) => {
+                if (view === "browse") {
+                  void loadBrowseProfiles(page);
+                } else {
+                  void loadRecentProfiles(page);
+                }
+              }}
+              onLoadMore={() => {
+                if (!hasNextPage) return;
+                if (view === "browse") {
+                  void loadBrowseProfiles(pagination.page + 1, "append");
+                } else {
+                  void loadRecentProfiles(recentPagination.page + 1, "append");
+                }
+              }}
+            />
+          </section>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+function mergeProfiles(current: BrowseProfile[], next: BrowseProfile[]) {
+  const seen = new Set(current.map((profile) => profile.userId));
+  return [...current, ...next.filter((profile) => !seen.has(profile.userId))];
+}
+
+function ProfileGrid({
+  profiles,
+  onFavorite,
+  onView,
+}: {
+  profiles: BrowseProfile[];
+  onFavorite: (profileUserId: string) => void;
+  onView: (profileUserId: string) => void;
+}) {
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {profiles.map((profile, index) => (
+        <ProfileCard
+          key={profile.userId}
+          profile={profile}
+          index={index}
+          onFavorite={onFavorite}
+          onView={onView}
+        />
+      ))}
+    </div>
+  );
 }
 
 function ProfileCard({
   profile,
   index,
-  compatibility,
-  proximity,
-  trendingScore,
-  rank,
-  viewCount,
-  lastViewedAt,
-  showViewCount,
-}: ProfileCardProps) {
-  const p = profile;
-  const firstName = (p.firstName as string) || "";
-  const lastName = (p.lastName as string) || "";
-  const name = `${firstName} ${lastName}`;
+  onFavorite,
+  onView,
+}: {
+  profile: BrowseProfile;
+  index: number;
+  onFavorite: (profileUserId: string) => void;
+  onView: (profileUserId: string) => void;
+}) {
+  const name = profileName(profile);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.03 * index }}
+      transition={{ delay: Math.min(index * 0.025, 0.2) }}
     >
-      <Card className="hover:shadow-lg transition-all duration-300 group">
-        <CardContent className="p-5">
-          {/* Profile Header */}
-          <div className="flex items-start gap-3 mb-3">
-            <div className="relative">
-              <Avatar className="h-14 w-14">
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
-                  {getInitials(firstName, lastName)}
-                </AvatarFallback>
-              </Avatar>
-              {p.lastActiveAt && new Date(p.lastActiveAt as string).getTime() > Date.now() - 15 * 60 * 1000 && (
-                <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-background" />
-              )}
+      <Card className="h-full overflow-hidden rounded-xl hover:shadow-lg">
+        <div className="relative aspect-[4/3] bg-linear-to-br from-rose-100 to-pink-100 dark:from-rose-950/40 dark:to-pink-950/30">
+          {profile.imageUrl ? (
+            <Image
+              src={profile.imageUrl}
+              alt={name}
+              fill
+              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-5xl font-bold text-primary/30">
+              {initials(profile)}
             </div>
-            <div className="flex-1 min-w-0">
+          )}
+
+          <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+            {profile.isPremium ? (
+              <Badge variant="premium">
+                <Crown className="mr-1 h-3 w-3" />
+                Premium
+              </Badge>
+            ) : null}
+            {profile.isVerified ? (
+              <Badge variant="verified">
+                <ShieldCheck className="mr-1 h-3 w-3" />
+                Verified
+              </Badge>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            aria-label={profile.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            onClick={() => onFavorite(profile.userId)}
+            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
+          >
+            <Star
+              className={
+                profile.isFavorite
+                  ? "h-5 w-5 fill-amber-400 text-amber-500"
+                  : "h-5 w-5 text-muted-foreground"
+              }
+            />
+          </button>
+        </div>
+
+        <CardContent className="p-5">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold truncate">{name}</h3>
-                {(p.isVerified as boolean) && <Shield className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
-                {(p.isPremium as boolean) && <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                <h2 className="truncate text-lg font-semibold">
+                  {name}
+                  {profile.age ? `, ${profile.age}` : ""}
+                </h2>
+                {profile.isOnline ? (
+                  <span className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-label="Online" />
+                ) : null}
               </div>
               <p className="text-sm text-muted-foreground">
-                {String(p.age)} yrs · {String(p.height)}
+                {profile.height || "Height not added"} · {profile.maritalStatus || "Status not added"}
               </p>
             </div>
-            <div className="text-right shrink-0">
-              {compatibility !== undefined ? (
-                <>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                    <span className="text-sm font-bold text-emerald-500">{compatibility}%</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">match</span>
-                </>
-              ) : trendingScore !== undefined ? (
-                <>
-                  <div className="flex items-center gap-1">
-                    <Flame className="h-3.5 w-3.5 text-orange-500" />
-                    <span className="text-sm font-bold text-orange-500">{trendingScore}</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">trending</span>
-                </>
-              ) : null}
-              {rank !== undefined && (
-                <Badge variant="outline" className="mt-1 text-[10px] px-1.5">
-                  #{rank}
-                </Badge>
-              )}
-            </div>
+            {profile.isOnline ? (
+              <Badge variant="success" className="shrink-0">
+                <Wifi className="mr-1 h-3 w-3" />
+                Online
+              </Badge>
+            ) : null}
           </div>
 
-          {/* Proximity badge */}
-          {proximity && (
-            <div className="mb-2">
-              <Badge variant="secondary" className="text-[10px]">
-                <MapPinned className="h-2.5 w-2.5 mr-1" />
-                {proximity}
-              </Badge>
-            </div>
-          )}
-
-          {/* View count */}
-          {showViewCount && viewCount !== undefined && (
-            <div className="mb-2">
-              <Badge variant="outline" className="text-[10px]">
-                <Eye className="h-2.5 w-2.5 mr-1" />
-                Viewed {viewCount}x
-              </Badge>
-            </div>
-          )}
-
-          {/* Details */}
-          <div className="space-y-1.5 mb-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-3 w-3 shrink-0" />
-              {(p.district as string) || (p.division as string) || "N/A"}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Briefcase className="h-3 w-3 shrink-0" />
-              {p.profession as string}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <GraduationCap className="h-3 w-3 shrink-0" />
-              {p.highestEducation as string}
-            </div>
+          <div className="mb-4 space-y-2 text-sm text-muted-foreground">
+            <ProfileMeta icon={MapPin} text={formatLocation(profile)} />
+            <ProfileMeta icon={Briefcase} text={profile.profession || "Profession not added"} />
+            <ProfileMeta icon={GraduationCap} text={profile.highestEducation || "Education not added"} />
           </div>
 
-          {(p.aboutMe as string) && (
-            <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{p.aboutMe as string}</p>
-          )}
+          {profile.aboutMe ? (
+            <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{profile.aboutMe}</p>
+          ) : null}
 
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            <Button variant="gradient" size="sm" className="flex-1">
-              <Heart className="h-3.5 w-3.5" />
-              Send Interest
+          <div className="mb-4 flex flex-wrap gap-2">
+            {profile.religion ? <Badge variant="secondary">{profile.religion}</Badge> : null}
+            {profile.caste ? <Badge variant="outline">{profile.caste}</Badge> : null}
+            {profile.viewCount ? (
+              <Badge variant="outline">
+                <Eye className="mr-1 h-3 w-3" />
+                Viewed {profile.viewCount}x
+              </Badge>
+            ) : profile.profileViews ? (
+              <Badge variant="outline">
+                <Eye className="mr-1 h-3 w-3" />
+                {formatCount(profile.profileViews)} views
+              </Badge>
+            ) : null}
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="gradient" size="sm" className="flex-1" onClick={() => onView(profile.userId)}>
+              <Eye className="h-4 w-4" />
+              View Profile
             </Button>
-            <Button variant="outline" size="sm">
-              <Star className="h-3.5 w-3.5" />
+            <Button
+              variant={profile.isFavorite ? "premium" : "outline"}
+              size="sm"
+              onClick={() => onFavorite(profile.userId)}
+            >
+              <Heart className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} />
             </Button>
           </div>
         </CardContent>
@@ -230,613 +712,97 @@ function ProfileCard({
   );
 }
 
-/* ──────── Empty State ──────── */
-
-function EmptyState({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
+function ProfileMeta({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-        <Icon className="h-8 w-8 text-muted-foreground" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-md">{description}</p>
+    <div className="flex items-center gap-2">
+      <Icon className="h-4 w-4 shrink-0 text-primary" />
+      <span className="line-clamp-1">{text}</span>
     </div>
   );
 }
 
-/* ──────── Skeleton ──────── */
+function Pagination({
+  pagination,
+  isLoading,
+  onPageChange,
+  onLoadMore,
+}: {
+  pagination: PaginationState;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onLoadMore: () => void;
+}) {
+  if (pagination.pages <= 1) return null;
+
+  const canGoBack = pagination.page > 1;
+  const canGoNext = pagination.page < pagination.pages;
+
+  return (
+    <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row">
+      <div className="text-sm text-muted-foreground">
+        Page <span className="font-medium text-foreground">{pagination.page}</span> of{" "}
+        <span className="font-medium text-foreground">{pagination.pages}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" disabled={!canGoBack || isLoading} onClick={() => onPageChange(pagination.page - 1)}>
+          <ChevronLeft className="h-4 w-4" />
+          Previous
+        </Button>
+        <Button variant="outline" size="sm" disabled={!canGoNext || isLoading} onClick={() => onPageChange(pagination.page + 1)}>
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button variant="secondary" size="sm" disabled={!canGoNext || isLoading} onClick={onLoadMore}>
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Load More
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-muted">
+        <Search className="h-7 w-7 text-muted-foreground" />
+      </div>
+      <h2 className="mb-2 text-lg font-semibold">{title}</h2>
+      <p className="max-w-md text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function ProfileGridSkeleton() {
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <ProfileSkeleton key={index} />
+      ))}
+    </div>
+  );
+}
 
 function ProfileSkeleton() {
   return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="h-14 w-14 rounded-full bg-muted animate-pulse" />
+    <Card className="overflow-hidden rounded-xl">
+      <Skeleton className="aspect-[4/3] w-full rounded-none" />
+      <CardContent className="space-y-4 p-5">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-muted rounded animate-pulse w-2/3" />
-            <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
+          <Skeleton className="h-8 w-20 rounded-full" />
         </div>
-        <div className="space-y-2 mb-4">
-          <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
-          <div className="h-3 bg-muted rounded animate-pulse w-1/3" />
-          <div className="h-3 bg-muted rounded animate-pulse w-2/5" />
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-4 w-3/5" />
+        <Skeleton className="h-4 w-2/3" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 flex-1" />
+          <Skeleton className="h-9 w-12" />
         </div>
-        <div className="h-8 bg-muted rounded animate-pulse" />
       </CardContent>
     </Card>
-  );
-}
-
-/* ──────── Pagination ──────── */
-
-function Pagination({
-  page,
-  totalPages,
-  onPageChange,
-}: {
-  page: number;
-  totalPages: number;
-  onPageChange: (p: number) => void;
-}) {
-  if (totalPages <= 1) return null;
-  return (
-    <div className="flex items-center justify-center gap-2 mt-8">
-      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <span className="text-sm text-muted-foreground px-3">
-        Page {page} of {totalPages}
-      </span>
-      <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-/* ──────── Main Page ──────── */
-
-export default function DashboardSearchPage() {
-  const [activeTab, setActiveTab] = React.useState("search");
-  const [filters, setFilters] = React.useState<SearchFilters | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-
-  // Search results
-  const [searchProfiles, setSearchProfiles] = React.useState<Record<string, unknown>[]>([]);
-  const [searchTotal, setSearchTotal] = React.useState(0);
-  const [searchPage, setSearchPage] = React.useState(1);
-  const [searchTotalPages, setSearchTotalPages] = React.useState(0);
-
-  // Recommendations
-  const [recProfiles, setRecProfiles] = React.useState<Record<string, unknown>[]>([]);
-  const [recTotal, setRecTotal] = React.useState(0);
-  const [recPage, setRecPage] = React.useState(1);
-  const [recTotalPages, setRecTotalPages] = React.useState(0);
-
-  // Nearby
-  const [nearbyProfiles, setNearbyProfiles] = React.useState<Record<string, unknown>[]>([]);
-  const [nearbyTotal, setNearbyTotal] = React.useState(0);
-  const [nearbyPage, setNearbyPage] = React.useState(1);
-  const [nearbyTotalPages, setNearbyTotalPages] = React.useState(0);
-
-  // Trending
-  const [trendingProfiles, setTrendingProfiles] = React.useState<Record<string, unknown>[]>([]);
-  const [trendingTotal, setTrendingTotal] = React.useState(0);
-  const [trendingPage, setTrendingPage] = React.useState(1);
-  const [trendingTotalPages, setTrendingTotalPages] = React.useState(0);
-
-  // Recently Viewed
-  const [recentProfiles, setRecentProfiles] = React.useState<Record<string, unknown>[]>([]);
-  const [recentTotal, setRecentTotal] = React.useState(0);
-  const [recentPage, setRecentPage] = React.useState(1);
-  const [recentTotalPages, setRecentTotalPages] = React.useState(0);
-
-  // Saved Searches
-  const [savedSearches, setSavedSearches] = React.useState<Record<string, unknown>[]>([]);
-  const [showSaveModal, setShowSaveModal] = React.useState(false);
-  const [saveSearchName, setSaveSearchName] = React.useState("");
-
-  const currentFiltersRef = React.useRef<SearchFilters | null>(null);
-
-  /* ─── Fetch helpers ─── */
-
-  const fetchJSON = async (url: string) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  };
-
-  // Search profiles
-  const doSearch = React.useCallback(async (f: SearchFilters, page: number = 1) => {
-    setIsLoading(true);
-    try {
-      const url = buildSearchUrl(f, page);
-      const data = await fetchJSON(url);
-      setSearchProfiles(data.profiles || []);
-      setSearchTotal(data.pagination?.total || 0);
-      setSearchPage(data.pagination?.page || 1);
-      setSearchTotalPages(data.pagination?.pages || 0);
-    } catch {
-      setSearchProfiles([]);
-      setSearchTotal(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch recommendations
-  const fetchRecommendations = React.useCallback(async (page: number = 1) => {
-    setIsLoading(true);
-    try {
-      const data = await fetchJSON(`/api/search/recommendations?page=${page}&limit=12`);
-      setRecProfiles(data.profiles || []);
-      setRecTotal(data.pagination?.total || 0);
-      setRecPage(data.pagination?.page || 1);
-      setRecTotalPages(data.pagination?.pages || 0);
-    } catch {
-      setRecProfiles([]);
-      setRecTotal(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch nearby
-  const fetchNearby = React.useCallback(async (page: number = 1) => {
-    setIsLoading(true);
-    try {
-      const data = await fetchJSON(`/api/search/nearby?page=${page}&limit=12&radius=50`);
-      setNearbyProfiles(data.profiles || []);
-      setNearbyTotal(data.pagination?.total || 0);
-      setNearbyPage(data.pagination?.page || 1);
-      setNearbyTotalPages(data.pagination?.pages || 0);
-    } catch {
-      setNearbyProfiles([]);
-      setNearbyTotal(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch trending
-  const fetchTrending = React.useCallback(async (page: number = 1) => {
-    setIsLoading(true);
-    try {
-      const data = await fetchJSON(`/api/search/trending?page=${page}&limit=12&timeframe=7`);
-      setTrendingProfiles(data.profiles || []);
-      setTrendingTotal(data.pagination?.total || 0);
-      setTrendingPage(data.pagination?.page || 1);
-      setTrendingTotalPages(data.pagination?.pages || 0);
-    } catch {
-      setTrendingProfiles([]);
-      setTrendingTotal(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch recently viewed
-  const fetchRecent = React.useCallback(async (page: number = 1) => {
-    setIsLoading(true);
-    try {
-      const data = await fetchJSON(`/api/search/recently-viewed?page=${page}&limit=12`);
-      setRecentProfiles(data.profiles || []);
-      setRecentTotal(data.pagination?.total || 0);
-      setRecentPage(data.pagination?.page || 1);
-      setRecentTotalPages(data.pagination?.pages || 0);
-    } catch {
-      setRecentProfiles([]);
-      setRecentTotal(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch saved searches
-  const fetchSavedSearches = React.useCallback(async () => {
-    try {
-      const data = await fetchJSON("/api/search/saved");
-      setSavedSearches(data.savedSearches || []);
-    } catch {
-      setSavedSearches([]);
-    }
-  }, []);
-
-  /* ─── Tab change ─── */
-  const handleTabChange = React.useCallback((tab: string) => {
-    setActiveTab(tab);
-    if (tab === "recommendations" && recProfiles.length === 0) fetchRecommendations();
-    if (tab === "nearby" && nearbyProfiles.length === 0) fetchNearby();
-    if (tab === "trending" && trendingProfiles.length === 0) fetchTrending();
-    if (tab === "recent" && recentProfiles.length === 0) fetchRecent();
-    if (tab === "saved" && savedSearches.length === 0) fetchSavedSearches();
-  }, [recProfiles.length, nearbyProfiles.length, trendingProfiles.length, recentProfiles.length, savedSearches.length, fetchRecommendations, fetchNearby, fetchTrending, fetchRecent, fetchSavedSearches]);
-
-  /* ─── Filter & Search ─── */
-  const handleFilterChange = React.useCallback((f: SearchFilters) => {
-    currentFiltersRef.current = f;
-    setFilters(f);
-  }, []);
-
-  const handleSearch = React.useCallback(() => {
-    if (currentFiltersRef.current) {
-      doSearch(currentFiltersRef.current, 1);
-    }
-  }, [doSearch]);
-
-  /* ─── Save Search ─── */
-  const handleSaveSearch = React.useCallback(async () => {
-    if (!saveSearchName.trim() || !currentFiltersRef.current) return;
-    try {
-      await fetch("/api/search/saved", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: saveSearchName.trim(),
-          filters: currentFiltersRef.current,
-          searchQuery: currentFiltersRef.current.searchQuery,
-          resultCount: searchTotal,
-        }),
-      });
-      setSaveSearchName("");
-      setShowSaveModal(false);
-      fetchSavedSearches();
-    } catch {
-      // silent
-    }
-  }, [saveSearchName, searchTotal, fetchSavedSearches]);
-
-  const handleDeleteSavedSearch = React.useCallback(async (id: string) => {
-    try {
-      await fetch(`/api/search/saved?id=${id}`, { method: "DELETE" });
-      fetchSavedSearches();
-    } catch {
-      // silent
-    }
-  }, [fetchSavedSearches]);
-
-  const handleLoadSavedSearch = React.useCallback((saved: Record<string, unknown>) => {
-    const f = saved.filters as SearchFilters;
-    if (f) {
-      currentFiltersRef.current = f;
-      setFilters(f);
-      doSearch(f, 1);
-      setActiveTab("search");
-    }
-  }, [doSearch]);
-
-  /* ─── Load initial data ─── */
-  React.useEffect(() => {
-    // Do an initial search with no filters to show all profiles
-    const initialFetch = async () => {
-      setIsLoading(true);
-      try {
-        const data = await fetchJSON("/api/profile/search?page=1&limit=12");
-        setSearchProfiles(data.profiles || []);
-        setSearchTotal(data.pagination?.total || 0);
-        setSearchPage(1);
-        setSearchTotalPages(data.pagination?.pages || 0);
-      } catch {
-        // silent
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    initialFetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /* ─── Render profile grid ─── */
-  const renderProfileGrid = (
-    profiles: Record<string, unknown>[],
-    opts?: { compatibility?: boolean; proximity?: boolean; trending?: boolean; rank?: boolean; viewCount?: boolean }
-  ) => {
-    if (isLoading) {
-      return (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <ProfileSkeleton key={i} />
-          ))}
-        </div>
-      );
-    }
-    if (profiles.length === 0) {
-      return (
-        <EmptyState
-          icon={Search}
-          title="No profiles found"
-          description="Try adjusting your filters or search criteria to find more matches."
-        />
-      );
-    }
-    return (
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {profiles.map((profile, index) => (
-          <ProfileCard
-            key={(profile._id as string) || index}
-            profile={profile}
-            index={index}
-            compatibility={opts?.compatibility ? profile.compatibility as number : undefined}
-            proximity={opts?.proximity ? profile.proximity as string : undefined}
-            trendingScore={opts?.trending ? profile.trendingScore as number : undefined}
-            rank={opts?.rank ? profile.rank as number : undefined}
-            viewCount={opts?.viewCount ? profile.viewCount as number : undefined}
-            showViewCount={opts?.viewCount}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-20 pb-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Back Link */}
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
-
-          {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Discover Matches</h1>
-            <p className="text-muted-foreground">
-              Find your perfect match with 30+ advanced filters and AI-powered recommendations.
-            </p>
-          </motion.div>
-
-          {/* Tabs */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="w-full justify-start flex-wrap h-auto gap-1 p-1 mb-6">
-                <TabsTrigger value="search" className="gap-1.5">
-                  <Search className="h-3.5 w-3.5" />
-                  Search
-                </TabsTrigger>
-                <TabsTrigger value="recommendations" className="gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Smart Picks
-                </TabsTrigger>
-                <TabsTrigger value="nearby" className="gap-1.5">
-                  <MapPinned className="h-3.5 w-3.5" />
-                  Nearby
-                </TabsTrigger>
-                <TabsTrigger value="trending" className="gap-1.5">
-                  <Flame className="h-3.5 w-3.5" />
-                  Trending
-                </TabsTrigger>
-                <TabsTrigger value="recent" className="gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  Recently Viewed
-                </TabsTrigger>
-                <TabsTrigger value="saved" className="gap-1.5">
-                  <Bookmark className="h-3.5 w-3.5" />
-                  Saved Searches
-                  {savedSearches.length > 0 && (
-                    <Badge className="ml-1 h-4 min-w-4 text-[10px] px-1">{savedSearches.length}</Badge>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-
-              {/* ═══════ Search Tab ═══════ */}
-              <TabsContent value="search" className="mt-0">
-                <SearchFiltersPanel
-                  onFilterChange={handleFilterChange}
-                  onSearch={handleSearch}
-                  isLoading={isLoading}
-                  resultCount={searchTotal}
-                  initialFilters={filters || undefined}
-                  onSaveSearch={() => setShowSaveModal(true)}
-                  savedSearchCount={savedSearches.length}
-                />
-                <div className="mt-6">
-                  {renderProfileGrid(searchProfiles)}
-                  <Pagination page={searchPage} totalPages={searchTotalPages} onPageChange={(p) => doSearch(currentFiltersRef.current || ({} as SearchFilters), p)} />
-                </div>
-              </TabsContent>
-
-              {/* ═══════ Recommendations Tab ═══════ */}
-              <TabsContent value="recommendations" className="mt-0">
-                <Card className="border-primary/20 bg-primary/5 mb-6">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">AI-Powered Smart Recommendations</p>
-                      <p className="text-xs text-muted-foreground">
-                        Profiles are scored by compatibility based on religion, age, education, location, family values, hobbies, and lifestyle.
-                      </p>
-                    </div>
-                    <Badge variant="premium">AI</Badge>
-                  </CardContent>
-                </Card>
-                {renderProfileGrid(recProfiles, { compatibility: true })}
-                <Pagination page={recPage} totalPages={recTotalPages} onPageChange={fetchRecommendations} />
-              </TabsContent>
-
-              {/* ═══════ Nearby Tab ═══════ */}
-              <TabsContent value="nearby" className="mt-0">
-                <Card className="border-emerald-500/20 bg-emerald-500/5 mb-6">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <MapPinned className="h-5 w-5 text-emerald-500" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Nearby Matches</p>
-                      <p className="text-xs text-muted-foreground">
-                        Discover profiles in your area. Sorted by proximity — same district first, then same division.
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-emerald-500">
-                      {nearbyTotal} nearby
-                    </Badge>
-                  </CardContent>
-                </Card>
-                {renderProfileGrid(nearbyProfiles, { proximity: true })}
-                <Pagination page={nearbyPage} totalPages={nearbyTotalPages} onPageChange={fetchNearby} />
-              </TabsContent>
-
-              {/* ═══════ Trending Tab ═══════ */}
-              <TabsContent value="trending" className="mt-0">
-                <Card className="border-orange-500/20 bg-orange-500/5 mb-6">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                      <Flame className="h-5 w-5 text-orange-500" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Trending Profiles</p>
-                      <p className="text-xs text-muted-foreground">
-                        Most popular profiles this week — boosted, premium, and highly viewed.
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-orange-500">
-                      {trendingTotal} trending
-                    </Badge>
-                  </CardContent>
-                </Card>
-                {renderProfileGrid(trendingProfiles, { trending: true, rank: true })}
-                <Pagination page={trendingPage} totalPages={trendingTotalPages} onPageChange={fetchTrending} />
-              </TabsContent>
-
-              {/* ═══════ Recently Viewed Tab ═══════ */}
-              <TabsContent value="recent" className="mt-0">
-                <Card className="border-blue-500/20 bg-blue-500/5 mb-6">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                      <Clock className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Recently Viewed Profiles</p>
-                      <p className="text-xs text-muted-foreground">
-                        Quickly revisit profiles you have browsed before.
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-blue-500">
-                      {recentTotal} viewed
-                    </Badge>
-                  </CardContent>
-                </Card>
-                {renderProfileGrid(recentProfiles, { viewCount: true })}
-                <Pagination page={recentPage} totalPages={recentTotalPages} onPageChange={fetchRecent} />
-              </TabsContent>
-
-              {/* ═══════ Saved Searches Tab ═══════ */}
-              <TabsContent value="saved" className="mt-0">
-                <Card className="mb-6">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold">Your Saved Searches</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Access your saved filter combinations quickly. {savedSearches.length}/20 slots used.
-                        </p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => setActiveTab("search")}>
-                        <Search className="h-4 w-4 mr-1" />
-                        New Search
-                      </Button>
-                    </div>
-
-                    {savedSearches.length === 0 ? (
-                      <EmptyState
-                        icon={Bookmark}
-                        title="No saved searches"
-                        description="Save a search from the Search tab to quickly access it later."
-                      />
-                    ) : (
-                      <div className="space-y-3">
-                        {savedSearches.map((saved) => (
-                          <div
-                            key={saved._id as string}
-                            className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors"
-                          >
-                            <BookmarkCheck className="h-5 w-5 text-primary shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{saved.name as string}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {(saved.resultCount as number) || 0} results · Created {new Date(saved.createdAt as string).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => handleLoadSavedSearch(saved)}>
-                                <Search className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteSavedSearch(saved._id as string)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </motion.div>
-        </div>
-      </main>
-      <Footer />
-
-      {/* Save Search Modal */}
-      <AnimatePresence>
-        {showSaveModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-            onClick={() => setShowSaveModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-background rounded-2xl p-6 w-full max-w-md shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Save Search</h3>
-                <Button variant="ghost" size="sm" onClick={() => setShowSaveModal(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Search Name</label>
-                  <Input
-                    placeholder="e.g., Doctors in Dhaka, Age 25-30"
-                    value={saveSearchName}
-                    onChange={(e) => setSaveSearchName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSaveSearch()}
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setShowSaveModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button variant="gradient" onClick={handleSaveSearch} disabled={!saveSearchName.trim()}>
-                    <Bookmark className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }
