@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
@@ -22,12 +21,12 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         gradient:
-          "bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white shadow-lg hover:from-rose-600 hover:via-pink-600 hover:to-purple-700 active:scale-[0.98] hover:shadow-xl",
+          "bg-linear-to-r from-rose-500 via-pink-500 to-purple-600 text-white shadow-lg hover:from-rose-600 hover:via-pink-600 hover:to-purple-700 active:scale-[0.98] hover:shadow-xl",
         glass:
           "glass text-foreground hover:bg-white/80 dark:hover:bg-white/10 active:scale-[0.98]",
         glow: "bg-primary text-primary-foreground shadow-glow hover:bg-primary/90 active:scale-[0.98]",
         premium:
-          "bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white shadow-lg hover:from-amber-600 hover:via-orange-600 hover:to-rose-600 active:scale-[0.98] hover:shadow-xl",
+          "bg-linear-to-r from-amber-500 via-orange-500 to-rose-500 text-white shadow-lg hover:from-amber-600 hover:via-orange-600 hover:to-rose-600 active:scale-[0.98] hover:shadow-xl",
       },
       size: {
         default: "h-10 px-5 py-2",

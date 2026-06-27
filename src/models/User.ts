@@ -1,5 +1,17 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export interface IPushSubscription {
+  type: "fcm" | "webpush";
+  token?: string;
+  endpoint?: string;
+  keys?: {
+    p256dh: string;
+    auth: string;
+  };
+  userAgent?: string;
+  createdAt: Date;
+}
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   email: string;
@@ -15,6 +27,20 @@ export interface IUser extends Document {
   blockedUsers: mongoose.Types.ObjectId[];
   profileCompleted: number;
   lastLoginAt?: Date;
+  // Phone
+  phone?: string;
+  phoneCountryCode?: string;
+  isPhoneVerified: boolean;
+  // Push notifications
+  pushSubscriptions: IPushSubscription[];
+  lastPushRegistrationAt?: Date;
+  // WhatsApp
+  whatsappNumber?: string;
+  whatsappOptIn: boolean;
+  // Account lockout fields
+  failedLoginAttempts: number;
+  lockedUntil?: Date;
+  lastFailedLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,6 +100,42 @@ const UserSchema = new Schema<IUser>(
         ref: "User",
       },
     ],
+    phone: {
+      type: String,
+      default: "",
+    },
+    phoneCountryCode: {
+      type: String,
+      default: "+880",
+    },
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    pushSubscriptions: [
+      {
+        type: { type: String, enum: ["fcm", "webpush"] },
+        token: { type: String },
+        endpoint: { type: String },
+        keys: {
+          p256dh: { type: String },
+          auth: { type: String },
+        },
+        userAgent: { type: String },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    lastPushRegistrationAt: {
+      type: Date,
+    },
+    whatsappNumber: {
+      type: String,
+      default: "",
+    },
+    whatsappOptIn: {
+      type: Boolean,
+      default: false,
+    },
     profileCompleted: {
       type: Number,
       default: 0,
@@ -83,13 +145,22 @@ const UserSchema = new Schema<IUser>(
     lastLoginAt: {
       type: Date,
     },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lockedUntil: {
+      type: Date,
+    },
+    lastFailedLoginAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ isActive: 1 });
 UserSchema.index({ isEmailVerified: 1 });

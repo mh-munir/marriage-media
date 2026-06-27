@@ -180,3 +180,81 @@ export const MOTHER_TONGUES = [
   "Arabic",
   "Other",
 ] as const;
+
+export const MARITAL_STATUSES = [
+  "Never Married",
+  "Divorced",
+  "Widowed",
+  "Awaiting Divorce",
+] as const;
+
+export const FAMILY_TYPES = ["Joint", "Nuclear"] as const;
+export const FAMILY_STATUSES = ["Middle Class", "Upper Middle Class", "Rich", "Affluent"] as const;
+export const FAMILY_VALUES = ["Orthodox", "Traditional", "Moderate", "Liberal", "Secular"] as const;
+
+export const DIETS = ["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal", "No Preference"] as const;
+export const SMOKE_OPTIONS = ["Yes", "No", "Occasionally"] as const;
+export const DRINK_OPTIONS = ["Yes", "No", "Occasionally"] as const;
+
+export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
+
+export const PROFILE_CREATED_BY_OPTIONS = ["Self", "Parent", "Sibling", "Relative", "Friend"] as const;
+
+export const WORKING_WITH_OPTIONS = [
+  "Government",
+  "Private",
+  "Business",
+  "Self Employed",
+  "Not Working",
+  "Other",
+] as const;
+
+export const HOBBIES = [
+  "Reading",
+  "Traveling",
+  "Cooking",
+  "Music",
+  "Sports",
+  "Photography",
+  "Art",
+  "Dancing",
+  "Gardening",
+  "Fitness",
+  "Yoga",
+  "Movies",
+  "Gaming",
+  "Hiking",
+  "Writing",
+  "Volunteering",
+  "Technology",
+  "Fashion",
+  "Food",
+  "Nature",
+] as const;
+
+export const NATIONALITIES = [
+  "Bangladeshi",
+  "Indian",
+  "Pakistani",
+  "Sri Lankan",
+  "Nepali",
+  "Other",
+] as const;
+
+export const SORT_OPTIONS = [
+  { value: "relevance", label: "Relevance" },
+  { value: "newest", label: "Newest First" },
+  { value: "oldest", label: "Oldest First" },
+  { value: "age-asc", label: "Age: Low to High" },
+  { value: "age-desc", label: "Age: High to Low" },
+  { value: "recently-active", label: "Recently Active" },
+  { value: "profile-completeness", label: "Most Viewed" },
+] as const;
+
+export const ACTIVE_WITHIN_OPTIONS = [
+  { value: "1", label: "Last 24 hours" },
+  { value: "3", label: "Last 3 days" },
+  { value: "7", label: "Last week" },
+  { value: "30", label: "Last month" },
+  { value: "90", label: "Last 3 months" },
+] as const;

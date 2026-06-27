@@ -1,52 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, generateToken, generateRefreshToken, type JWTPayload } from "@/lib/auth";
-import connectToDatabase from "@/lib/mongodb";
-import { User } from "@/models";
+import { rotateTokens } from "@/lib/security";
+import { saveAuditLog } from "@/lib/security";
 
+/**
+ * JWT Rotation endpoint.
+ * Client sends the refresh token; server invalidates it and issues a new pair.
+ */
 export async function POST(request: NextRequest) {
   try {
-    const { refreshToken } = await request.json();
+    // Get refresh token from cookie or body
+    const refreshToken =
+      request.cookies.get("refreshToken")?.value ||
+      (await request.json().catch(() => ({})) as Record<string, string>).refreshToken;
 
     if (!refreshToken) {
-      return NextResponse.json({ error: "Refresh token required" }, { status: 400 });
+      return NextResponse.json({ error: "Refresh token required" }, { status: 401 });
     }
 
-    const payload = verifyToken(refreshToken);
-    if (!payload) {
-      return NextResponse.json({ error: "Invalid refresh token" }, { status: 401 });
+    // Rotate: revoke old, issue new pair
+    const newTokens = await rotateTokens(refreshToken);
+
+    if (!newTokens) {
+      // Invalid or revoked refresh token
+      await saveAuditLog(
+        request,
+        "token_refresh_failed",
+        "auth",
+        undefined,
+        undefined,
+        { reason: "invalid_or_revoked_refresh_token" }
+      );
+
+      return NextResponse.json({ error: "Invalid or expired refresh token" }, { status: 401 });
     }
 
-    await connectToDatabase();
-    const user = await User.findById(payload.userId).select("-password");
-
-    if (!user || !user.isActive || user.isBlocked) {
-      return NextResponse.json({ error: "User not found or deactivated" }, { status: 401 });
-    }
-
-    const newPayload: JWTPayload = {
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-
-    const newToken = generateToken(newPayload);
-    const newRefreshToken = generateRefreshToken(newPayload);
+    // Audit log
+    await saveAuditLog(
+      request,
+      "token_refresh",
+      "auth",
+      undefined,
+      undefined,
+      { newAccessTokenExpiresAt: newTokens.accessTokenExpiresAt }
+    );
 
     const response = NextResponse.json({
-      token: newToken,
-      refreshToken: newRefreshToken,
+      message: "Tokens refreshed",
+      accessToken: newTokens.accessToken,
+      accessTokenExpiresAt: newTokens.accessTokenExpiresAt,
     });
 
-    // Set HTTP-only cookies
-    response.cookies.set("token", newToken, {
+    // Update access token cookie
+    response.cookies.set("token", newTokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 15 * 60, // 15 minutes
       path: "/",
     });
 
-    response.cookies.set("refreshToken", newRefreshToken, {
+    // Update refresh token cookie
+    response.cookies.set("refreshToken", newTokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -55,7 +69,8 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch {
-    return NextResponse.json({ error: "Token refresh failed" }, { status: 500 });
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

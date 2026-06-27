@@ -22,7 +22,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const socketRef = React.useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = React.useState(false);
   const { token, isAuthenticated, user } = useAuthStore();
-  const { addMessage, setTyping, setUserOnline } = useChatStore();
+  const {
+    addMessage,
+    setTyping,
+    setUserOnline,
+    addReaction,
+    markAsDelivered,
+    updateMessageReadStatus,
+  } = useChatStore();
   const { addNotification } = useNotificationStore();
 
   React.useEffect(() => {
@@ -50,14 +57,26 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setIsConnected(false);
     });
 
+    // New message received
     socket.on("new-message", (message) => {
       addMessage(message.conversationId, message);
+      // Send delivery receipt
+      socket.emit("message-delivered", {
+        messageId: message.id,
+        conversationId: message.conversationId,
+        receiverId: user?.id,
+      });
     });
 
-    socket.on("typing", ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
-      setTyping(userId, isTyping);
-    });
+    // Typing indicator
+    socket.on(
+      "typing",
+      ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
+        setTyping(userId, isTyping);
+      }
+    );
 
+    // Online/offline status
     socket.on("user-online", ({ userId }: { userId: string }) => {
       setUserOnline(userId, true);
     });
@@ -66,26 +85,93 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setUserOnline(userId, false);
     });
 
+    // Notification
     socket.on("notification", (notification) => {
       addNotification(notification);
     });
 
-    socket.on("message-delivered", ({ messageId, conversationId }: { messageId: string; conversationId: string }) => {
-      void conversationId;
-      void messageId;
-    });
+    // Message delivery receipt
+    socket.on(
+      "message-delivered",
+      ({
+        messageId,
+        conversationId,
+      }: {
+        messageId: string;
+        conversationId: string;
+      }) => {
+        markAsDelivered(conversationId, messageId);
+      }
+    );
 
-    socket.on("message-read", ({ messageId, conversationId }: { messageId: string; conversationId: string }) => {
-      void conversationId;
-      void messageId;
-    });
+    // Message read receipt
+    socket.on(
+      "message-read",
+      ({
+        messageId,
+        conversationId,
+        readAt,
+      }: {
+        messageId: string;
+        conversationId: string;
+        readAt: string;
+      }) => {
+        updateMessageReadStatus(conversationId, messageId, readAt);
+      }
+    );
+
+    // Reaction added
+    socket.on(
+      "reaction-added",
+      ({
+        conversationId,
+        messageId,
+        reaction,
+      }: {
+        conversationId: string;
+        messageId: string;
+        reaction: { userId: string; emoji: string };
+      }) => {
+        addReaction(conversationId, messageId, reaction);
+      }
+    );
+
+    // Multiple messages read
+    socket.on(
+      "messages-read",
+      ({
+        conversationId,
+        userId,
+        readAt,
+      }: {
+        conversationId: string;
+        userId: string;
+        readAt: string;
+      }) => {
+        void userId;
+        void conversationId;
+        void readAt;
+        // Mark all messages as read in the conversation
+      }
+    );
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
       setIsConnected(false);
     };
-  }, [isAuthenticated, token, user?.id, addMessage, setTyping, setUserOnline, addNotification]);
+  }, [
+    isAuthenticated,
+    token,
+    user?.id,
+    addMessage,
+    setTyping,
+    setUserOnline,
+    addNotification,
+    addReaction,
+    markAsDelivered,
+    updateMessageReadStatus,
+  ]);
 
   return (
     <SocketContext.Provider value={{ socket: socketRef.current, isConnected }}>

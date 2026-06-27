@@ -1,13 +1,35 @@
 /**
- * Push Notification Service
- * Supports: Browser Push (FCM), Email, In-App notifications
+ * Multi-Channel Notification Dispatch System
+ *
+ * Orchestrates notifications across all channels:
+ * - In-App (MongoDB Notification collection)
+ * - Browser Push (FCM / Web Push)
+ * - Email (SMTP / SendGrid / Resend)
+ * - SMS (Twilio / HTTP provider)
+ * - WhatsApp (WhatsApp Business API)
+ *
+ * Respects user preferences and quiet hours for each channel.
  */
 
 import connectToDatabase from "./mongodb";
-import { Notification, NotificationPreference } from "@/models";
+import { Notification, NotificationPreference, User } from "@/models";
+import { sendPushNotification } from "./notifications.push";
+import { sendEmail, sendTemplatedEmail } from "./email";
+import { sendSMS } from "./sms";
+import { sendWhatsAppMessage } from "./whatsapp";
 
-// Map our detailed types to the existing model types
-type AppNotificationType = "interest" | "message" | "profile_view" | "payment" | "verification" | "system" | "promotion";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type AppNotificationType =
+  | "interest"
+  | "message"
+  | "profile_view"
+  | "payment"
+  | "verification"
+  | "system"
+  | "promotion";
 
 export interface CreateNotificationParams {
   userId: string;
@@ -15,189 +37,436 @@ export interface CreateNotificationParams {
   title: string;
   message: string;
   link?: string;
+  /** Which channels to use. Defaults to ["inapp"]. Use "all" for every enabled channel. */
+  channels?: NotificationChannel[];
+  /** Email-specific overrides */
+  emailSubject?: string;
+  emailHtml?: string;
+  /** SMS-specific overrides */
+  smsMessage?: string;
+  /** Template slug for email */
+  emailTemplate?: string;
+  emailTemplateVariables?: Record<string, string>;
 }
 
+export type NotificationChannel =
+  | "inapp"
+  | "push"
+  | "email"
+  | "sms"
+  | "whatsapp"
+  | "all";
+
+export interface NotificationDispatchResult {
+  inapp: boolean;
+  push: boolean;
+  email: boolean;
+  sms: boolean;
+  whatsapp: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Check whether the current time falls within the user's quiet hours. */
+function isInQuietHours(prefs: {
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+}): boolean {
+  if (!prefs.quietHoursEnabled) return false;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const [startH, startM] = prefs.quietHoursStart.split(":").map(Number);
+  const [endH, endM] = prefs.quietHoursEnd.split(":").map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+
+  if (startMinutes > endMinutes) {
+    // Spans midnight
+    return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+  }
+  return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+}
+
+/** Map our notification types to preference keys. */
+const emailPrefMap: Record<string, string> = {
+  interest: "interests",
+  message: "messages",
+  profile_view: "profileViews",
+  payment: "payments",
+  verification: "security",
+  system: "newsletters",
+  promotion: "promotions",
+};
+
+const pushPrefMap: Record<string, string> = {
+  interest: "interests",
+  message: "messages",
+  profile_view: "profileViews",
+  payment: "payments",
+  verification: "security",
+  system: "security",
+  promotion: "promotions",
+};
+
+const smsPrefMap: Record<string, string> = {
+  interest: "interests",
+  payment: "payments",
+  verification: "verification",
+  system: "security",
+};
+
+const whatsappPrefMap: Record<string, string> = {
+  interest: "interests",
+  message: "messages",
+  payment: "payments",
+  verification: "security",
+  system: "security",
+  promotion: "promotions",
+};
+
+// ---------------------------------------------------------------------------
+// Core Dispatch
+// ---------------------------------------------------------------------------
+
 /**
- * Create an in-app notification.
+ * Send a notification across multiple channels, respecting user preferences.
  */
 export async function createNotification(
   params: CreateNotificationParams
-): Promise<void> {
+): Promise<NotificationDispatchResult> {
   await connectToDatabase();
 
-  // Check user preferences to see if this type is enabled
-  const preferences = await NotificationPreference.findOne({
-    userId: params.userId,
-  }).lean();
+  const result: NotificationDispatchResult = {
+    inapp: false,
+    push: false,
+    email: false,
+    sms: false,
+    whatsapp: false,
+  };
 
-  if (preferences) {
-    // Check quiet hours
-    if (preferences.quietHoursEnabled) {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const currentTime = currentHour * 60 + currentMinute;
+  const requested = params.channels || ["inapp"];
+  const wantAll = requested.includes("all");
+  const channels = wantAll
+    ? (["inapp", "push", "email", "sms", "whatsapp"] as NotificationChannel[])
+    : requested;
 
-      const [startHour, startMin] = preferences.quietHoursStart.split(":").map(Number);
-      const [endHour, endMin] = preferences.quietHoursEnd.split(":").map(Number);
-      const startMinutes = startHour * 60 + startMin;
-      const endMinutes = endHour * 60 + endMin;
+  // Fetch preferences + user data
+  const [preferences, user] = await Promise.all([
+    NotificationPreference.findOne({ userId: params.userId }).lean(),
+    User.findById(params.userId).select(
+      "email phone phoneCountryCode pushSubscriptions whatsappNumber whatsappOptIn"
+    ).lean(),
+  ]);
 
-      // Handle quiet hours that span midnight
-      if (startMinutes > endMinutes) {
-        if (currentTime >= startMinutes || currentTime < endMinutes) {
-          return; // In quiet hours
-        }
-      } else {
-        if (currentTime >= startMinutes && currentTime < endMinutes) {
-          return; // In quiet hours
-        }
-      }
-    }
+  if (!user) return result;
 
-    // Check email preferences
-    const emailPrefMap: Record<string, keyof typeof preferences.email> = {
-      interest: "interests",
-      message: "messages",
-      profile_view: "profileViews",
-      payment: "payments",
-      verification: "security",
-      system: "newsletters",
-      promotion: "promotions",
-    };
+  const quiet = preferences
+    ? isInQuietHours(preferences)
+    : false;
 
-    const emailKey = emailPrefMap[params.type];
-    if (emailKey && preferences.email[emailKey] === false) {
-      // User has disabled email for this type, but still create in-app notification
+  // ---- In-App ----
+  if (channels.includes("inapp")) {
+    try {
+      await Notification.create({
+        userId: params.userId,
+        type: params.type,
+        title: params.title,
+        message: params.message,
+        link: params.link || "",
+        isRead: false,
+      });
+      result.inapp = true;
+    } catch (err) {
+      console.error("In-app notification failed:", err);
     }
   }
 
-  // Create in-app notification
-  await Notification.create({
-    userId: params.userId,
-    type: params.type,
-    title: params.title,
-    message: params.message,
-    link: params.link || "",
-    isRead: false,
+  // If quiet hours, skip all external channels
+  if (quiet) return result;
+
+  // ---- Push ----
+  if (channels.includes("push") && user.pushSubscriptions?.length) {
+    const pushEnabled = preferences
+      ? preferences.push[pushPrefMap[params.type] as keyof typeof preferences.push] !== false
+      : true;
+
+    if (pushEnabled) {
+      const subscriptions = user.pushSubscriptions as Array<{
+        type: string;
+        token?: string;
+        endpoint?: string;
+        keys?: { p256dh: string; auth: string };
+      }>;
+
+      for (const sub of subscriptions) {
+        try {
+          if (sub.type === "fcm" && sub.token) {
+            await sendPushNotification(sub.token, params.title, params.message, {
+              url: params.link || "/dashboard",
+              type: params.type,
+            });
+          }
+          // Web push subscriptions are handled via the web-push library
+        } catch (err) {
+          console.error("Push notification failed:", err);
+        }
+      }
+      result.push = true;
+    }
+  }
+
+  // ---- Email ----
+  if (channels.includes("email") && user.email) {
+    const emailEnabled = preferences
+      ? preferences.email[emailPrefMap[params.type] as keyof typeof preferences.email] !== false
+      : true;
+
+    if (emailEnabled) {
+      try {
+        if (params.emailTemplate) {
+          await sendTemplatedEmail({
+            to: user.email,
+            templateSlug: params.emailTemplate,
+            variables: params.emailTemplateVariables || {},
+            fallbackSubject: params.emailSubject || params.title,
+            fallbackHtml: `<p>${params.message}</p>`,
+          });
+        } else {
+          await sendEmail(
+            user.email,
+            params.emailSubject || params.title,
+            params.emailHtml || buildDefaultEmailHtml(params)
+          );
+        }
+        result.email = true;
+      } catch (err) {
+        console.error("Email notification failed:", err);
+      }
+    }
+  }
+
+  // ---- SMS ----
+  if (channels.includes("sms") && user.phone) {
+    const smsEnabled = preferences
+      ? preferences.sms[smsPrefMap[params.type] as keyof typeof preferences.sms] !== false
+      : true;
+
+    if (smsEnabled) {
+      try {
+        await sendSMS({
+          to: user.phone,
+          message: params.smsMessage || params.message,
+        });
+        result.sms = true;
+      } catch (err) {
+        console.error("SMS notification failed:", err);
+      }
+    }
+  }
+
+  // ---- WhatsApp ----
+  if (channels.includes("whatsapp") && user.whatsappNumber && user.whatsappOptIn) {
+    const waEnabled = preferences
+      ? preferences.whatsapp[whatsappPrefMap[params.type] as keyof typeof preferences.whatsapp] !== false
+      : true;
+
+    if (waEnabled) {
+      try {
+        await sendWhatsAppMessage({
+          to: user.whatsappNumber,
+          message: params.message,
+        });
+        result.whatsapp = true;
+      } catch (err) {
+        console.error("WhatsApp notification failed:", err);
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Build a default HTML email body from notification params.
+ */
+function buildDefaultEmailHtml(params: CreateNotificationParams): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://marriagemedia.com";
+  return `
+    <div style="max-width:600px;margin:0 auto;font-family:Arial,sans-serif;">
+      <div style="background:#e11d48;color:#fff;padding:20px;text-align:center;border-radius:12px 12px 0 0;">
+        <h1 style="margin:0;font-size:22px;">Marriage Media</h1>
+      </div>
+      <div style="padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 12px 12px;">
+        <h2 style="color:#1f2937;margin-top:0;">${params.title}</h2>
+        <p style="color:#4b5563;line-height:1.6;">${params.message}</p>
+        ${params.link ? `<a href="${appUrl}${params.link}" style="display:inline-block;background:#e11d48;color:#fff;padding:12px 24px;text-decoration:none;border-radius:8px;margin-top:12px;">View Details</a>` : ""}
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px;">Marriage Media - Find Your Perfect Life Partner</p>
+      </div>
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Convenience Functions (high-level)
+// ---------------------------------------------------------------------------
+
+/**
+ * Send an interest notification to a user.
+ */
+export async function notifyNewInterest(
+  recipientUserId: string,
+  senderName: string,
+  link?: string
+): Promise<NotificationDispatchResult> {
+  return createNotification({
+    userId: recipientUserId,
+    type: "interest",
+    title: "New Interest Received!",
+    message: `${senderName} has sent you an interest. Check out their profile!`,
+    link: link || "/dashboard/interests",
+    channels: ["all"],
+    emailTemplate: "new-interest",
+    emailTemplateVariables: { recipientName: "", senderName },
+    emailSubject: `New Interest from ${senderName} - Marriage Media`,
+    smsMessage: `${senderName} has sent you an interest on Marriage Media! Log in to view.`,
   });
 }
 
 /**
- * Send browser push notification via FCM.
+ * Send a new message notification.
  */
-export async function sendPushNotification(
-  fcmToken: string,
+export async function notifyNewMessage(
+  recipientUserId: string,
+  senderName: string,
+  preview: string,
+  link?: string
+): Promise<NotificationDispatchResult> {
+  return createNotification({
+    userId: recipientUserId,
+    type: "message",
+    title: `New message from ${senderName}`,
+    message: preview.length > 100 ? preview.substring(0, 100) + "..." : preview,
+    link: link || "/dashboard/messages",
+    channels: ["inapp", "push"],
+  });
+}
+
+/**
+ * Send a profile view notification.
+ */
+export async function notifyProfileView(
+  ownerUserId: string,
+  viewerName: string,
+  link?: string
+): Promise<NotificationDispatchResult> {
+  return createNotification({
+    userId: ownerUserId,
+    type: "profile_view",
+    title: "Profile Viewed",
+    message: `${viewerName} viewed your profile.`,
+    link: link || "/dashboard/analytics",
+    channels: ["inapp", "push"],
+  });
+}
+
+/**
+ * Send a payment confirmation notification.
+ */
+export async function notifyPaymentConfirmation(
+  userId: string,
+  plan: string,
+  amount: string,
+  expiryDate: string,
+  link?: string
+): Promise<NotificationDispatchResult> {
+  return createNotification({
+    userId,
+    type: "payment",
+    title: "Payment Confirmed!",
+    message: `Your ${plan} subscription (${amount}) has been activated. Expires: ${expiryDate}.`,
+    link: link || "/dashboard",
+    channels: ["all"],
+    emailTemplate: "payment-confirmation",
+    emailTemplateVariables: { name: "", plan, amount, expiryDate },
+    emailSubject: `Payment Confirmed - ${plan} - Marriage Media`,
+    smsMessage: `Your ${plan} subscription (${amount}) has been confirmed on Marriage Media.`,
+  });
+}
+
+/**
+ * Send a verification status notification.
+ */
+export async function notifyVerificationStatus(
+  userId: string,
+  status: "approved" | "rejected",
+  link?: string
+): Promise<NotificationDispatchResult> {
+  const isApproved = status === "approved";
+  return createNotification({
+    userId,
+    type: "verification",
+    title: isApproved ? "Profile Verified!" : "Verification Update",
+    message: isApproved
+      ? "Congratulations! Your profile has been verified. You now have a verified badge."
+      : "Your verification request was not approved. Please review and resubmit.",
+    link: link || "/dashboard/verification",
+    channels: ["all"],
+    emailTemplate: isApproved ? "verification-approved" : undefined,
+    emailSubject: isApproved
+      ? "Your Profile Has Been Verified!"
+      : "Verification Update - Marriage Media",
+    smsMessage: isApproved
+      ? "Your Marriage Media profile has been verified!"
+      : "Marriage Media: Your verification request was not approved. Please check your account.",
+  });
+}
+
+/**
+ * Send a system announcement notification.
+ */
+export async function notifySystem(
+  userId: string,
   title: string,
-  body: string,
-  data?: Record<string, string>
-): Promise<boolean> {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-
-  if (!projectId || !privateKey || !clientEmail) {
-    console.warn("Firebase not configured, skipping push notification");
-    return false;
-  }
-
-  try {
-    const accessToken = await getFirebaseAccessToken();
-
-    const response = await fetch(
-      `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: {
-            token: fcmToken,
-            notification: {
-              title,
-              body,
-            },
-            data: data || {},
-            webpush: {
-              headers: {
-                TTL: "86400",
-              },
-              notification: {
-                title,
-                body,
-                icon: "/icons/icon-192x192.png",
-                badge: "/icons/badge-72x72.png",
-                vibrate: [100, 50, 100],
-              },
-            },
-          },
-        }),
-      }
-    );
-
-    const result = await response.json();
-    return !!result.name;
-  } catch (error) {
-    console.error("Failed to send push notification:", error);
-    return false;
-  }
+  message: string,
+  link?: string
+): Promise<NotificationDispatchResult> {
+  return createNotification({
+    userId,
+    type: "system",
+    title,
+    message,
+    link,
+    channels: ["inapp", "push", "email"],
+  });
 }
 
 /**
- * Get Firebase access token using service account credentials.
+ * Send a promotional notification.
  */
-async function getFirebaseAccessToken(): Promise<string> {
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-
-  if (!privateKey || !clientEmail) {
-    throw new Error("Firebase credentials not configured");
-  }
-
-  // Create JWT for Firebase Auth
-  const header = Buffer.from(JSON.stringify({
-    algorithm: "RS256",
-    typ: "JWT",
-  })).toString("base64url");
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = Buffer.from(JSON.stringify({
-    iss: clientEmail,
-    scope: "https://www.googleapis.com/auth/firebase.messaging",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  })).toString("base64url");
-
-  const message = `${header}.${payload}`;
-
-  // Sign with private key
-  const { createSign } = await import("crypto");
-  const sign = createSign("RSA-SHA256");
-  sign.update(message);
-  const signature = sign.sign(privateKey, "base64url");
-
-  const jwt = `${message}.${signature}`;
-
-  // Exchange JWT for access token
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
+export async function notifyPromotion(
+  userId: string,
+  title: string,
+  message: string,
+  link?: string
+): Promise<NotificationDispatchResult> {
+  return createNotification({
+    userId,
+    type: "promotion",
+    title,
+    message,
+    link,
+    channels: ["inapp", "push", "email"],
   });
-
-  const data = await response.json();
-  if (!data.access_token) {
-    throw new Error("Failed to get Firebase access token");
-  }
-
-  return data.access_token;
 }
+
+// ---------------------------------------------------------------------------
+// Query Functions
+// ---------------------------------------------------------------------------
 
 /**
  * Get user notifications with pagination.
@@ -250,4 +519,20 @@ export async function markNotificationsRead(
     isRead: true,
     readAt: new Date(),
   });
+}
+
+/**
+ * Delete notifications for a user.
+ */
+export async function deleteNotifications(
+  userId: string,
+  notificationIds?: string[]
+): Promise<void> {
+  await connectToDatabase();
+
+  if (notificationIds && notificationIds.length > 0) {
+    await Notification.deleteMany({ _id: { $in: notificationIds }, userId });
+  } else {
+    await Notification.deleteMany({ userId });
+  }
 }

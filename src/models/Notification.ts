@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export interface INotificationDelivery {
+  channel: "inapp" | "push" | "email" | "sms" | "whatsapp";
+  status: "sent" | "failed" | "skipped";
+  sentAt?: Date;
+  error?: string;
+}
+
 export interface INotification extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
@@ -9,6 +16,8 @@ export interface INotification extends Document {
   link?: string;
   isRead: boolean;
   readAt?: Date;
+  /** Channel delivery tracking */
+  delivery: INotificationDelivery[];
   createdAt: Date;
 }
 
@@ -36,6 +45,14 @@ const NotificationSchema = new Schema<INotification>(
       type: String,
       default: "",
     },
+    delivery: [
+      {
+        channel: { type: String, enum: ["inapp", "push", "email", "sms", "whatsapp"] },
+        status: { type: String, enum: ["sent", "failed", "skipped"] },
+        sentAt: { type: Date },
+        error: { type: String },
+      },
+    ],
     isRead: {
       type: Boolean,
       default: false,

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Poppins, Playfair_Display } from "next/font/google";
 import { Providers } from "@/providers/providers";
 import { ThemeInit } from "@/components/theme-init";
+import { SITE_CONFIG } from "@/lib/seo-constants";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,57 +26,58 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_CONFIG.url),
+  applicationName: SITE_CONFIG.name,
+  generator: "Next.js",
+  referrer: "origin-when-cross-origin",
+  category: "matrimony",
   title: {
-    default: "Marriage Media - Find Your Perfect Life Partner",
-    template: "%s | Marriage Media",
+    default: SITE_CONFIG.title,
+    template: `%s | ${SITE_CONFIG.name}`,
   },
-  description:
-    "Marriage Media is Bangladesh's most trusted matrimony platform. Find your perfect life partner with advanced matching, verified profiles, and AI-powered recommendations.",
-  keywords: [
-    "matrimony",
-    "marriage",
-    "bangladesh",
-    "partner",
-    "bride",
-    "groom",
-    "rishta",
-    "biye",
-    "dating",
-    "relationship",
-    "AI matchmaking",
-    "verified profiles",
-  ],
-  authors: [{ name: "Marriage Media" }],
-  creator: "Marriage Media",
-  publisher: "Marriage Media",
+  description: SITE_CONFIG.description,
+  keywords: SITE_CONFIG.keywords,
+  authors: [{ name: SITE_CONFIG.name, url: SITE_CONFIG.url }],
+  creator: SITE_CONFIG.name,
+  publisher: SITE_CONFIG.name,
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
+  alternates: {
+    canonical: "/",
+    languages: {
+      "en-BD": "/",
+      "x-default": "/",
+    },
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icons/icon-192x192.svg",
+  },
+  manifest: "/manifest.json",
   openGraph: {
     type: "website",
-    locale: "en_US",
-    url: "https://marriagemedia.com",
-    siteName: "Marriage Media",
-    title: "Marriage Media - Find Your Perfect Life Partner",
-    description:
-      "Bangladesh's most trusted matrimony platform. Find your perfect life partner today.",
+    locale: "en_BD",
+    url: "/",
+    siteName: SITE_CONFIG.name,
+    title: SITE_CONFIG.title,
+    description: SITE_CONFIG.shortDescription,
     images: [
       {
-        url: "/og-image.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Marriage Media",
+        alt: `${SITE_CONFIG.name} matrimony platform`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Marriage Media - Find Your Perfect Life Partner",
-    description:
-      "Bangladesh's most trusted matrimony platform. Find your perfect life partner today.",
-    images: ["/og-image.png"],
+    title: SITE_CONFIG.title,
+    description: SITE_CONFIG.shortDescription,
+    images: ["/twitter-image"],
   },
   robots: {
     index: true,
@@ -88,9 +90,15 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  metadataBase: new URL("https://marriagemedia.com"),
-  verification: {
-    google: "your-google-verification-code",
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? {
+        google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+      }
+    : undefined,
+  other: {
+    "msapplication-TileColor": "#e11d48",
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-title": SITE_CONFIG.name,
   },
 };
 
@@ -117,13 +125,18 @@ export default function RootLayout({
     >
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="canonical" href="https://marriagemedia.com" />
         <meta name="theme-color" content="#e11d48" />
         <ThemeInit />
       </head>
       <body
         className={`${inter.variable} ${poppins.variable} ${playfair.variable} font-sans antialiased`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-lg focus:ring-2 focus:ring-ring"
+        >
+          Skip to main content
+        </a>
         <Providers>
           {children}
         </Providers>

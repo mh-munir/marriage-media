@@ -69,7 +69,6 @@ const EmailTemplateSchema = new Schema<IEmailTemplate>(
   { timestamps: true }
 );
 
-EmailTemplateSchema.index({ slug: 1 }, { unique: true });
 EmailTemplateSchema.index({ category: 1 });
 EmailTemplateSchema.index({ isActive: 1 });
 

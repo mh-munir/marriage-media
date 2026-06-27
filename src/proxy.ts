@@ -4,6 +4,10 @@ import type { NextRequest } from "next/server";
 // Simple in-memory rate limiter (per-server instance)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
+// In-memory IP blacklist/whitelist (swap with DB lookups in production)
+const ipBlacklist = new Set<string>();
+const ipWhitelist = new Set<string>();
+
 function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(key);
@@ -54,6 +58,9 @@ export function proxy(request: NextRequest) {
     ].join("; ")
   );
 
+  // Extract client IP early for all security checks
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+
   // CORS for API routes
   if (request.nextUrl.pathname.startsWith("/api/")) {
     const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -64,16 +71,58 @@ export function proxy(request: NextRequest) {
     response.headers.set("Access-Control-Max-Age", "86400");
   }
 
+  // IP Blacklist / Whitelist
+  if (ipBlacklist.has(ip)) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+  if (ipWhitelist.size > 0 && !ipWhitelist.has(ip)) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  // Request body size limit (10 MB)
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
+    return new NextResponse("Payload Too Large", { status: 413 });
+  }
+
   // Handle preflight requests
   if (request.method === "OPTIONS") {
     return new NextResponse(null, { status: 200, headers: response.headers });
   }
 
+  // SQL-Injection / XSS early rejection on URLs
+  const fullUrl = request.nextUrl.href;
+  const injectionPatterns = [
+    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION)\b)/i,
+    /(<script\b[^>]*>[\s\S]*?<\/script>)/gi,
+    /(javascript:)/gi,
+    /(on\w+\s*=\s*['"])/gi,
+    /(data:text\/html)/gi,
+  ];
+  if (injectionPatterns.some((p) => p.test(fullUrl))) {
+    return new NextResponse("Bad Request", { status: 400 });
+  }
+
+  // CSRF protection for state-changing form submissions
+  const method = request.method.toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+      const origin = request.headers.get("origin");
+      const referer = request.headers.get("referer");
+      const host = request.headers.get("host");
+      const validOrigin = origin && host && origin.includes(host);
+      const validReferer = referer && host && referer.includes(host);
+      if (!validOrigin && !validReferer) {
+        return new NextResponse("CSRF Validation Failed", { status: 403 });
+      }
+    }
+  }
+
   // Rate limiting for API routes
   if (request.nextUrl.pathname.startsWith("/api/")) {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const pathname = request.nextUrl.pathname;
-    const method = request.method;
+    const apiMethod = request.method;
 
     // Different rate limits for different endpoints
     let maxRequests = 60;
@@ -88,12 +137,12 @@ export function proxy(request: NextRequest) {
     } else if (pathname.includes("/payment/checkout")) {
       maxRequests = 5;
       windowMs = 60 * 60 * 1000; // 5 per hour
-    } else if (method !== "GET") {
+    } else if (apiMethod !== "GET") {
       maxRequests = 30;
       windowMs = 60 * 1000; // 30 writes per minute
     }
 
-    const rateLimitKey = `${ip}:${pathname}:${method}`;
+    const rateLimitKey = `${ip}:${pathname}:${apiMethod}`;
     if (!checkRateLimit(rateLimitKey, maxRequests, windowMs)) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
@@ -104,6 +153,9 @@ export function proxy(request: NextRequest) {
     response.headers.set("X-RateLimit-Policy", "api");
     response.headers.set("X-Client-IP", ip);
   }
+
+  // Add request ID for traceability
+  response.headers.set("X-Request-ID", crypto.randomUUID());
 
   return response;
 }

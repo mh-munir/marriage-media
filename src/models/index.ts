@@ -19,6 +19,9 @@ export { default as NotificationPreference } from "./NotificationPreference";
 export { default as EmailTemplate } from "./EmailTemplate";
 export { default as CallHistory } from "./CallHistory";
 export { default as AuditLog } from "./AuditLog";
+export { default as BlockedIP } from "./BlockedIP";
+export { default as RevokedToken } from "./RevokedToken";
+export { default as SavedSearch } from "./SavedSearch";
 
 export type { IUser } from "./User";
 export type { IProfile } from "./Profile";
@@ -41,3 +44,6 @@ export type { INotificationPreference } from "./NotificationPreference";
 export type { IEmailTemplate } from "./EmailTemplate";
 export type { ICallHistory } from "./CallHistory";
 export type { IAuditLog } from "./AuditLog";
+export type { IBlockedIP } from "./BlockedIP";
+export type { IRevokedToken } from "./RevokedToken";
+export type { ISavedSearch } from "./SavedSearch";

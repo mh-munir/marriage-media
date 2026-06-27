@@ -91,8 +91,8 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-<div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-purple-600 shadow-lg shadow-rose-500/25 group-hover:shadow-rose-500/40 transition-all duration-300 group-hover:scale-105">
+          <Link href="/" className="flex items-center gap-2.5 group" aria-label="Marriage Media home">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-purple-600 shadow-lg shadow-rose-500/25 group-hover:shadow-rose-500/40 transition-all duration-300 group-hover:scale-105">
               <Heart className="h-5 w-5 text-white" fill="white" />
             </div>
             <span className="text-xl font-bold tracking-tight hidden sm:block">
@@ -101,11 +101,12 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
                 className={cn(
                   "px-3.5 py-2 text-sm font-medium rounded-xl transition-all duration-200",
                   pathname === link.href
@@ -146,7 +147,7 @@ export function Header() {
             {isAuthenticated && authUser ? (
               <>
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="rounded-xl relative" aria-label="Notifications">
+                <Button variant="ghost" size="icon" className="rounded-xl relative" aria-label="Open notifications">
                   <Bell className="h-5 w-5" />
                   <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-white flex items-center justify-center">
                     3
@@ -156,10 +157,10 @@ export function Header() {
                 {/* Profile Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="rounded-xl gap-2 px-2">
+                    <Button variant="ghost" className="rounded-xl gap-2 px-2" aria-label="Open profile menu">
                       <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                         <AvatarImage src={authUser.avatar} alt="" />
-<AvatarFallback className="bg-linear-to-br from-primary/10 to-purple-500/10 text-primary text-xs font-semibold">
+                        <AvatarFallback className="bg-linear-to-br from-primary/10 to-purple-500/10 text-primary text-xs font-semibold">
                           {authUser.firstName
                             ? getInitials(`${authUser.firstName} ${authUser.lastName || ""}`)
                             : "U"}
@@ -233,7 +234,9 @@ export function Header() {
               size="icon"
               className="md:hidden rounded-xl"
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-navigation"
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -250,12 +253,17 @@ export function Header() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-t border-border/50 glass"
           >
-            <nav className="mx-auto max-w-7xl px-4 py-4 space-y-1">
+            <nav
+              id="mobile-navigation"
+              className="mx-auto max-w-7xl px-4 py-4 space-y-1"
+              aria-label="Mobile navigation"
+            >
               {links.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
+                  aria-current={pathname === link.href ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors",
                     pathname === link.href

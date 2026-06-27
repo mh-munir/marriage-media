@@ -62,7 +62,6 @@ const ReferralSchema = new Schema<IReferral>(
   { timestamps: true }
 );
 
-ReferralSchema.index({ referralCode: 1 }, { unique: true });
 ReferralSchema.index({ referrerId: 1 });
 ReferralSchema.index({ referredId: 1 });
 ReferralSchema.index({ status: 1, expiresAt: 1 });

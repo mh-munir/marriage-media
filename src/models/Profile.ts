@@ -254,7 +254,6 @@ ProfileSchema.index({ isPremium: 1, premiumExpiry: 1 });
 ProfileSchema.index({ isVerified: 1 });
 ProfileSchema.index({ isProfileBoosted: 1, boostedAt: -1 });
 ProfileSchema.index({ lastActiveAt: -1 });
-ProfileSchema.index({ userId: 1 });
 ProfileSchema.index({ "photos.isPrimary": 1, "photos.isApproved": 1 });
 
 const Profile: Model<IProfile> =

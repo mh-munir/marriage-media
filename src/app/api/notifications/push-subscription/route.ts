@@ -13,12 +13,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { token, endpoint, keys } = body;
 
+    if (!token && !endpoint) {
+      return NextResponse.json(
+        { error: "Either token or endpoint is required" },
+        { status: 400 }
+      );
+    }
+
     await connectToDatabase();
 
-    // Store the push subscription on the user document
-    const pushSubscription = token
-      ? { type: "fcm", token }
-      : { type: "webpush", endpoint, keys };
+    // Build the subscription object matching the User model
+    const pushSubscription: Record<string, unknown> = {
+      type: token ? "fcm" : "webpush",
+      createdAt: new Date(),
+      userAgent: request.headers.get("user-agent") || "",
+    };
+
+    if (token) {
+      pushSubscription.token = token;
+    }
+    if (endpoint) {
+      pushSubscription.endpoint = endpoint;
+    }
+    if (keys) {
+      pushSubscription.keys = keys;
+    }
 
     await User.findByIdAndUpdate(user._id, {
       $push: {
@@ -41,6 +60,36 @@ export async function POST(request: NextRequest) {
     console.error("Push subscription error:", error);
     return NextResponse.json(
       { error: "Failed to register push subscription" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET /api/notifications/push-subscription
+ * Check current subscription status
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const user = await requireAuth(request);
+    await connectToDatabase();
+
+    const userDoc = await User.findById(user._id)
+      .select("pushSubscriptions lastPushRegistrationAt")
+      .lean();
+
+    return NextResponse.json({
+      subscriptions: userDoc?.pushSubscriptions || [],
+      lastRegistration: userDoc?.lastPushRegistrationAt || null,
+      count: userDoc?.pushSubscriptions?.length || 0,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("Push subscription check error:", error);
+    return NextResponse.json(
+      { error: "Failed to check push subscription" },
       { status: 500 }
     );
   }
