@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -108,8 +110,10 @@ export default function DashboardPage() {
         setProfile(nextProfile ?? null);
         setInterestCount(Array.isArray(interestsData.interests) ? interestsData.interests.length : 0);
 
-        const conversations = Array.isArray(conversationsData.conversations) ? conversationsData.conversations : [];
-        const unread = conversations.reduce((sum, conversation) => sum + (conversation?.unreadCount || 0), 0);
+        const conversations: Array<{ unreadCount?: number }> = Array.isArray(conversationsData.conversations)
+          ? conversationsData.conversations
+          : [];
+        const unread = conversations.reduce((sum: number, conversation) => sum + (conversation?.unreadCount || 0), 0);
         setConversationStats({ total: conversations.length, unread });
         setRecommendations(Array.isArray(recommendationsData.profiles) ? recommendationsData.profiles : []);
       } catch {
@@ -357,7 +361,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+              <Card className="border-amber-200 dark:border-amber-800 bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Crown className="h-5 w-5 text-amber-500" />

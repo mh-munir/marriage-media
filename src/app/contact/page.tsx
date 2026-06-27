@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import ContactContent from "./contact-content";
 import { LocalBusinessSchema, WebPageSchema } from "@/components/seo/json-ld";

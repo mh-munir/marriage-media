@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { rotateTokens } from "@/lib/security";
 import { saveAuditLog } from "@/lib/security";

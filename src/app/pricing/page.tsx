@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import PricingContent from "./pricing-content";
 import { ProductSchema, WebPageSchema } from "@/components/seo/json-ld";

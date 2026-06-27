@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import BlogContent from "@/app/blog/blog-content";
 import { WebPageSchema } from "@/components/seo/json-ld";

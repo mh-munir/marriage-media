@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -597,7 +599,7 @@ function ProfileCard({
       transition={{ delay: Math.min(index * 0.025, 0.2) }}
     >
       <Card className="h-full overflow-hidden rounded-xl hover:shadow-lg">
-        <div className="relative aspect-[4/3] bg-linear-to-br from-rose-100 to-pink-100 dark:from-rose-950/40 dark:to-pink-950/30">
+        <div className="relative aspect-4/3 bg-linear-to-br from-rose-100 to-pink-100 dark:from-rose-950/40 dark:to-pink-950/30">
           {profile.imageUrl ? (
             <Image
               src={profile.imageUrl}
@@ -786,7 +788,7 @@ function ProfileGridSkeleton() {
 function ProfileSkeleton() {
   return (
     <Card className="overflow-hidden rounded-xl">
-      <Skeleton className="aspect-[4/3] w-full rounded-none" />
+      <Skeleton className="aspect-4/3 w-full rounded-none" />
       <CardContent className="space-y-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-2">

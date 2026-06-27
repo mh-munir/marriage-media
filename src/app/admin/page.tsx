@@ -322,7 +322,7 @@ export default function AdminDashboardPage() {
                   </CardHeader>
                   <CardContent className="space-y-2 overflow-x-auto">
                     {heatmap.map((day) => (
-                      <div key={day.label} className="flex min-w-[720px] items-center gap-2">
+                      <div key={day.label} className="flex `min-w-[720px]` items-center gap-2">
                         <span className="w-10 text-xs text-muted-foreground">{day.label}</span>
                         {day.values.map((cell) => (
                           <span

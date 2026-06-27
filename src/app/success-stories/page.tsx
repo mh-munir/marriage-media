@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import SuccessStoriesContent from "./successstories-content";
 import { WebPageSchema } from "@/components/seo/json-ld";
