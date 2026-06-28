@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
-    let amount = planConfig.amounts.bdt;
+    const amount = planConfig.amounts.bdt;
     let discountAmount = 0;
 
     // Apply coupon

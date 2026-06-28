@@ -179,7 +179,7 @@ export function calculateProfileCompletion(profile: Record<string, unknown>): nu
   ];
 
   let completed = 0;
-  let total = requiredFields.length * 2 + optionalFields.length; // Required fields weighted 2x
+  const total = requiredFields.length * 2 + optionalFields.length; // Required fields weighted 2x
 
   requiredFields.forEach((field) => {
     if (profile[field]) completed += 2;

@@ -1,5 +1,5 @@
 /* Marriage Media Service Worker */
-/* eslint-disable no-restricted-globals */
+ 
 
 const CACHE_NAME = "marriage-media-v1";
 const STATIC_CACHE = "marriage-media-static-v1";

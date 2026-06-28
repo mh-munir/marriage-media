@@ -365,7 +365,7 @@ export default function DashboardMessagesPage() {
                                     : "bg-muted rounded-bl-md"
                                 )}
                               >
-                                <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                                <p className="text-sm whitespace-pre-wrap `break-words`">{message.content}</p>
                                 <div
                                   className={cn(
                                     "flex items-center gap-1 mt-1",
