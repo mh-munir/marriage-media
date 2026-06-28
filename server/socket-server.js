@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");

@@ -59,7 +59,7 @@ function LoginFormInner() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center `bg-gradient-to-br` from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,7 +67,7 @@ function LoginFormInner() {
       >
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl `bg-gradient-to-br` from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
             <Heart className="h-5 w-5 text-white" fill="white" />
           </div>
           <span className="text-2xl font-bold tracking-tight">
@@ -160,7 +160,7 @@ function LoginFormInner() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20">
+      <div className="min-h-screen flex items-center justify-center `bg-gradient-to-br` from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>

@@ -20,7 +20,7 @@ const SocketContext = React.createContext<SocketContextType>({
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const socketRef = React.useRef<Socket | null>(null);
-  const [socketInstance, setSocketInstance] = React.useState<Socket | null>(null);
+  const [socket, setSocket] = React.useState<Socket | null>(null);
   const [isConnected, setIsConnected] = React.useState(false);
   const { token, isAuthenticated, user } = useAuthStore();
   const {
@@ -46,9 +46,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socketRef.current = socket;
-    setSocketInstance(socket);
 
     socket.on("connect", () => {
+      setSocket(socket);
       setIsConnected(true);
       if (user?.id) {
         socket.emit("join", user.id);
@@ -56,6 +56,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on("disconnect", () => {
+      setSocket(null);
       setIsConnected(false);
     });
 
@@ -160,7 +161,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     return () => {
       socket.disconnect();
       socketRef.current = null;
-      setSocketInstance(null);
+      setSocket(null);
       setIsConnected(false);
     };
   }, [
@@ -177,7 +178,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   return (
-    <SocketContext.Provider value={{ socket: socketInstance, isConnected }}>
+    <SocketContext.Provider value={{ socket, isConnected }}>
       {children}
     </SocketContext.Provider>
   );
