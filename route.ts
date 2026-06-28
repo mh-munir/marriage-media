@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
 import { Profile } from "@/models";
-import { validateBody } from "@/lib/validation";
-import type { Schema } from "ajv";
+import { validateBody } from "./src/lib/validation";
 import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +11,7 @@ function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-const photoActionSchema: Schema = {
+const photoActionSchema = {
   type: "object",
   properties: {
     userId: { type: "string", minLength: 1 },

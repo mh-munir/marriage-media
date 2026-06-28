@@ -1,9 +1,5 @@
-export const dynamic = "force-dynamic";
+import { ReactNode } from "react";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ModerationLayout({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
