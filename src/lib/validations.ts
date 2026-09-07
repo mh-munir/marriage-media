@@ -3,7 +3,10 @@ import { z } from "zod";
 // ==================== Auth Validations ====================
 
 export const registerSchema = z.object({
-  email: z.string().email("Please provide a valid email address"),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9]{10,15}$/, "Please provide a valid mobile number"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -17,7 +20,10 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email("Please provide a valid email address"),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9]{10,15}$/, "Please provide a valid mobile number"),
   password: z.string().min(1, "Password is required"),
 });
 

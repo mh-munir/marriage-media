@@ -21,13 +21,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password } = result.data;
+    const { phone, password } = result.data;
+    const normalizedPhone = phone.replace(/\s/g, "");
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ phone: normalizedPhone });
     if (existingUser) {
       return NextResponse.json(
-        { error: "An account with this email already exists" },
+        { error: "An account with this mobile number already exists" },
         { status: 409 }
       );
     }
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const user = await User.create({
-      email: email.toLowerCase(),
+      phone: normalizedPhone,
       password: hashedPassword,
       role: "user",
       isEmailVerified: false,

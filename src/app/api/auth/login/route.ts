@@ -51,12 +51,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: firstError.message }, { status: 400 });
     }
 
-    const { email, password } = result.data;
+    const { phone, password } = result.data;
+    const normalizedPhone = phone.replace(/\s/g, "");
 
     // 3 ── Find user
-    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+    const user = await User.findOne({ phone: normalizedPhone }).select("+password");
     if (!user) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid mobile number or password" }, { status: 401 });
     }
 
     // 4 ── Account lockout check
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: "Invalid email or password",
+          error: "Invalid mobile number or password",
           attemptsRemaining,
         },
         { status: 401 }
@@ -193,6 +194,7 @@ export async function POST(request: NextRequest) {
       },
       // Include token pair for client-side JWT rotation
       accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       accessTokenExpiresAt: tokens.accessTokenExpiresAt,
       // Only warn the user (don't block) if login is suspicious
       ...(suspiciousCheck.isSuspicious && {

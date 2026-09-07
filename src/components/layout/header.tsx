@@ -216,6 +216,14 @@ export function Header() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button
+                  variant="outline"
+                  className="hidden md:inline-flex rounded-xl"
+                  onClick={() => void logout()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
               </>
             ) : (
               <div className="hidden md:flex items-center gap-2">
@@ -286,6 +294,21 @@ export function Header() {
                     <Link href="/register" onClick={() => setMobileOpen(false)}>
                       Register Free
                     </Link>
+                  </Button>
+                </div>
+              )}
+              {isAuthenticated && (
+                <div className="pt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl text-destructive"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      void logout();
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
                   </Button>
                 </div>
               )}

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       },
     ]);
 
-    return NextResponse.json(pendingPhotos);
+    return NextResponse.json({ pendingPhotos });
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Internal server error";

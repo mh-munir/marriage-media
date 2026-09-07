@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
 import { Profile } from "@/models";
-import { validateBody } from "./src/lib/validation";
+import { validateBody } from "@/lib/validation";
 import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
     const adminUser = await requireAuth(request);
 
-    // @ts-ignore - Assuming user model has a 'role' property
     if (adminUser.role !== "admin") {
       return jsonError("Forbidden: You are not an administrator.", 403);
     }
@@ -37,6 +36,9 @@ export async function POST(request: NextRequest) {
     }>(request, photoActionSchema);
     if (!isValid) {
       return jsonError(error || "Invalid request body", 400);
+    }
+    if (!body) {
+      return jsonError("Invalid request body", 400);
     }
     const { userId, publicId } = body;
 

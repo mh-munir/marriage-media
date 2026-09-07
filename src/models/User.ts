@@ -49,8 +49,9 @@ const UserSchema = new Schema<IUser>(
   {
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: false,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
       match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please provide a valid email"],
@@ -102,7 +103,9 @@ const UserSchema = new Schema<IUser>(
     ],
     phone: {
       type: String,
-      default: "",
+      unique: true,
+      sparse: true,
+      trim: true,
     },
     phoneCountryCode: {
       type: String,

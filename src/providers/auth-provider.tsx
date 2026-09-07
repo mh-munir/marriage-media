@@ -29,14 +29,7 @@ const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const store = useAuthStore();
   const { user, isAuthenticated, isLoading } = store;
-
-  React.useEffect(() => {
-    if (isAuthenticated && user) {
-      store.setLoading(false);
-    } else {
-      store.setLoading(false);
-    }
-  }, [isAuthenticated, user]);
+  const hasCheckedSession = React.useRef(false);
 
   const login = React.useCallback(
     async (email: string, password: string, rememberMe = false) => {
@@ -68,12 +61,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = React.useCallback(async () => {
     try {
-      const result = await apiClient.get<{ user: AuthUser }>("/api/auth/me");
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        store.logout();
+        return;
+      }
+
+      const result = (await response.json()) as { user: AuthUser };
       store.setUser(result.user);
     } catch {
       store.logout();
     }
   }, [store]);
+
+  React.useEffect(() => {
+    if (hasCheckedSession.current) return;
+    hasCheckedSession.current = true;
+    void refreshUser();
+  }, [refreshUser]);
 
   return (
     <AuthContext.Provider

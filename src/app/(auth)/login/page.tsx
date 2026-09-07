@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { loginSchema } from "@/lib/validations";
+import { useAuthStore, type AuthUser } from "@/stores/auth-store";
 import type { z } from "zod";
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -21,6 +22,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setUser, setTokens } = useAuthStore();
   const registered = searchParams.get("registered");
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -50,6 +52,13 @@ function LoginFormInner() {
         throw new Error(result.error || "Login failed");
       }
 
+      setTokens(result.accessToken, result.refreshToken);
+      const userResponse = await fetch("/api/auth/me");
+      if (!userResponse.ok) {
+        throw new Error("Could not load your account details");
+      }
+      const { user } = (await userResponse.json()) as { user: AuthUser };
+      setUser(user);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -98,11 +107,11 @@ function LoginFormInner() {
               )}
 
               <Input
-                label="Email Address"
-                type="email"
-                placeholder="you@example.com"
-                error={errors.email?.message}
-                {...register("email")}
+                label="Mobile Number"
+                type="tel"
+                placeholder="+8801XXXXXXXXX"
+                error={errors.phone?.message}
+                {...register("phone")}
               />
 
               <div className="relative">

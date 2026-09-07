@@ -6,7 +6,7 @@ export const size = {
   width: 1200,
   height: 630,
 };
-export const contentType = "image/png";
+export const contentType = "image/jpeg";
 
 export default function Image() {
   return new ImageResponse(
@@ -18,7 +18,7 @@ export default function Image() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #fff1f2 0%, #ffffff 48%, #f5f3ff 100%)",
+          background: "#fff8f6",
           color: "#0f172a",
           padding: 72,
           fontFamily: "Arial, sans-serif",
@@ -37,7 +37,7 @@ export default function Image() {
               width: 82,
               height: 82,
               borderRadius: 24,
-              background: "linear-gradient(135deg, #e11d48, #ec4899, #7c3aed)",
+              background: "#e11d48",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
