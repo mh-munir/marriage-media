@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { useAuthStore, type AuthUser } from "@/stores/auth-store";
 import { apiClient } from "@/lib/api-client";
 
@@ -29,6 +30,7 @@ const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const store = useAuthStore();
   const { user, isAuthenticated, isLoading } = store;
+  const pathname = usePathname();
   const hasCheckedSession = React.useRef(false);
 
   const login = React.useCallback(
@@ -81,9 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (hasCheckedSession.current) return;
+    if (pathname === "/login" || pathname === "/register") return;
     hasCheckedSession.current = true;
     void refreshUser();
-  }, [refreshUser]);
+  }, [pathname, refreshUser]);
 
   return (
     <AuthContext.Provider

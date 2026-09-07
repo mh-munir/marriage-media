@@ -226,6 +226,17 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error("Login error:", error);
+
+    if (
+      error instanceof Error &&
+      (error.message.includes("bad auth") || error.message.includes("authentication failed"))
+    ) {
+      return NextResponse.json(
+        { error: "Database authentication failed. Check the MongoDB Atlas credentials configured for this deployment." },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
