@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
 import { IProfile, Profile } from "@/models";
-import { cloudinary } from "@/lib/cloudinary";
+import { getCloudinary } from "@/lib/cloudinary";
 import sharp from "sharp";
 import { UploadApiResponse } from "cloudinary";
 
@@ -14,8 +14,11 @@ function jsonError(message: string, status = 400) {
 
 export async function POST(request: NextRequest) {
   let cloudinaryPublicId: string | undefined;
+  let cloudinaryClient: ReturnType<typeof getCloudinary> | undefined;
 
   try {
+    const configuredCloudinary = getCloudinary();
+    cloudinaryClient = configuredCloudinary;
     await connectToDatabase();
     const user = await requireAuth(request);
 
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest) {
     const publicIdBase = `profiles/${user._id.toString()}/avatar/${timestamp}`;
 
     const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
+        const uploadStream = configuredCloudinary.uploader.upload_stream(
             {
                 folder: "profiles",
                 public_id: publicIdBase,
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
     if (cloudinaryPublicId) {
         console.error("Database update failed, cleaning up orphaned Cloudinary image:", cloudinaryPublicId);
         try {
-            await cloudinary.uploader.destroy(cloudinaryPublicId);
+            await cloudinaryClient?.uploader.destroy(cloudinaryPublicId);
         } catch (cleanupError) {
             console.error("Failed to cleanup Cloudinary image during error handling:", cleanupError);
         }
