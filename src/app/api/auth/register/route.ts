@@ -8,9 +8,16 @@ import { registerSchema } from "@/lib/validations";
 
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
 
-    const body = await request.json();
     const result = registerSchema.safeParse(body);
 
     if (!result.success) {
@@ -20,6 +27,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    await connectToDatabase();
 
     const { phone, password } = result.data;
     const normalizedPhone = phone.replace(/\s/g, "");
@@ -54,7 +63,37 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: unknown) {
-    console.error("Registration error:", error);
+    const databaseError = error as {
+      code?: number;
+      message?: string;
+      name?: string;
+    };
+
+    console.error("Registration error:", {
+      name: databaseError.name,
+      code: databaseError.code,
+      message: databaseError.message,
+    });
+
+    if (databaseError.code === 11000) {
+      return NextResponse.json(
+        { error: "An account with this mobile number already exists" },
+        { status: 409 }
+      );
+    }
+
+    if (
+      databaseError.name === "MongooseServerSelectionError" ||
+      databaseError.name === "MongoServerSelectionError" ||
+      databaseError.name === "MongoNetworkError" ||
+      databaseError.name === "MongooseError"
+    ) {
+      return NextResponse.json(
+        { error: "Database temporarily unavailable. Please try again." },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
