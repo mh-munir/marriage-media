@@ -18,10 +18,7 @@ export async function GET(request: NextRequest) {
     // Get the current user's profile for matching
     const myProfile = await Profile.findOne({ userId: user._id }).lean();
     if (!myProfile) {
-      return NextResponse.json(
-        { error: "Complete your profile to get recommendations" },
-        { status: 400 }
-      );
+      return NextResponse.json({ profiles: [], needsProfile: true });
     }
 
     // Target opposite gender

@@ -34,7 +34,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { addNotification } = useNotificationStore();
 
   React.useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    if (!isAuthenticated || !token || !SOCKET_URL) return;
 
     const socket = io(SOCKET_URL, {
       auth: { token },

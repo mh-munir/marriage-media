@@ -36,10 +36,7 @@ export async function GET(request: NextRequest) {
 
     const profile = await Profile.findOne({ userId: user._id });
     if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ profile: null });
     }
 
     return NextResponse.json({ profile });
