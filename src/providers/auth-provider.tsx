@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await apiClient.post("/api/auth/logout");
     } finally {
       store.logout();
+      window.location.replace("/");
     }
   }, [store]);
 
