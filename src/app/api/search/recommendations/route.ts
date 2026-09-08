@@ -152,6 +152,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...profile,
+        userId: profile.userId.toString(),
         compatibility,
         score,
       };

@@ -6,7 +6,6 @@ import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Users,
   Heart,
   MessageCircle,
   Eye,
@@ -15,7 +14,6 @@ import {
   TrendingUp,
   Star,
   ArrowRight,
-  UserPlus,
   Loader2,
   Bell,
 } from "lucide-react";
@@ -44,7 +42,8 @@ interface ProfileSummary {
 }
 
 interface RecommendedMatch {
-  userId: string;
+  userId?: string;
+  _id?: string;
   firstName?: string;
   lastName?: string;
   age?: number;
@@ -273,12 +272,12 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {recommendations.map((match) => {
+                      {recommendations.map((match, index) => {
                         const name = [match.firstName, match.lastName].filter(Boolean).join(" ") || "Match";
                         const location = getLocation(match);
                         return (
                           <div
-                            key={match.userId}
+                            key={match.userId || match._id || `recommendation-${index}`}
                             className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-colors"
                           >
                             <Avatar className="h-12 w-12">
