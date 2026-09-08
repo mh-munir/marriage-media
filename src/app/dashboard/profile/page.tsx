@@ -40,6 +40,7 @@ import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/stores/auth-store";
 
 interface ProfileFormData {
+  email: string;
   firstName: string;
   lastName: string;
   gender: string;
@@ -70,6 +71,7 @@ interface ProfileFormData {
 }
 
 const createInitialProfile = (): ProfileFormData => ({
+  email: "",
   firstName: "",
   lastName: "",
   gender: "Male",
@@ -329,6 +331,13 @@ export default function DashboardProfilePage() {
                         <CardTitle>Basic Information</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        <Input
+                          label="Email (Optional)"
+                          type="email"
+                          placeholder="you@example.com"
+                          value={profile.email}
+                          onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                        />
                         <div className="grid sm:grid-cols-2 gap-4">
                           <Input
                             label="First Name"

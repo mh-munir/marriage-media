@@ -4,6 +4,7 @@ export interface IProfile extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   // Basic Info
+  email?: string;
   firstName: string;
   lastName: string;
   gender: "Male" | "Female";
@@ -99,6 +100,12 @@ const ProfileSchema = new Schema<IProfile>(
       ref: "User",
       required: true,
       unique: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please provide a valid email"],
     },
     firstName: {
       type: String,

@@ -50,8 +50,6 @@ const UserSchema = new Schema<IUser>(
     email: {
       type: String,
       required: false,
-      unique: true,
-      sparse: true,
       lowercase: true,
       trim: true,
       match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please provide a valid email"],
@@ -167,6 +165,7 @@ const UserSchema = new Schema<IUser>(
 UserSchema.index({ role: 1 });
 UserSchema.index({ isActive: 1 });
 UserSchema.index({ isEmailVerified: 1 });
+UserSchema.index({ email: 1 }, { unique: true, sparse: true });
 
 const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
