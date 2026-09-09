@@ -5,25 +5,20 @@ export const dynamic = "force-dynamic";
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  Briefcase,
   ChevronLeft,
   ChevronRight,
   Crown,
   Eye,
-  GraduationCap,
-  Heart,
   Loader2,
-  MapPin,
   RotateCcw,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
   Star,
-  Wifi,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -31,10 +26,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  SearchFiltersPanel,
-  type SearchFilters,
-} from "@/components/search/search-filters";
 
 type BrowseProfile = {
   _id: string;
@@ -63,6 +54,7 @@ type BrowseProfile = {
   createdAt: string | null;
   viewCount?: number;
   lastViewedAt?: string;
+  matchPercentage: number;
 };
 
 type PaginationState = {
@@ -98,40 +90,8 @@ const sortOptions = [
   { value: "views-desc", label: "Most Viewed" },
 ];
 
-function buildSearchUrl(filters: Partial<SearchFilters>, page: number, sortBy: string) {
+function buildSearchUrl(page: number, sortBy: string) {
   const params = new URLSearchParams();
-
-  if (filters.searchQuery) params.set("q", filters.searchQuery);
-  if (filters.gender) params.set("gender", filters.gender);
-  if (filters.ageMin) params.set("ageMin", filters.ageMin);
-  if (filters.ageMax) params.set("ageMax", filters.ageMax);
-  if (filters.heightMin) params.set("heightMin", filters.heightMin);
-  if (filters.heightMax) params.set("heightMax", filters.heightMax);
-  if (filters.religion) params.set("religion", filters.religion);
-  if (filters.motherTongue) params.set("motherTongue", filters.motherTongue);
-  if (filters.maritalStatus) params.set("maritalStatus", filters.maritalStatus);
-  if (filters.education) params.set("education", filters.education);
-  if (filters.institution) params.set("institution", filters.institution);
-  if (filters.profession) params.set("profession", filters.profession);
-  if (filters.workingWith) params.set("workingWith", filters.workingWith);
-  if (filters.incomeRange) params.set("incomeRange", filters.incomeRange);
-  if (filters.country) params.set("country", filters.country);
-  if (filters.division) params.set("division", filters.division);
-  if (filters.nationality) params.set("nationality", filters.nationality);
-  if (filters.familyType) params.set("familyType", filters.familyType);
-  if (filters.familyStatus) params.set("familyStatus", filters.familyStatus);
-  if (filters.familyValues) params.set("familyValues", filters.familyValues);
-  if (filters.diet) params.set("diet", filters.diet);
-  if (filters.smoke) params.set("smoke", filters.smoke);
-  if (filters.drink) params.set("drink", filters.drink);
-  if (filters.bloodGroup) params.set("bloodGroup", filters.bloodGroup);
-  if (filters.profileCreatedBy) params.set("profileCreatedBy", filters.profileCreatedBy);
-  if (filters.hasPhoto) params.set("hasPhoto", "true");
-  if (filters.isVerified) params.set("isVerified", "true");
-  if (filters.isPremium) params.set("isPremium", "true");
-  if (filters.hobbies?.length) params.set("hobbies", filters.hobbies.join(","));
-  if (filters.activeWithinDays) params.set("activeWithinDays", filters.activeWithinDays);
-  if (filters.caste) params.set("caste", filters.caste);
 
   params.set("sortBy", sortBy);
   params.set("page", String(page));
@@ -180,8 +140,8 @@ async function fetchJson(url: string, init?: RequestInit): Promise<ProfileRespon
 }
 
 export default function DashboardSearchPage() {
+  const router = useRouter();
   const [view, setView] = React.useState<"browse" | "recent">("browse");
-  const [filters, setFilters] = React.useState<Partial<SearchFilters>>({});
   const [sortBy, setSortBy] = React.useState("relevance");
   const [profiles, setProfiles] = React.useState<BrowseProfile[]>([]);
   const [pagination, setPagination] = React.useState<PaginationState>(emptyPagination);
@@ -212,7 +172,7 @@ export default function DashboardSearchPage() {
       }
 
       try {
-        const data = await fetchJson(buildSearchUrl(filters, page, sortBy));
+        const data = await fetchJson(buildSearchUrl(page, sortBy));
         if (requestId !== requestIdRef.current) return;
 
         const nextProfiles = data.profiles ?? [];
@@ -232,7 +192,7 @@ export default function DashboardSearchPage() {
         }
       }
     },
-    [filters, sortBy]
+    [sortBy]
   );
 
   const loadRecentProfiles = React.useCallback(
@@ -304,23 +264,10 @@ export default function DashboardSearchPage() {
     view,
   ]);
 
-  const handleFilterChange = React.useCallback((nextFilters: SearchFilters) => {
-    setFilters(nextFilters);
-    if (nextFilters.sortBy) {
-      setSortBy(nextFilters.sortBy);
-    }
-  }, []);
-
-  const handleSearch = React.useCallback(() => {
-    setView("browse");
-    void loadBrowseProfiles(1);
-  }, [loadBrowseProfiles]);
-
   const handleSortChange = React.useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       const nextSort = event.target.value;
       setSortBy(nextSort);
-      setFilters((prev) => ({ ...prev, sortBy: nextSort }));
     },
     []
   );
@@ -377,23 +324,24 @@ export default function DashboardSearchPage() {
             : profile
         )
       );
+        router.push(`/dashboard/profile/${profileUserId}`);
     } catch (viewError) {
       setError(viewError instanceof Error ? viewError.message : "Unable to record profile view.");
     }
-  }, []);
+    }, [router]);
 
   const currentProfiles = view === "browse" ? profiles : recentProfiles;
   const currentPagination = view === "browse" ? pagination : recentPagination;
   const currentEmptyTitle = view === "browse" ? "No profiles found" : "No recently viewed profiles";
   const currentEmptyDescription =
     view === "browse"
-      ? "Try adjusting your filters, broadening your age range, or changing the sort order."
+      ? "There are no profiles available right now."
       : "Profiles you view from Browse Profiles will appear here.";
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main id="main-content" className="pt-20 pb-12">
+      <main id="main-content" className="pt-30 pb-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
             href="/dashboard"
@@ -411,7 +359,7 @@ export default function DashboardSearchPage() {
               </Badge>
               <h1 className="text-2xl font-bold sm:text-3xl">Discover Matches</h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Search live profiles from the database with filters, sorting, favorites, and recent view history.
+                Browse live profiles from the database and view your recent profile history.
               </p>
             </div>
 
@@ -448,16 +396,6 @@ export default function DashboardSearchPage() {
             </div>
           </div>
 
-          {view === "browse" ? (
-            <SearchFiltersPanel
-              onFilterChange={handleFilterChange}
-              onSearch={handleSearch}
-              isLoading={isLoading}
-              resultCount={pagination.total}
-              initialFilters={{ ...filters, sortBy }}
-            />
-          ) : null}
-
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {isLoading ? (
@@ -472,7 +410,6 @@ export default function DashboardSearchPage() {
 
             {view === "browse" ? (
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
                 <select
                   value={sortBy}
                   onChange={handleSortChange}
@@ -514,7 +451,7 @@ export default function DashboardSearchPage() {
             )}
 
             {isAppending ? (
-              <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-6 grid gap-5 sm:grid-cols-2">
                 <ProfileSkeleton />
                 <ProfileSkeleton />
                 <ProfileSkeleton />
@@ -565,7 +502,7 @@ function ProfileGrid({
   onView: (profileUserId: string) => void;
 }) {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-5 sm:grid-cols-2">
       {profiles.map((profile, index) => (
         <ProfileCard
           key={profile.userId}
@@ -597,129 +534,72 @@ function ProfileCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.025, 0.2) }}
+      role="link"
+      tabIndex={0}
+      onClick={() => onView(profile.userId)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onView(profile.userId);
+        }
+      }}
+      className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
     >
-      <Card className="h-full overflow-hidden rounded-xl hover:shadow-lg">
-        <div className="relative aspect-4/3 bg-linear-to-br from-rose-100 to-pink-100 dark:from-rose-950/40 dark:to-pink-950/30">
+      <Card className="h-full rounded-2xl border-border/70 transition-shadow hover:shadow-lg">
+        <div className="flex min-h-32 items-center gap-3 p-3 sm:gap-4 sm:p-4">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-linear-to-br from-rose-100 to-pink-100 ring-2 ring-background shadow-sm dark:from-rose-950/40 dark:to-pink-950/30">
           {profile.imageUrl ? (
             <Image
               src={profile.imageUrl}
               alt={name}
               fill
-              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              sizes="80px"
               className="object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-5xl font-bold text-primary/30">
+            <div className="flex h-full w-full items-center justify-center text-xl font-bold text-primary/40">
               {initials(profile)}
             </div>
           )}
-
-          <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-            {profile.isPremium ? (
-              <Badge variant="premium">
-                <Crown className="mr-1 h-3 w-3" />
-                Premium
-              </Badge>
-            ) : null}
-            {profile.isVerified ? (
-              <Badge variant="verified">
-                <ShieldCheck className="mr-1 h-3 w-3" />
-                Verified
-              </Badge>
-            ) : null}
           </div>
-
-          <button
-            type="button"
-            aria-label={profile.isFavorite ? "Remove from favorites" : "Add to favorites"}
-            onClick={() => onFavorite(profile.userId)}
-            className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
-          >
-            <Star
-              className={
-                profile.isFavorite
-                  ? "h-5 w-5 fill-amber-400 text-amber-500"
-                  : "h-5 w-5 text-muted-foreground"
-              }
-            />
-          </button>
-        </div>
-
-        <CardContent className="p-5">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="truncate text-lg font-semibold">
-                  {name}
-                  {profile.age ? `, ${profile.age}` : ""}
-                </h2>
-                {profile.isOnline ? (
-                  <span className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-label="Online" />
-                ) : null}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {profile.height || "Height not added"} · {profile.maritalStatus || "Status not added"}
-              </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="truncate text-base font-semibold sm:text-lg">{name}</h2>
+              {profile.age ? <Badge variant="secondary" className="shrink-0 text-xs">{profile.age} yrs</Badge> : null}
+              {profile.isOnline ? <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-label="Online" /> : null}
             </div>
-            {profile.isOnline ? (
-              <Badge variant="success" className="shrink-0">
-                <Wifi className="mr-1 h-3 w-3" />
-                Online
-              </Badge>
-            ) : null}
+            <p className="mt-1 truncate text-sm text-muted-foreground">
+              {profile.profession || "Profile shared"} · {formatLocation(profile)}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {profile.isVerified ? <Badge variant="verified" className="text-[10px]"><ShieldCheck className="mr-1 h-3 w-3" />Verified</Badge> : null}
+              {profile.isPremium ? <Badge variant="premium" className="text-[10px]"><Crown className="mr-1 h-3 w-3" />Premium</Badge> : null}
+              {profile.profileViews ? <span className="text-xs text-muted-foreground"><Eye className="mr-1 inline h-3 w-3" />{formatCount(profile.profileViews)}</span> : null}
+            </div>
           </div>
-
-          <div className="mb-4 space-y-2 text-sm text-muted-foreground">
-            <ProfileMeta icon={MapPin} text={formatLocation(profile)} />
-            <ProfileMeta icon={Briefcase} text={profile.profession || "Profession not added"} />
-            <ProfileMeta icon={GraduationCap} text={profile.highestEducation || "Education not added"} />
-          </div>
-
-          {profile.aboutMe ? (
-            <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{profile.aboutMe}</p>
-          ) : null}
-
-          <div className="mb-4 flex flex-wrap gap-2">
-            {profile.religion ? <Badge variant="secondary">{profile.religion}</Badge> : null}
-            {profile.caste ? <Badge variant="outline">{profile.caste}</Badge> : null}
-            {profile.viewCount ? (
-              <Badge variant="outline">
-                <Eye className="mr-1 h-3 w-3" />
-                Viewed {profile.viewCount}x
-              </Badge>
-            ) : profile.profileViews ? (
-              <Badge variant="outline">
-                <Eye className="mr-1 h-3 w-3" />
-                {formatCount(profile.profileViews)} views
-              </Badge>
-            ) : null}
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="gradient" size="sm" className="flex-1" onClick={() => onView(profile.userId)}>
-              <Eye className="h-4 w-4" />
-              View Profile
-            </Button>
-            <Button
-              variant={profile.isFavorite ? "premium" : "outline"}
-              size="sm"
-              onClick={() => onFavorite(profile.userId)}
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="text-right">
+              <div className="text-sm font-semibold text-emerald-600">{profile.matchPercentage}%</div>
+              <div className="text-[10px] text-muted-foreground">match</div>
+            </div>
+            <button
+              type="button"
+              aria-label={profile.isFavorite ? "Remove from favorites" : "Add to favorites"}
+              onClick={(event) => {
+                event.stopPropagation();
+                onFavorite(profile.userId);
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
             >
-              <Heart className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} />
+              <Star className={profile.isFavorite ? "h-4 w-4 fill-amber-400 text-amber-500" : "h-4 w-4"} />
+            </button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(event) => { event.stopPropagation(); onView(profile.userId); }} aria-label={`View ${name}`}>
+              <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
-        </CardContent>
+        </div>
       </Card>
     </motion.div>
-  );
-}
-
-function ProfileMeta({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Icon className="h-4 w-4 shrink-0 text-primary" />
-      <span className="line-clamp-1">{text}</span>
-    </div>
   );
 }
 
@@ -777,7 +657,7 @@ function EmptyState({ title, description }: { title: string; description: string
 
 function ProfileGridSkeleton() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-5 sm:grid-cols-2">
       {Array.from({ length: 6 }).map((_, index) => (
         <ProfileSkeleton key={index} />
       ))}

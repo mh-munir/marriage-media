@@ -5,6 +5,7 @@ import type { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
+import { calculatePartnerMatchScore } from "@/lib/profile-matching";
 
 type ProfilePhoto = {
   url?: string;
@@ -43,6 +44,7 @@ type SearchProfile = {
   maritalStatus?: string;
   profileCreatedBy?: string;
   createdAt?: Date;
+  partnerPreferences?: Record<string, string>;
 };
 
 const PROFILE_SELECT =
@@ -103,8 +105,14 @@ export async function GET(request: NextRequest) {
     };
 
     // 1. Gender filter
+    const currentProfile = await Profile.findOne({ userId: user._id })
+      .select("gender partnerPreferences")
+      .lean();
+    if (currentProfile?.gender) {
+      filter.gender = currentProfile.gender === "Male" ? "Female" : "Male";
+    }
     const gender = searchParams.get("gender");
-    if (gender) {
+    if (gender && (!currentProfile?.gender || gender === filter.gender)) {
       filter.gender = gender;
     }
 
@@ -325,6 +333,13 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    const databaseFilter: Record<string, unknown> = {
+      isVisible: true,
+      isDeactivated: false,
+      userId: { $ne: user._id },
+      ...(typeof filter.gender === "string" ? { gender: filter.gender } : {}),
+    };
+
     // Pagination
     const page = parsePositiveInt(searchParams.get("page"), 1, 10_000);
     const limit = parsePositiveInt(searchParams.get("limit"), 12, 50);
@@ -334,14 +349,14 @@ export async function GET(request: NextRequest) {
     const sort = getSort(searchParams.get("sortBy"));
 
     const [profiles, total] = await Promise.all([
-      Profile.find(filter)
+      Profile.find(databaseFilter)
         .sort(sort)
         .skip(skip)
         .limit(limit)
         .select(PROFILE_SELECT)
         .lean<SearchProfile[]>()
         .exec(),
-      Profile.countDocuments(filter),
+      Profile.countDocuments(databaseFilter),
     ]);
 
     const now = new Date();
@@ -396,6 +411,7 @@ export async function GET(request: NextRequest) {
         maritalStatus: profile.maritalStatus || "",
         profileCreatedBy: profile.profileCreatedBy || "",
         createdAt: profile.createdAt?.toISOString() ?? null,
+        matchPercentage: calculatePartnerMatchScore(profile, currentProfile?.partnerPreferences),
       };
     });
 

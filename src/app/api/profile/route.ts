@@ -5,6 +5,7 @@ import connectToDatabase from "@/lib/mongodb";
 import { Profile, User } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { calculateAge } from "@/lib/utils";
+import { notifyProfileMatches } from "@/lib/profile-matching";
 
 function calculateProfileCompletion(body: Record<string, unknown>) {
   const completionFields = [
@@ -22,11 +23,39 @@ function calculateProfileCompletion(body: Record<string, unknown>) {
     body.highestEducation,
     body.profession,
     body.aboutMe,
-    body.partnerPreference,
+    body.partnerPreference ||
+      (body.partnerPreferences && Object.values(body.partnerPreferences).some(Boolean)),
   ];
 
   const completedFields = completionFields.filter((value) => Boolean(value && String(value).trim())).length;
   return Math.round((completedFields / completionFields.length) * 100);
+}
+
+function getMissingRequiredFields(body: Record<string, unknown>) {
+  const requiredFields = [
+    ["firstName", "First Name"],
+    ["lastName", "Last Name"],
+    ["gender", "Gender"],
+    ["dateOfBirth", "Date of Birth"],
+    ["height", "Height"],
+    ["maritalStatus", "Marital Status"],
+    ["religion", "Religion"],
+    ["motherTongue", "Mother Tongue"],
+    ["country", "Country"],
+    ["division", "Division"],
+    ["district", "District"],
+    ["highestEducation", "Highest Education"],
+    ["profession", "Profession"],
+    ["aboutMe", "About Me"],
+  ] as const;
+  const missingFields: string[] = requiredFields
+    .filter(([field]) => !String(body[field] || "").trim())
+    .map(([, label]) => label);
+  const partnerPreferences = body.partnerPreferences;
+  if (!partnerPreferences || typeof partnerPreferences !== "object" || !Object.values(partnerPreferences).some(Boolean)) {
+    missingFields.push("At least one Expected Partner preference");
+  }
+  return missingFields;
 }
 
 export async function GET(request: NextRequest) {
@@ -36,10 +65,10 @@ export async function GET(request: NextRequest) {
 
     const profile = await Profile.findOne({ userId: user._id });
     if (!profile) {
-      return NextResponse.json({ profile: null });
+      return NextResponse.json({ profile: null, mobileNumber: user.phone || "" });
     }
 
-    return NextResponse.json({ profile });
+    return NextResponse.json({ profile, mobileNumber: user.phone || "" });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
     const status = message === "Unauthorized" ? 401 : 500;
@@ -53,6 +82,15 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth(request);
 
     const body = await request.json();
+
+    const missingFields = getMissingRequiredFields(body);
+    if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 2) {
+      if (!Array.isArray(body.photos) || body.photos.length < 2) missingFields.push("At least 2 profile photos");
+      return NextResponse.json(
+        { error: `Please complete these fields before saving: ${missingFields.join(", ")}.` },
+        { status: 400 }
+      );
+    }
 
     // Check if profile already exists
     const existingProfile = await Profile.findOne({ userId: user._id });
@@ -77,6 +115,7 @@ export async function POST(request: NextRequest) {
 
     // Update user profile completion
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
+    await notifyProfileMatches(user._id.toString());
 
     return NextResponse.json({ profile }, { status: 201 });
   } catch (error: unknown) {
@@ -92,6 +131,15 @@ export async function PUT(request: NextRequest) {
     const user = await requireAuth(request);
 
     const body = await request.json();
+
+    const missingFields = getMissingRequiredFields(body);
+    if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 2) {
+      if (!Array.isArray(body.photos) || body.photos.length < 2) missingFields.push("At least 2 profile photos");
+      return NextResponse.json(
+        { error: `Please complete these fields before saving: ${missingFields.join(", ")}.` },
+        { status: 400 }
+      );
+    }
 
     // Calculate age if dateOfBirth is provided
     if (body.dateOfBirth) {
@@ -113,6 +161,7 @@ export async function PUT(request: NextRequest) {
 
     const completionPercentage = calculateProfileCompletion(body);
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
+    await notifyProfileMatches(user._id.toString());
 
     return NextResponse.json({ profile });
   } catch (error: unknown) {

@@ -29,6 +29,24 @@ export async function POST(request: NextRequest) {
       return jsonError("No file uploaded.");
     }
 
+    if (!file.type.startsWith("image/")) {
+      return jsonError("Please upload an image file.");
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return jsonError("Image must be smaller than 10 MB.");
+    }
+
+    const profile = await Profile.findOne<IProfile>({ userId: user._id });
+
+    if (!profile) {
+      return jsonError("Profile not found.", 404);
+    }
+
+    if (profile.photos.length >= 5) {
+      return jsonError("You can upload a maximum of 5 images.", 400);
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const compressedBuffer = await sharp(buffer)
@@ -65,12 +83,6 @@ export async function POST(request: NextRequest) {
       return jsonError("Cloudinary returned an invalid response.");
     }
 
-    const profile = await Profile.findOne<IProfile>({ userId: user._id });
-
-    if (!profile) {
-      return jsonError("Profile not found.", 404);
-    }
-
     const isFirstPhoto = profile.photos.length === 0;
 
     const newPhoto = {
@@ -105,6 +117,16 @@ export async function POST(request: NextRequest) {
             console.error("Failed to cleanup Cloudinary image during error handling:", cleanupError);
         }
     }
+    const uploadError = error as { http_code?: number; message?: string };
+    if (
+      uploadError.http_code === 401 ||
+      uploadError.message === "unknown api_key" ||
+      uploadError.message === "cloud_name mismatch"
+    ) {
+      console.error("Cloudinary authentication failed. Check CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.");
+      return jsonError("Image service is temporarily unavailable. Please try again later.", 503);
+    }
+
     const message = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

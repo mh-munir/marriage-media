@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -13,7 +14,6 @@ import {
   CheckCircle,
   Shield,
   Eye,
-  Globe,
   Heart,
   AlertCircle,
   Sparkles,
@@ -23,15 +23,15 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import {
   RELIGIONS,
   EDUCATION_LEVELS,
   PROFESSIONS,
-  BANGLADESH_DIVISIONS,
   HEIGHTS,
   WEIGHTS,
   INCOME_RANGES,
@@ -41,6 +41,7 @@ import { useAuthStore } from "@/stores/auth-store";
 
 interface ProfileFormData {
   email: string;
+  mobileNumber: string;
   firstName: string;
   lastName: string;
   gender: string;
@@ -53,6 +54,8 @@ interface ProfileFormData {
   country: string;
   division: string;
   district: string;
+  thana: string;
+  union: string;
   area: string;
   highestEducation: string;
   institution: string;
@@ -62,16 +65,40 @@ interface ProfileFormData {
   familyType: string;
   familyStatus: string;
   familyValues: string;
+  fatherName: string;
+  fatherContactNumber: string;
+  motherName: string;
+  siblings: Array<{ name: string; relation: "Brother" | "Sister" }>;
   aboutMe: string;
   partnerPreference: string;
+  partnerPreferences: {
+    age: string;
+    height: string;
+    weight: string;
+    maritalStatus: string;
+    religion: string;
+    highestEducation: string;
+    annualIncome: string;
+    country: string;
+    division: string;
+    district: string;
+    thana: string;
+    union: string;
+    area: string;
+    familyType: string;
+    familyStatus: string;
+    familyValues: string;
+  };
   showContactInfo: boolean;
   isVisible: boolean;
   isPremium?: boolean;
   isVerified?: boolean;
+  photos: Array<{ url: string; publicId: string; isPrimary: boolean; isApproved: boolean }>;
 }
 
 const createInitialProfile = (): ProfileFormData => ({
   email: "",
+  mobileNumber: "",
   firstName: "",
   lastName: "",
   gender: "Male",
@@ -82,8 +109,10 @@ const createInitialProfile = (): ProfileFormData => ({
   religion: RELIGIONS[0],
   motherTongue: "Bengali",
   country: "Bangladesh",
-  division: BANGLADESH_DIVISIONS[0],
+  division: "",
   district: "",
+  thana: "",
+  union: "",
   area: "",
   highestEducation: EDUCATION_LEVELS[0],
   institution: "",
@@ -93,13 +122,45 @@ const createInitialProfile = (): ProfileFormData => ({
   familyType: "Nuclear",
   familyStatus: "Middle Class",
   familyValues: "Moderate",
+  fatherName: "",
+  fatherContactNumber: "",
+  motherName: "",
+  siblings: [],
   aboutMe: "",
   partnerPreference: "",
+  partnerPreferences: {
+    age: "",
+    height: "",
+    weight: "",
+    maritalStatus: "",
+    religion: "",
+    highestEducation: "",
+    annualIncome: "",
+    country: "Bangladesh",
+    division: "",
+    district: "",
+    thana: "",
+    union: "",
+    area: "",
+    familyType: "",
+    familyStatus: "",
+    familyValues: "",
+  },
   showContactInfo: false,
   isVisible: true,
   isPremium: false,
   isVerified: false,
+  photos: [],
 });
+
+const PARTNER_HEIGHT_RANGES = [
+  { value: "4'10\"-5'0\"", label: "4'10\" - 5'0\"" },
+  { value: "5'1\"-5'3\"", label: "5'1\" - 5'3\"" },
+  { value: "5'4\"-5'6\"", label: "5'4\" - 5'6\"" },
+  { value: "5'7\"-5'9\"", label: "5'7\" - 5'9\"" },
+  { value: "5'10\"-6'0\"", label: "5'10\" - 6'0\"" },
+  { value: "6'1\"-6'3\"", label: "6'1\" - 6'3\"" },
+] as const;
 
 const formatDateForInput = (value?: string | Date | null) => {
   if (!value) return "";
@@ -114,6 +175,30 @@ const getInitials = (firstName?: string, lastName?: string) => {
   return `${first}${last}`.toUpperCase() || "U";
 };
 
+type LocationLevel = "divisions" | "districts" | "thanas" | "unions";
+
+type LocationOptions = {
+  divisions: string[];
+  districts: string[];
+  thanas: string[];
+  unions: string[];
+};
+
+const emptyLocationOptions: LocationOptions = {
+  divisions: [],
+  districts: [],
+  thanas: [],
+  unions: [],
+};
+
+async function fetchLocationOptions(level: LocationLevel, params: Record<string, string> = {}) {
+  const query = new URLSearchParams({ level, ...params });
+  const response = await fetch(`/api/locations?${query.toString()}`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Unable to load location options.");
+  const data = (await response.json()) as { options?: string[] };
+  return data.options || [];
+}
+
 export default function DashboardProfilePage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -121,22 +206,90 @@ export default function DashboardProfilePage() {
   const [activeSection, setActiveSection] = React.useState("basic");
   const [error, setError] = React.useState("");
   const [profileExists, setProfileExists] = React.useState(false);
+  const [isUploading, setIsUploading] = React.useState(false);
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
-  const { user, updateUser } = useAuthStore();
+  const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
+  const { updateUser } = useAuthStore();
+
+  React.useEffect(() => {
+    const activateSectionFromHash = () => {
+      if (window.location.hash === "#expected-partner") setActiveSection("expected-partner");
+    };
+    activateSectionFromHash();
+    window.addEventListener("hashchange", activateSectionFromHash);
+    return () => window.removeEventListener("hashchange", activateSectionFromHash);
+  }, []);
+
+  React.useEffect(() => {
+    void fetchLocationOptions("divisions").then((divisions) => {
+      setLocationOptions((current) => ({ ...current, divisions }));
+    });
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!profile.division) {
+      void Promise.resolve().then(() => {
+        if (active) setLocationOptions((current) => ({ ...current, districts: [], thanas: [], unions: [] }));
+      });
+      return () => { active = false; };
+    }
+    void fetchLocationOptions("districts", { division: profile.division }).then((districts) => {
+      if (active) setLocationOptions((current) => ({ ...current, districts, thanas: [], unions: [] }));
+    });
+    return () => { active = false; };
+  }, [profile.division]);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!profile.division || !profile.district) {
+      void Promise.resolve().then(() => {
+        if (active) setLocationOptions((current) => ({ ...current, thanas: [], unions: [] }));
+      });
+      return () => { active = false; };
+    }
+    void fetchLocationOptions("thanas", { division: profile.division, district: profile.district }).then((thanas) => {
+      if (active) setLocationOptions((current) => ({ ...current, thanas, unions: [] }));
+    });
+    return () => { active = false; };
+  }, [profile.division, profile.district]);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!profile.district || !profile.thana) {
+      void Promise.resolve().then(() => {
+        if (active) setLocationOptions((current) => ({ ...current, unions: [] }));
+      });
+      return () => { active = false; };
+    }
+    void fetchLocationOptions("unions", { division: profile.division, district: profile.district, thana: profile.thana }).then((unions) => {
+      if (active) setLocationOptions((current) => ({ ...current, unions }));
+    });
+    return () => { active = false; };
+  }, [profile.division, profile.district, profile.thana]);
 
   React.useEffect(() => {
     const loadProfile = async () => {
       try {
         setIsLoading(true);
         setError("");
-        const response = await apiClient.get<{ profile?: Partial<ProfileFormData> }>('/api/profile');
+        const response = await apiClient.get<{ profile?: Partial<ProfileFormData>; mobileNumber?: string }>('/api/profile');
         const profileData = response.profile;
 
         if (profileData) {
           setProfile({
             ...createInitialProfile(),
             ...profileData,
+            mobileNumber: response.mobileNumber || "",
+            partnerPreferences: {
+              ...createInitialProfile().partnerPreferences,
+              ...(profileData.partnerPreferences || {}),
+              country: profileData.partnerPreferences?.country || "Bangladesh",
+            },
             dateOfBirth: formatDateForInput(profileData.dateOfBirth),
+          });
+          updateUser({
+            avatar: profileData.photos?.find((photo) => photo.isPrimary)?.url || "",
           });
           setProfileExists(true);
         }
@@ -153,7 +306,7 @@ export default function DashboardProfilePage() {
     };
 
     void loadProfile();
-  }, []);
+  }, [updateUser]);
 
   const profileCompletion = React.useMemo(() => {
     const completionFields = [
@@ -171,15 +324,50 @@ export default function DashboardProfilePage() {
       profile.highestEducation,
       profile.profession,
       profile.aboutMe,
-      profile.partnerPreference,
+      Object.values(profile.partnerPreferences).some(Boolean),
     ];
 
     const completedFields = completionFields.filter((value) => Boolean(value && String(value).trim())).length;
     return Math.round((completedFields / completionFields.length) * 100);
   }, [profile]);
 
+  const getMissingRequiredFields = () => {
+    const requiredFields = [
+      { value: profile.firstName, label: "First Name" },
+      { value: profile.lastName, label: "Last Name" },
+      { value: profile.gender, label: "Gender" },
+      { value: profile.dateOfBirth, label: "Date of Birth" },
+      { value: profile.height, label: "Height" },
+      { value: profile.maritalStatus, label: "Marital Status" },
+      { value: profile.religion, label: "Religion" },
+      { value: profile.motherTongue, label: "Mother Tongue" },
+      { value: profile.country, label: "Country" },
+      { value: profile.division, label: "Division" },
+      { value: profile.district, label: "District" },
+      { value: profile.highestEducation, label: "Highest Education" },
+      { value: profile.profession, label: "Profession" },
+      { value: profile.aboutMe, label: "About Me" },
+    ];
+    const missingFields = requiredFields
+      .filter(({ value }) => !String(value || "").trim())
+      .map(({ label }) => label);
+
+    if (!Object.values(profile.partnerPreferences).some((value) => String(value || "").trim())) {
+      missingFields.push("At least one Expected Partner preference");
+    }
+    if (profile.photos.length < 2) missingFields.push("At least 2 profile photos");
+    return missingFields;
+  };
+
   const handleSave = async () => {
     if (isSaving) return;
+
+    const missingFields = getMissingRequiredFields();
+    if (missingFields.length) {
+      setError(`Please complete these fields before saving: ${missingFields.join(", ")}.`);
+      setActiveSection(missingFields.includes("At least 2 profile photos") ? "photos" : "basic");
+      return;
+    }
 
     setIsSaving(true);
     setError("");
@@ -198,6 +386,12 @@ export default function DashboardProfilePage() {
       setProfile({
         ...createInitialProfile(),
         ...savedProfile,
+        mobileNumber: profile.mobileNumber,
+        partnerPreferences: {
+          ...createInitialProfile().partnerPreferences,
+          ...(savedProfile.partnerPreferences || {}),
+          country: savedProfile.partnerPreferences?.country || "Bangladesh",
+        },
         dateOfBirth: formatDateForInput(savedProfile.dateOfBirth),
       });
       setProfileExists(true);
@@ -205,6 +399,7 @@ export default function DashboardProfilePage() {
         firstName: savedProfile.firstName,
         lastName: savedProfile.lastName,
         profileCompleted: profileCompletion,
+        avatar: savedProfile.photos?.find((photo) => photo.isPrimary)?.url || "",
       });
       setSaved(true);
       window.setTimeout(() => setSaved(false), 3000);
@@ -215,25 +410,66 @@ export default function DashboardProfilePage() {
     }
   };
 
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+
+    if (!profileExists) {
+      setError("Please save your basic profile information first, then upload images.");
+      setActiveSection("basic");
+      return;
+    }
+
+    if (profile.photos.length + files.length > 5) {
+      setError("You can upload a maximum of 5 images.");
+      return;
+    }
+
+    setIsUploading(true);
+    setError("");
+    try {
+      const uploaded: ProfileFormData["photos"] = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("/api/profile/photos/upload", {
+          method: "POST",
+          body: formData,
+          headers: { Authorization: `Bearer ${useAuthStore.getState().token || ""}` },
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Image upload failed");
+        uploaded.push(result.photo);
+      }
+      setProfile((current) => ({ ...current, photos: [...current.photos, ...uploaded] }));
+      const primaryPhoto = uploaded.find((photo) => photo.isPrimary);
+      if (primaryPhoto) updateUser({ avatar: primaryPhoto.url });
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Image upload failed.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const sections = [
     { id: "basic", label: "Basic Info", icon: User },
-    { id: "location", label: "Location", icon: Globe },
-    { id: "education", label: "Education", icon: Shield },
-    { id: "family", label: "Family", icon: Heart },
-    { id: "about", label: "About", icon: User },
-    { id: "settings", label: "Settings", icon: Eye },
+    { id: "photos", label: "Photos", icon: Sparkles },
+    { id: "expected-partner", label: "Expected partner", icon: Heart },
+    { id: "settings", label: "Profile Settings", icon: Eye },
   ];
 
   const displayName = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Your Profile";
+  const primaryPhotoUrl = profile.photos.find((photo) => photo.isPrimary)?.url;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-linear-to-b from-rose-50/70 via-background to-background dark:from-rose-950/15">
       <Header />
-      <main className="pt-20 pb-12">
+      <main className="pb-16 pt-30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
+            className="mb-7 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
@@ -242,10 +478,11 @@ export default function DashboardProfilePage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            className="mb-8 max-w-2xl"
           >
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Profile Settings</h1>
-            <p className="text-muted-foreground">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your profile workspace</p>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl">Profile Settings</h1>
+            <p className="text-sm leading-6 text-muted-foreground sm:text-base">
               Manage your profile information and preferences.
             </p>
           </motion.div>
@@ -257,11 +494,12 @@ export default function DashboardProfilePage() {
             </div>
           ) : null}
 
-          <Card className="mb-8 border-primary/20 bg-primary/5">
-            <CardContent className="p-6">
+          <Card className="relative mb-8 overflow-hidden border-rose-200/70 bg-linear-to-r from-white via-rose-50/80 to-orange-50/70 shadow-premium dark:border-rose-900/50 dark:from-card dark:via-rose-950/20 dark:to-orange-950/20">
+            <CardContent className="p-5 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
+                <Avatar className="h-16 w-16 border-4 border-white shadow-md dark:border-stone-800">
+                  <AvatarImage src={primaryPhotoUrl} alt={`${displayName} profile photo`} />
+                  <AvatarFallback className="bg-linear-to-br from-rose-500 to-orange-400 text-xl font-bold text-white">
                     {getInitials(profile.firstName, profile.lastName)}
                   </AvatarFallback>
                 </Avatar>
@@ -279,9 +517,9 @@ export default function DashboardProfilePage() {
                     ) : null}
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">Complete your profile to get better matches.</p>
-                  <div className="flex items-center gap-3">
-                    <Progress value={profileCompletion} className="flex-1 max-w-xs" />
-                    <span className="text-sm font-medium">{profileCompletion}%</span>
+                  <div className="flex max-w-md items-center gap-3">
+                    <Progress value={profileCompletion} className="h-2 flex-1" />
+                    <span className="text-xs font-semibold tabular-nums text-primary">{profileCompletion}%</span>
                   </div>
                 </div>
                 <Button variant="gradient" size="sm" asChild>
@@ -291,19 +529,19 @@ export default function DashboardProfilePage() {
             </CardContent>
           </Card>
 
-          <div className="grid lg:grid-cols-4 gap-6">
+          <div className="grid gap-8 lg:grid-cols-4">
             <div className="lg:col-span-1">
-              <Card>
-                <CardContent className="p-3">
+              <Card className="sticky top-24 border-border/70 bg-background/80 shadow-sm backdrop-blur">
+                <CardContent className="p-2 sm:p-3">
                   <nav className="space-y-1">
                     {sections.map((section) => (
                       <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
-                        className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-all ${
                           activeSection === section.id
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
                         }`}
                       >
                         <section.icon className="h-4 w-4" />
@@ -315,7 +553,7 @@ export default function DashboardProfilePage() {
               </Card>
             </div>
 
-            <div className="lg:col-span-3">
+            <div className="min-w-0 lg:col-span-3">
               {isLoading ? (
                 <Card>
                   <CardContent className="p-8 text-center text-sm text-muted-foreground">
@@ -324,20 +562,50 @@ export default function DashboardProfilePage() {
                   </CardContent>
                 </Card>
               ) : (
-                <>
+                <div className="space-y-5">
+                  {activeSection === "photos" && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Profile Photos</CardTitle>
+                        <p className="text-sm text-muted-foreground">Upload at least 2 and up to 5 images.</p>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        {!profileExists ? (
+                          <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
+                            Save your basic profile information first to enable image uploads.
+                          </p>
+                        ) : null}
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                          {profile.photos.map((photo) => (
+                            <div key={photo.publicId} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted">
+                              <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 33vw, 50vw" className="object-cover" />
+                              {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
+                            </div>
+                          ))}
+                          {profileExists && profile.photos.length < 5 ? (
+                            <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary">
+                              {isUploading ? <Loader2 className="mb-2 h-6 w-6 animate-spin" /> : <Sparkles className="mb-2 h-6 w-6" />}
+                              {isUploading ? "Uploading..." : "Add images"}
+                              <input type="file" accept="image/*" multiple className="sr-only" onChange={handleUpload} disabled={isUploading} />
+                            </label>
+                          ) : null}
+                        </div>
+                        <p className={`text-sm ${profile.photos.length < 2 ? "text-destructive" : "text-emerald-600"}`}>
+                          {profile.photos.length}/5 images uploaded {profile.photos.length < 2 ? "(minimum 2 required)" : ""}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {activeSection === "basic" && (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Basic Information</CardTitle>
+                        <CardTitle>Complete Your Profile</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <Input
-                          label="Email (Optional)"
-                          type="email"
-                          placeholder="you@example.com"
-                          value={profile.email}
-                          onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                        />
+                      <CardContent className="space-y-8">
+                        <section>
+                          <h2 className="mb-4 text-lg font-semibold">Basic Information</h2>
+                          <div className="space-y-4">
                         <div className="grid sm:grid-cols-2 gap-4">
                           <Input
                             label="First Name"
@@ -348,6 +616,22 @@ export default function DashboardProfilePage() {
                             label="Last Name"
                             value={profile.lastName}
                             onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                          />
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Input
+                            label="Email (Optional)"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={profile.email}
+                            onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                          />
+                          <Input
+                            label="Mobile Number"
+                            type="tel"
+                            value={profile.mobileNumber}
+                            readOnly
+                            placeholder="Registered mobile number"
                           />
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
@@ -362,37 +646,13 @@ export default function DashboardProfilePage() {
                               <option value="Female">Female</option>
                             </select>
                           </div>
-                          <Input
-                            label="Date of Birth"
-                            type="date"
-                            value={profile.dateOfBirth}
-                            onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })}
-                          />
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Height</label>
-                            <select
-                              value={profile.height}
-                              onChange={(e) => setProfile({ ...profile, height: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              {HEIGHTS.map((h) => (
-                                <option key={h} value={h}>{h}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Weight</label>
-                            <select
-                              value={profile.weight}
-                              onChange={(e) => setProfile({ ...profile, weight: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              {WEIGHTS.map((w) => (
-                                <option key={w} value={w}>{w}</option>
-                              ))}
-                            </select>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-foreground">Date of Birth</label>
+                            <DatePicker
+                              value={profile.dateOfBirth}
+                              onChange={(dateOfBirth) => setProfile({ ...profile, dateOfBirth })}
+                              placeholder="Select date of birth"
+                            />
                           </div>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
@@ -422,16 +682,51 @@ export default function DashboardProfilePage() {
                             </select>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">Height</label>
+                            <select
+                              value={profile.height}
+                              onChange={(e) => setProfile({ ...profile, height: e.target.value })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              {HEIGHTS.map((h) => (
+                                <option key={h} value={h}>{h}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">Weight</label>
+                            <select
+                              value={profile.weight}
+                              onChange={(e) => setProfile({ ...profile, weight: e.target.value })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              {WEIGHTS.map((w) => (
+                                <option key={w} value={w}>{w}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                          </div>
+                        </section>
 
-                  {activeSection === "location" && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Location Information</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                          <section>
+                            <h2 className="mb-4 text-lg font-semibold">About You</h2>
+                            <div className="space-y-4">
+                              <Textarea
+                                label="About Me"
+                                value={profile.aboutMe}
+                                onChange={(e) => setProfile({ ...profile, aboutMe: e.target.value })}
+                                rows={5}
+                                placeholder="Tell others about yourself..."
+                              />
+                            </div>
+                          </section>
+
+                        <section>
+                          <h2 className="mb-4 text-lg font-semibold">Location Information</h2>
+                          <div className="space-y-4">
                         <Input
                           label="Country"
                           value={profile.country}
@@ -442,35 +737,71 @@ export default function DashboardProfilePage() {
                             <label className="block text-sm font-medium text-foreground mb-1.5">Division</label>
                             <select
                               value={profile.division}
-                              onChange={(e) => setProfile({ ...profile, division: e.target.value })}
+                              onChange={(e) => setProfile({ ...profile, division: e.target.value, district: "", thana: "", union: "" })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              {BANGLADESH_DIVISIONS.map((d) => (
+                              <option value="">Select division</option>
+                              {locationOptions.divisions.map((d) => (
                                 <option key={d} value={d}>{d}</option>
                               ))}
                             </select>
                           </div>
-                          <Input
-                            label="District"
-                            value={profile.district}
-                            onChange={(e) => setProfile({ ...profile, district: e.target.value })}
-                          />
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">District</label>
+                            <select
+                              value={profile.district}
+                              onChange={(e) => setProfile({ ...profile, district: e.target.value, thana: "", union: "" })}
+                              disabled={!profile.division}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <option value="">{profile.division ? "Select district" : "Select division first"}</option>
+                              {locationOptions.districts.map((district) => (
+                                <option key={district} value={district}>{district}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">Thana</label>
+                            <select
+                              value={profile.thana}
+                              onChange={(e) => setProfile({ ...profile, thana: e.target.value, union: "" })}
+                              disabled={!profile.district}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <option value="">{profile.district ? "Select thana" : "Select district first"}</option>
+                              {locationOptions.thanas.map((thana) => (
+                                <option key={thana} value={thana}>{thana}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">Union</label>
+                            <select
+                              value={profile.union}
+                              onChange={(e) => setProfile({ ...profile, union: e.target.value })}
+                              disabled={!profile.thana}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <option value="">{profile.thana ? "Select union" : "Select thana first"}</option>
+                              {locationOptions.unions.map((union) => (
+                                <option key={union} value={union}>{union}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                         <Input
                           label="Area"
                           value={profile.area}
                           onChange={(e) => setProfile({ ...profile, area: e.target.value })}
                         />
-                      </CardContent>
-                    </Card>
-                  )}
+                          </div>
+                        </section>
 
-                  {activeSection === "education" && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Education & Career</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                        <section>
+                          <h2 className="mb-4 text-lg font-semibold">Education &amp; Career</h2>
+                          <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-foreground mb-1.5">Highest Education</label>
                           <select
@@ -517,16 +848,12 @@ export default function DashboardProfilePage() {
                             ))}
                           </select>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                          </div>
+                        </section>
 
-                  {activeSection === "family" && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Family Information</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                        <section>
+                          <h2 className="mb-4 text-lg font-semibold">Family Information</h2>
+                          <div className="space-y-4">
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1.5">Family Type</label>
@@ -567,32 +894,247 @@ export default function DashboardProfilePage() {
                             <option value="Secular">Secular</option>
                           </select>
                         </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Input
+                            label="Father's Name"
+                            value={profile.fatherName}
+                            onChange={(e) => setProfile({ ...profile, fatherName: e.target.value })}
+                          />
+                          <Input
+                            label="Father's Contact Number"
+                            type="tel"
+                            value={profile.fatherContactNumber}
+                            onChange={(e) => setProfile({ ...profile, fatherContactNumber: e.target.value })}
+                          />
+                        </div>
+                        <Input
+                          label="Mother's Name"
+                          value={profile.motherName}
+                          onChange={(e) => setProfile({ ...profile, motherName: e.target.value })}
+                        />
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <label className="text-sm font-medium text-foreground">Brothers and Sisters</label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setProfile({
+                                ...profile,
+                                siblings: [...profile.siblings, { name: "", relation: "Brother" }],
+                              })}
+                            >
+                              Add sibling
+                            </Button>
+                          </div>
+                          {profile.siblings.map((sibling, index) => (
+                            <div key={`sibling-${index}`} className="flex items-end gap-3">
+                              <Input
+                                label={`Sibling ${index + 1} name`}
+                                value={sibling.name}
+                                onChange={(e) => setProfile({
+                                  ...profile,
+                                  siblings: profile.siblings.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, name: e.target.value } : item
+                                  ),
+                                })}
+                              />
+                              <div className="w-36 shrink-0">
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">Relation</label>
+                                <select
+                                  value={sibling.relation}
+                                  onChange={(e) => setProfile({
+                                    ...profile,
+                                    siblings: profile.siblings.map((item, itemIndex) =>
+                                      itemIndex === index
+                                        ? { ...item, relation: e.target.value as "Brother" | "Sister" }
+                                        : item
+                                    ),
+                                  })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                                >
+                                  <option value="Brother">Brother</option>
+                                  <option value="Sister">Sister</option>
+                                </select>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`Remove sibling ${index + 1}`}
+                                onClick={() => setProfile({
+                                  ...profile,
+                                  siblings: profile.siblings.filter((_, itemIndex) => itemIndex !== index),
+                                })}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                          {!profile.siblings.length ? (
+                            <p className="text-sm text-muted-foreground">No brothers or sisters added.</p>
+                          ) : null}
+                        </div>
+                          </div>
+                        </section>
+
                       </CardContent>
                     </Card>
                   )}
 
-                  {activeSection === "about" && (
+                  {activeSection === "expected-partner" && (
+                    <div id="expected-partner" className="scroll-mt-24">
                     <Card>
                       <CardHeader>
-                        <CardTitle>About You</CardTitle>
+                        <CardTitle>Expected partner</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Tell us about the partner you are looking for.
+                        </p>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <Textarea
-                          label="About Me"
-                          value={profile.aboutMe}
-                          onChange={(e) => setProfile({ ...profile, aboutMe: e.target.value })}
-                          rows={5}
-                          placeholder="Tell others about yourself..."
-                        />
-                        <Textarea
-                          label="Partner Preference"
-                          value={profile.partnerPreference}
-                          onChange={(e) => setProfile({ ...profile, partnerPreference: e.target.value })}
-                          rows={4}
-                          placeholder="Describe your ideal partner..."
-                        />
+                      <CardContent className="space-y-5">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Age</label>
+                            <select
+                              value={profile.partnerPreferences.age}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, age: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any age</option>
+                              <option value="18-25">18-25</option>
+                              <option value="26-30">26-30</option>
+                              <option value="31-35">31-35</option>
+                              <option value="36-40">36-40</option>
+                              <option value="41-50">41-50</option>
+                              <option value="51+">51+</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Height</label>
+                            <select
+                              value={profile.partnerPreferences.height}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, height: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any height</option>
+                              {PARTNER_HEIGHT_RANGES.map((range) => <option key={range.value} value={range.value}>{range.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Weight</label>
+                            <select
+                              value={profile.partnerPreferences.weight}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, weight: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any weight</option>
+                              {WEIGHTS.map((weight) => <option key={weight} value={weight}>{weight}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Marital Status</label>
+                            <select
+                              value={profile.partnerPreferences.maritalStatus}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, maritalStatus: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any status</option>
+                              <option value="Never Married">Never Married</option>
+                              <option value="Divorced">Divorced</option>
+                              <option value="Widowed">Widowed</option>
+                              <option value="Awaiting Divorce">Awaiting Divorce</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Religion</label>
+                            <select
+                              value={profile.partnerPreferences.religion}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, religion: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any religion</option>
+                              {RELIGIONS.map((religion) => <option key={religion} value={religion}>{religion}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Highest Education</label>
+                            <select
+                              value={profile.partnerPreferences.highestEducation}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, highestEducation: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any education</option>
+                              {EDUCATION_LEVELS.map((education) => <option key={education} value={education}>{education}</option>)}
+                            </select>
+                          </div>
+                          <Input
+                            label="Annual Income"
+                            placeholder="Example: 50,000-100,000"
+                            value={profile.partnerPreferences.annualIncome}
+                            onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, annualIncome: e.target.value } })}
+                          />
+                          <Input
+                            label="Country"
+                            value={profile.partnerPreferences.country}
+                            onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, country: e.target.value } })}
+                          />
+                          <Input
+                            label="Division"
+                            placeholder="Example: Dhaka, Chattogram"
+                            value={profile.partnerPreferences.division}
+                            onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, division: e.target.value, district: "", thana: "", union: "" } })}
+                          />
+                          <Input
+                            label="District"
+                            placeholder="Example: Dhaka, Coxsbazar"
+                            value={profile.partnerPreferences.district}
+                            onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, district: e.target.value, thana: "", union: "" } })}
+                          />
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Family Type</label>
+                            <select
+                              value={profile.partnerPreferences.familyType}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyType: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any family type</option>
+                              <option value="Joint">Joint</option>
+                              <option value="Nuclear">Nuclear</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Family Status</label>
+                            <select
+                              value={profile.partnerPreferences.familyStatus}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyStatus: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any family status</option>
+                              <option value="Middle Class">Middle Class</option>
+                              <option value="Upper Middle Class">Upper Middle Class</option>
+                              <option value="Rich">Rich</option>
+                              <option value="Affluent">Affluent</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">Family Values</label>
+                            <select
+                              value={profile.partnerPreferences.familyValues}
+                              onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyValues: e.target.value } })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="">Any family values</option>
+                              <option value="Orthodox">Orthodox</option>
+                              <option value="Traditional">Traditional</option>
+                              <option value="Moderate">Moderate</option>
+                              <option value="Liberal">Liberal</option>
+                              <option value="Secular">Secular</option>
+                            </select>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
+                    </div>
                   )}
 
                   {activeSection === "settings" && (
@@ -647,7 +1189,7 @@ export default function DashboardProfilePage() {
                     </Card>
                   )}
 
-                  <div className="mt-6 flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
                     <Button variant="gradient" size="lg" onClick={handleSave} disabled={isSaving}>
                       {isSaving ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -667,7 +1209,7 @@ export default function DashboardProfilePage() {
                       Reset
                     </Button>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>

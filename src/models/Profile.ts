@@ -27,6 +27,8 @@ export interface IProfile extends Document {
   country: string;
   division: string;
   district: string;
+  thana: string;
+  union: string;
   area: string;
   nationality: string;
 
@@ -43,11 +45,16 @@ export interface IProfile extends Document {
   familyStatus: "Middle Class" | "Upper Middle Class" | "Rich" | "Affluent";
   familyValues: "Orthodox" | "Traditional" | "Moderate" | "Liberal" | "Secular";
   fatherName?: string;
+  fatherContactNumber?: string;
   fatherProfession?: string;
   motherName?: string;
   motherProfession?: string;
   numberOfSiblings?: number;
   siblingDetails?: string;
+  siblings?: {
+    name: string;
+    relation: "Brother" | "Sister";
+  }[];
 
   // Lifestyle
   diet: "Veg" | "Non-Veg" | "Eggetarian" | "Vegan" | "Jain" | "Halal" | "No Preference";
@@ -58,6 +65,24 @@ export interface IProfile extends Document {
   // About
   aboutMe: string;
   partnerPreference: string;
+  partnerPreferences: {
+    age: string;
+    height: string;
+    weight: string;
+    maritalStatus: string;
+    religion: string;
+    highestEducation: string;
+    annualIncome: string;
+    country: string;
+    division: string;
+    district: string;
+    thana: string;
+    union: string;
+    area: string;
+    familyType: string;
+    familyStatus: string;
+    familyValues: string;
+  };
 
   // Photos
   photos: {
@@ -168,6 +193,8 @@ const ProfileSchema = new Schema<IProfile>(
     country: { type: String, default: "Bangladesh" },
     division: { type: String, default: "" },
     district: { type: String, default: "" },
+    thana: { type: String, default: "" },
+    union: { type: String, default: "" },
     area: { type: String, default: "" },
     nationality: { type: String, default: "Bangladeshi" },
 
@@ -200,11 +227,18 @@ const ProfileSchema = new Schema<IProfile>(
       default: "Moderate",
     },
     fatherName: { type: String, default: "" },
+    fatherContactNumber: { type: String, default: "" },
     fatherProfession: { type: String, default: "" },
     motherName: { type: String, default: "" },
     motherProfession: { type: String, default: "" },
     numberOfSiblings: { type: Number, default: 0 },
     siblingDetails: { type: String, default: "" },
+    siblings: [
+      {
+        name: { type: String, trim: true, default: "" },
+        relation: { type: String, enum: ["Brother", "Sister"], default: "Brother" },
+      },
+    ],
 
     diet: {
       type: String,
@@ -217,6 +251,24 @@ const ProfileSchema = new Schema<IProfile>(
 
     aboutMe: { type: String, default: "", maxlength: [1000, "About me cannot exceed 1000 characters"] },
     partnerPreference: { type: String, default: "", maxlength: [1000, "Partner preference cannot exceed 1000 characters"] },
+    partnerPreferences: {
+      age: { type: String, default: "" },
+      height: { type: String, default: "" },
+      weight: { type: String, default: "" },
+      maritalStatus: { type: String, default: "" },
+      religion: { type: String, default: "" },
+      highestEducation: { type: String, default: "" },
+      annualIncome: { type: String, default: "" },
+      country: { type: String, default: "" },
+      division: { type: String, default: "" },
+      district: { type: String, default: "" },
+      thana: { type: String, default: "" },
+      union: { type: String, default: "" },
+      area: { type: String, default: "" },
+      familyType: { type: String, default: "" },
+      familyStatus: { type: String, default: "" },
+      familyValues: { type: String, default: "" },
+    },
 
     photos: [
       {

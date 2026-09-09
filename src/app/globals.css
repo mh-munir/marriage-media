@@ -102,6 +102,37 @@
   --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
+.dark .home-page {
+  background-color: #0a0a0a !important;
+  color: #fafaf9 !important;
+}
+
+.dark .home-page section {
+  background-color: #171412 !important;
+}
+
+.dark .home-page [class*="bg-[#fffdfc"],
+.dark .home-page [class*="bg-[#f7efee"],
+.dark .home-page [class*="bg-[#eff8f7"],
+.dark .home-page [class*="bg-white"] {
+  background-color: #1c1917 !important;
+}
+
+.dark .home-page [class*="border-white"],
+.dark .home-page [class*="border-[#f7efee"] {
+  border-color: #292524 !important;
+}
+
+.dark .home-page [class*="text-[#263b3a"],
+.dark .home-page [class*="text-[#355350"],
+.dark .home-page [class*="text-[#486866"],
+.dark .home-page [class*="text-[#607572"],
+.dark .home-page [class*="text-[#6c817e"],
+.dark .home-page [class*="text-[#78908c"],
+.dark .home-page [class*="text-[#8aa19d"] {
+  color: #d6d3d1 !important;
+}
+
 @layer base {
   * {
     @apply border-border;

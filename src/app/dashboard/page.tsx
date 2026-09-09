@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Loader2,
   Bell,
+  Pencil,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -177,17 +178,25 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="pt-20 pb-12">
+      <main className="pt-30 pb-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
           >
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome back, {displayName}! 👋</h1>
-            <p className="text-muted-foreground">
-              Here&apos;s what&apos;s happening with your profile today.
-            </p>
+            <div>
+              <h1 className="mb-2 text-2xl font-bold sm:text-3xl">Welcome back, {displayName}! 👋</h1>
+              <p className="text-muted-foreground">
+                Here&apos;s what&apos;s happening with your profile today.
+              </p>
+            </div>
+            <Button variant="outline" asChild className="rounded-xl border-primary/25 text-primary hover:bg-primary/5">
+              <Link href="/dashboard/profile">
+                <Pencil className="h-4 w-4" />
+                Edit Profile
+              </Link>
+            </Button>
           </motion.div>
 
           {profileCompletion < 100 && (
@@ -268,16 +277,19 @@ export default function DashboardPage() {
                     </div>
                   ) : recommendations.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      Complete your profile and start exploring to unlock match recommendations.
+                      Add your Expected partner preferences to see profiles with 70% or higher matches.
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {recommendations.map((match, index) => {
                         const name = [match.firstName, match.lastName].filter(Boolean).join(" ") || "Match";
                         const location = getLocation(match);
+                        const matchIdentifier = [match.userId, match._id].find(
+                          (value): value is string => Boolean(value && value.trim())
+                        ) || "recommendation";
                         return (
                           <div
-                            key={match.userId || match._id || `recommendation-${index}`}
+                            key={`${matchIdentifier}-${index}`}
                             className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-colors"
                           >
                             <Avatar className="h-12 w-12">

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
+import { calculatePartnerMatchScore } from "@/lib/profile-matching";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,8 +12,10 @@ export async function GET(request: NextRequest) {
     const user = await requireAuth(request);
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "12"), 50);
+    const parsedPage = Number.parseInt(searchParams.get("page") || "1", 10);
+    const parsedLimit = Number.parseInt(searchParams.get("limit") || "12", 10);
+    const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 50) : 12;
     const skip = (page - 1) * limit;
 
     // Get the current user's profile for matching
@@ -28,18 +31,19 @@ export async function GET(request: NextRequest) {
     const filter: Record<string, unknown> = {
       isVisible: true,
       isDeactivated: false,
-      userId: { $ne: user._id },
+      userId: { $ne: user._id, $exists: true },
       gender: targetGender,
     };
 
     // Get all potential matches (limit to reasonable set for scoring)
     const allProfiles = await Profile.find(filter)
-      .select("firstName lastName gender age height weight bloodGroup religion caste subCaste motherTongue languages country division district area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues diet smoke drink hobbies aboutMe partnerPreference photos isPremium isVerified isProfileBoosted boostedAt lastActiveAt profileViews maritalStatus profileCreatedBy")
+      .select("firstName lastName gender age height weight bloodGroup religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues diet smoke drink hobbies aboutMe partnerPreference partnerPreferences photos isPremium isVerified isProfileBoosted boostedAt lastActiveAt profileViews maritalStatus profileCreatedBy")
       .limit(500)
       .lean();
 
     // Score each profile based on compatibility with current user's profile
     const scoredProfiles = allProfiles.map((profile) => {
+      const partnerMatch = calculatePartnerMatchScore(profile, myProfile.partnerPreferences);
       let score = 0;
       let maxScore = 0;
 
@@ -127,10 +131,10 @@ export async function GET(request: NextRequest) {
       }
 
       // Hobbies overlap
-      if (myProfile.hobbies?.length && profile.hobbies?.length) {
+      if (Array.isArray(myProfile.hobbies) && Array.isArray(profile.hobbies)) {
         maxScore += 7;
         const commonHobbies = myProfile.hobbies.filter((h: string) =>
-          profile.hobbies.includes(h)
+          profile.hobbies?.includes(h)
         );
         const hobbyScore = Math.min(commonHobbies.length * 2, 7);
         score += hobbyScore;
@@ -152,11 +156,11 @@ export async function GET(request: NextRequest) {
 
       return {
         ...profile,
-        userId: profile.userId.toString(),
-        compatibility,
+        userId: String(profile.userId),
+        compatibility: partnerMatch || compatibility,
         score,
       };
-    });
+    }).filter((profile) => profile.compatibility >= 70);
 
     // Sort by compatibility score (highest first)
     scoredProfiles.sort((a, b) => b.compatibility - a.compatibility);
@@ -175,6 +179,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
+    console.error("Recommendations request failed:", error);
     const message = error instanceof Error ? error.message : "Internal server error";
     const status = message === "Unauthorized" ? 401 : 500;
     return NextResponse.json({ error: message }, { status });

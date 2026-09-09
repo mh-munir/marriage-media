@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { HomeDashboardAction } from "@/app/home-dashboard-action";
 
 const image = {
   couple: "/images/home/hero-couple.jpg",
@@ -38,7 +39,7 @@ const steps = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">
+    <div className="home-page min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">
       <Header />
       <main>
         <section className="relative bg-[#f7efee] px-5 pb-16 pt-28 sm:px-8 lg:pb-24 lg:pt-36">
@@ -51,7 +52,7 @@ export default function HomePage() {
               <h1 className="font-serif text-5xl leading-[.96] text-[#223c3a] sm:text-7xl">Meet someone who feels like <span className="text-[#e8897f]">home.</span></h1>
               <p className="mt-7 max-w-lg text-base leading-7 text-[#6c817e]">Marriage Media helps you find a genuine life partner through thoughtful matching, verified profiles, and conversations that matter.</p>
               <div className="mt-9 flex flex-wrap items-center gap-4">
-                <Link href="/register" className="inline-flex items-center gap-3 rounded-xl bg-[#e8897f] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#e8897f]/25 transition-transform hover:-translate-y-0.5">Create your profile <ArrowRight className="h-4 w-4" /></Link>
+                <HomeDashboardAction />
                 <Link href="/success-stories" className="inline-flex items-center gap-2 px-2 py-3 text-sm font-semibold text-[#486866]">See success stories <ArrowRight className="h-4 w-4" /></Link>
               </div>
               <div className="mt-11 flex flex-wrap gap-6 border-t border-[#e8cbc7] pt-5 text-sm text-[#607572]">

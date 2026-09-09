@@ -208,7 +208,7 @@ export default function DashboardMessagesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20 pb-12">
+      <main className="pt-30 pb-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
             href="/dashboard"

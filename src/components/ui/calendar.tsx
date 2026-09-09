@@ -1,0 +1,42 @@
+"use client";
+
+import * as React from "react";
+import { DayPicker } from "react-day-picker";
+
+import { cn } from "@/lib/utils";
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+
+function Calendar({ className, classNames, ...props }: CalendarProps) {
+  return (
+    <DayPicker
+      className={cn("p-0", className)}
+      classNames={{
+        months: "flex flex-col space-y-4",
+        month: "space-y-4",
+        month_caption: "flex items-center justify-between px-1",
+        caption_label: "text-sm font-semibold",
+        nav: "flex items-center gap-1",
+        button_previous: "inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-sm hover:bg-accent",
+        button_next: "inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-sm hover:bg-accent",
+        month_grid: "w-full border-collapse",
+        weekdays: "flex",
+        weekday: "w-9 rounded-md text-center text-[0.8rem] font-normal text-muted-foreground",
+        week: "mt-2 flex w-full",
+        day: "relative h-9 w-9 p-0 text-center text-sm",
+        day_button: "inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent",
+        selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+        today: "font-bold text-primary",
+        outside: "text-muted-foreground opacity-50",
+        disabled: "text-muted-foreground opacity-50",
+        hidden: "invisible",
+        ...classNames,
+      }}
+      {...props}
+    />
+  );
+}
+
+Calendar.displayName = "Calendar";
+
+export { Calendar };

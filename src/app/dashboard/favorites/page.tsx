@@ -90,7 +90,7 @@ export default function DashboardFavoritesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20 pb-12">
+      <main className="pt-30 pb-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="h-4 w-4" />

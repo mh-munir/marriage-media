@@ -156,7 +156,7 @@ export default function AISettingsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20 pb-12">
+      <main className="pt-30 pb-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
             <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">

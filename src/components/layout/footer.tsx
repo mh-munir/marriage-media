@@ -38,7 +38,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
                 <Heart className="h-5 w-5 text-white" fill="white" />
               </div>
               <span className="text-xl font-bold tracking-tight">
@@ -46,7 +46,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-muted-foreground mb-4 max-w-xs">
-              Bangladesh's most trusted matrimony platform. Find your perfect life partner with
+              Bangladesh&apos;s most trusted matrimony platform. Find your perfect life partner with
               advanced matching and verified profiles.
             </p>
             <div className="space-y-2">

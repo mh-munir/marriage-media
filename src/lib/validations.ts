@@ -91,11 +91,16 @@ export const profileFamilySchema = z.object({
   familyStatus: z.enum(["Middle Class", "Upper Middle Class", "Rich", "Affluent"]).optional(),
   familyValues: z.enum(["Orthodox", "Traditional", "Moderate", "Liberal", "Secular"]).optional(),
   fatherName: z.string().optional(),
+  fatherContactNumber: z.string().optional(),
   fatherProfession: z.string().optional(),
   motherName: z.string().optional(),
   motherProfession: z.string().optional(),
   numberOfSiblings: z.number().min(0).max(20).optional(),
   siblingDetails: z.string().optional(),
+  siblings: z.array(z.object({
+    name: z.string().optional(),
+    relation: z.enum(["Brother", "Sister"]),
+  })).optional(),
 });
 
 export const profileLifestyleSchema = z.object({
@@ -108,25 +113,6 @@ export const profileLifestyleSchema = z.object({
 export const profileAboutSchema = z.object({
   aboutMe: z.string().max(1000).optional(),
   partnerPreference: z.string().max(1000).optional(),
-});
-
-// ==================== Search Filter Validation ====================
-
-export const searchFilterSchema = z.object({
-  gender: z.enum(["Male", "Female"]).optional(),
-  ageMin: z.coerce.number().min(18).max(80).optional(),
-  ageMax: z.coerce.number().min(18).max(80).optional(),
-  religion: z.string().optional(),
-  profession: z.string().optional(),
-  height: z.string().optional(),
-  education: z.string().optional(),
-  country: z.string().optional(),
-  division: z.string().optional(),
-  district: z.string().optional(),
-  isPremium: z.coerce.boolean().optional(),
-  isVerified: z.coerce.boolean().optional(),
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(50).default(12),
 });
 
 // ==================== Interest Validation ====================

@@ -119,17 +119,6 @@ export const PROFESSIONS = [
   "Other",
 ] as const;
 
-export const BANGLADESH_DIVISIONS = [
-  "Dhaka",
-  "Chittagong",
-  "Rajshahi",
-  "Khulna",
-  "Barisal",
-  "Sylhet",
-  "Rangpur",
-  "Mymensingh",
-] as const;
-
 export const HEIGHTS = [
   "4'10\" (147 cm)",
   "4'11\" (150 cm)",

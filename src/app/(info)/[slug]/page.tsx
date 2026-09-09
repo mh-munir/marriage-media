@@ -81,7 +81,7 @@ export default async function InformationPage({ params }: { params: Promise<{ sl
         </Link>
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10">
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-pink-600">
               <Heart className="h-5 w-5 text-white" fill="white" />
             </div>
             <div>
