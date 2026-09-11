@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
-import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -100,10 +99,10 @@ function DetailsCard({ title, children }: { title: string; children: React.React
 }
 
 export function PublicProfileContent({ params }: { params: Promise<{ userId: string }> }) {
-  const { user } = useAuthStore();
   const [profile, setProfile] = React.useState<PublicProfile | null>(null);
+  const [hasFullProfileAccess, setHasFullProfileAccess] = React.useState(false);
   const [error, setError] = React.useState("");
-  const currentUserIsPremium = Boolean(user?.isPremium);
+  const currentUserIsPremium = hasFullProfileAccess;
 
   React.useEffect(() => {
     let active = true;
@@ -111,9 +110,12 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
       try {
         const { userId } = await params;
         const response = await fetch(`/api/profile/${userId}`, { cache: "no-store" });
-        const result = (await response.json()) as { profile?: PublicProfile; error?: string };
+        const result = (await response.json()) as { profile?: PublicProfile; access?: { fullAccess?: boolean }; error?: string };
         if (!response.ok) throw new Error(result.error || "Unable to load profile.");
-        if (active) setProfile(result.profile || null);
+        if (active) {
+          setProfile(result.profile || null);
+          setHasFullProfileAccess(Boolean(result.access?.fullAccess));
+        }
       } catch (loadError) {
         if (active) setError(loadError instanceof Error ? loadError.message : "Unable to load profile.");
       }
@@ -125,7 +127,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
   const handlePhotoClick = () => {
     if (!currentUserIsPremium) {
       toast.custom(
-        (t) => (
+        () => (
           <div className="rounded-lg bg-white p-4 shadow-lg dark:bg-slate-950">
             <h3 className="mb-1 font-semibold">Premium Feature</h3>
             <p className="mb-3 text-sm text-muted-foreground">Subscribe to Premium to view full profile images.</p>

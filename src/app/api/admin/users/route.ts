@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { User, Profile } from "@/models";
+import { User, Profile, Payment } from "@/models";
 import { requireAdmin } from "@/lib/auth";
 
 // Get all users with admin filters
@@ -44,17 +44,39 @@ export async function GET(request: NextRequest) {
 
     // Attach profile data
     const userIds = users.map((u) => u._id);
-    const profiles = await Profile.find({ userId: { $in: userIds } })
+    const [profiles, payments] = await Promise.all([
+      Profile.find({ userId: { $in: userIds } })
       .select(
         "userId firstName lastName gender age isPremium isVerified isDeactivated",
       )
-      .lean();
+      .lean(),
+      Payment.find({ userId: { $in: userIds }, status: "completed" })
+        .sort({ expiryDate: -1 })
+        .select("userId expiryDate metadata plan")
+        .lean(),
+    ]);
 
     const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+    const subscriptionMap = new Map<string, (typeof payments)[number]>();
+    for (const payment of payments) {
+      const key = payment.userId.toString();
+      if (!subscriptionMap.has(key)) subscriptionMap.set(key, payment);
+    }
 
     const usersWithProfiles = users.map((u) => ({
       ...u,
       profile: profileMap.get(u._id.toString()) || null,
+      subscription: (() => {
+        const payment = subscriptionMap.get(u._id.toString());
+        if (!payment) return null;
+        const expiryDate = payment.expiryDate.toISOString();
+        return {
+          plan: String(payment.metadata?.planId || payment.plan),
+          expiryDate,
+          isActive: payment.expiryDate > new Date(),
+          daysRemaining: Math.max(0, Math.ceil((payment.expiryDate.getTime() - Date.now()) / 86_400_000)),
+        };
+      })(),
     }));
 
     return NextResponse.json({

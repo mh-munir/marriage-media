@@ -44,6 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+  const notificationRef = React.useRef<HTMLDivElement>(null);
   const { user, isLoading, logout } = useAuth();
   const { notifications, unreadCount, fetchNotifications, markAllAsRead } = useNotificationStore();
 
@@ -59,6 +60,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const refresh = window.setInterval(() => void fetchNotifications(true), 15000);
     return () => window.clearInterval(refresh);
   }, [fetchNotifications, user]);
+
+  React.useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!notificationRef.current?.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [notificationsOpen]);
 
   if (pathname === "/admin/login") return <>{children}</>;
   if (isLoading || !user || (user.role !== "admin" && user.role !== "superadmin")) {
@@ -98,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="lg:pl-72">
         <header className="sticky top-0 z-30 flex h-18 items-center justify-between border-b border-slate-200/80 bg-[#f6f8fb]/90 px-4 backdrop-blur-xl dark:border-border dark:bg-background/90 sm:px-8">
           <div className="flex items-center gap-3"><button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation"><Menu className="h-6 w-6" /></button><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Control room</p><h1 className="text-lg font-bold">Good morning, Admin</h1></div></div>
-          <div className="flex items-center gap-2"><Button variant="ghost" size="icon" aria-label="Search"><Search className="h-5 w-5" /></Button><div className="relative"><Button variant="ghost" size="icon" aria-label="Notifications" onClick={() => setNotificationsOpen((current) => !current)}><Bell className="h-5 w-5" />{unreadCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}</Button>{notificationsOpen ? <div className="absolute right-0 top-12 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 shadow-xl"><div className="flex items-center justify-between border-b pb-2"><p className="text-sm font-semibold">Notifications</p>{unreadCount > 0 ? <button className="text-xs text-emerald-600" onClick={() => void markAllAsRead()}>Mark all read</button> : null}</div><div className="max-h-80 overflow-y-auto">{notifications.length ? notifications.slice(0, 8).map((notification) => <div key={notification.id} className={`border-b py-3 last:border-0 ${notification.isRead ? "opacity-60" : ""}`}><p className="text-sm font-medium">{notification.title}</p><p className="mt-1 text-xs text-slate-500">{notification.body}</p></div>) : <p className="py-8 text-center text-xs text-slate-500">No notifications</p>}</div></div> : null}</div><div className="ml-2 hidden text-right sm:block"><p className="text-xs font-semibold">{user.email}</p><p className="text-[10px] uppercase tracking-wider text-slate-500">{user.role}</p></div><div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">{user.email.slice(0, 2).toUpperCase()}</div></div>
+          <div className="flex items-center gap-2"><Button variant="ghost" size="icon" aria-label="Search"><Search className="h-5 w-5" /></Button><div ref={notificationRef} className="relative"><Button variant="ghost" size="icon" aria-label="Notifications" onClick={() => setNotificationsOpen((current) => !current)}><Bell className="h-5 w-5" />{unreadCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}</Button>{notificationsOpen ? <div className="absolute right-0 top-12 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 shadow-xl"><div className="flex items-center justify-between border-b pb-2"><p className="text-sm font-semibold">Notifications</p>{unreadCount > 0 ? <button className="text-xs text-emerald-600" onClick={() => void markAllAsRead()}>Mark all read</button> : null}</div><div className="max-h-80 overflow-y-auto">{notifications.length ? notifications.slice(0, 8).map((notification) => <div key={notification.id} className={`border-b py-3 last:border-0 ${notification.isRead ? "opacity-60" : ""}`}><p className="text-sm font-medium">{notification.title}</p><p className="mt-1 text-xs text-slate-500">{notification.body}</p></div>) : <p className="py-8 text-center text-xs text-slate-500">No notifications</p>}</div></div> : null}</div><div className="ml-2 hidden text-right sm:block"><p className="text-xs font-semibold">{user.email}</p><p className="text-[10px] uppercase tracking-wider text-slate-500">{user.role}</p></div><div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">{user.email.slice(0, 2).toUpperCase()}</div></div>
         </header>
         <main className="min-h-[calc(100vh-4.5rem)] px-4 py-6 sm:px-8 sm:py-8">{children}</main>
       </div>

@@ -6,6 +6,8 @@ import { BadgeCheck, CalendarDays, ChevronRight, Eye, GraduationCap, MessageCirc
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 
 export type ProfileCardData = {
   userId: string;
@@ -61,8 +63,34 @@ export function ProfileCard({
   onView: (profileUserId: string) => void;
   currentUserIsPremium?: boolean;
 }) {
+  const { user } = useAuthStore();
+  const isPremiumUser = Boolean(user?.isPremium);
   const name = profileName(profile);
   const displayName = currentUserIsPremium ? profileName(profile) : (profile.publicId || "ID pending");
+
+  const handleMessageClick = () => {
+    if (!isPremiumUser) {
+      toast.custom(
+        (t) => (
+          <div className="rounded-lg bg-white p-4 shadow-lg dark:bg-slate-950">
+            <p className="mb-3 font-semibold">Premium Subscribe করুন</p>
+            <Button
+              size="sm"
+              variant="gradient"
+              onClick={() => {
+                window.location.href = "/pricing";
+              }}
+            >
+              Subscribe Now
+            </Button>
+          </div>
+        ),
+        { duration: 5000 }
+      );
+    } else {
+      if (profile.userId) onMessage?.(profile.userId);
+    }
+  };
 
   return (
     <motion.div
@@ -107,18 +135,20 @@ export function ProfileCard({
             </p>
             <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 dark:text-muted-foreground sm:text-sm">
               <span className="flex items-center gap-1.5"><Eye className="h-4 w-4" />{formatCount(profile.profileViews ?? 0)}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full text-slate-500 hover:bg-slate-100 dark:text-muted-foreground"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (profile.userId) onMessage?.(profile.userId);
-                }}
-                aria-label={`Message ${name}`}
-              >
-                <MessageCircle className="h-4 w-4" />
-              </Button>
+              {isPremiumUser && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full text-slate-500 hover:bg-slate-100 dark:text-muted-foreground"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleMessageClick();
+                  }}
+                  aria-label={`Message ${name}`}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
           <div className="relative z-10 flex shrink-0 items-center gap-2 border-l border-slate-200 pl-3 pt-4 dark:border-border sm:gap-4 sm:pl-5 sm:pt-5">

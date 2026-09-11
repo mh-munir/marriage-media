@@ -95,6 +95,7 @@ export default function DashboardMessagesPage() {
   const [loadingConversations, setLoadingConversations] = React.useState(true);
   const [loadingMessages, setLoadingMessages] = React.useState(false);
   const [sending, setSending] = React.useState(false);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const { socket, isConnected } = useSocket();
 
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
@@ -109,9 +110,9 @@ export default function DashboardMessagesPage() {
     );
   }, [conversations, searchQuery]);
 
-  const loadMessages = React.useCallback(async (conversationId: string) => {
+  const loadMessages = React.useCallback(async (conversationId: string, showLoading = true) => {
     if (!conversationId) return;
-    setLoadingMessages(true);
+    if (showLoading) setLoadingMessages(true);
     try {
       const response = await fetch(`/api/chat/messages?conversationId=${conversationId}&limit=50`);
       if (!response.ok) throw new Error("Failed to load messages");
@@ -120,12 +121,12 @@ export default function DashboardMessagesPage() {
     } catch {
       setMessages([]);
     } finally {
-      setLoadingMessages(false);
+      if (showLoading) setLoadingMessages(false);
     }
   }, []);
 
-  const loadConversations = React.useCallback(async () => {
-    setLoadingConversations(true);
+  const loadConversations = React.useCallback(async (showLoading = true) => {
+    if (showLoading) setLoadingConversations(true);
     try {
       const [meResponse, conversationsResponse] = await Promise.all([
         fetch("/api/auth/me"),
@@ -145,7 +146,7 @@ export default function DashboardMessagesPage() {
     } catch {
       setConversations([]);
     } finally {
-      setLoadingConversations(false);
+      if (showLoading) setLoadingConversations(false);
     }
   }, [requestedConversationId]);
 
@@ -165,7 +166,7 @@ export default function DashboardMessagesPage() {
       if (mapped.conversationId === selectedConversationId) {
         setMessages((current) => current.some((item) => item.id === mapped.id) ? current : [...current, mapped]);
       }
-      void loadConversations();
+      void loadConversations(false);
     };
 
     socket.on("new-message", handleNewMessage);
@@ -173,6 +174,27 @@ export default function DashboardMessagesPage() {
       socket.off("new-message", handleNewMessage);
     };
   }, [loadConversations, selectedConversationId, socket]);
+
+  React.useEffect(() => {
+    if (isConnected) return;
+
+    const refreshMessages = () => {
+      if (document.visibilityState !== "visible") return;
+      void loadConversations(false);
+      if (selectedConversationId) void loadMessages(selectedConversationId, false);
+    };
+
+    const interval = window.setInterval(refreshMessages, 8000);
+    window.addEventListener("focus", refreshMessages);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshMessages);
+    };
+  }, [isConnected, loadConversations, loadMessages, selectedConversationId]);
+
+  React.useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
 
   async function handleSendMessage(event: React.FormEvent) {
     event.preventDefault();
@@ -228,19 +250,22 @@ export default function DashboardMessagesPage() {
           >
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">Messages</h1>
-              <p className="text-muted-foreground">
-                Chat history is loaded from your saved conversations.
-              </p>
+              <p className="text-muted-foreground">Private conversations with instant delivery and live updates.</p>
             </div>
-            <Badge variant={isConnected ? "default" : "secondary"} className="w-fit">
-              {isConnected ? "Realtime connected" : "Realtime offline"}
+            <Badge variant={isConnected ? "default" : "secondary"} className="w-fit gap-1.5 rounded-full px-3 py-1.5">
+              <span className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-emerald-300 animate-pulse" : "bg-muted-foreground/60")} />
+              {isConnected ? "Live updates on" : "Auto-refresh on"}
             </Badge>
           </motion.div>
 
-          <Card className="overflow-hidden" style={{ height: "calc(100vh - 300px)", minHeight: "540px" }}>
+          <Card className="overflow-hidden border-border/70 bg-background/95 shadow-xl shadow-slate-950/5" style={{ height: "calc(100vh - 300px)", minHeight: "540px" }}>
             <div className="flex h-full">
-              <aside className="w-full md:w-80 border-r border-border flex flex-col">
-                <div className="p-3 border-b border-border">
+              <aside className={cn("w-full border-r border-border/70 bg-muted/20 md:w-80 md:flex", selectedConversationId ? "hidden" : "flex", "flex-col")}>
+                <div className="border-b border-border/70 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-semibold">Conversations</p>
+                    <span className="text-xs text-muted-foreground">{conversations.length}</span>
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -272,8 +297,8 @@ export default function DashboardMessagesPage() {
                         type="button"
                         onClick={() => setSelectedConversationId(conversation.id)}
                         className={cn(
-                          "w-full flex items-center gap-3 p-3 text-left hover:bg-accent/50 transition-colors border-b border-border/50",
-                          selectedConversationId === conversation.id && "bg-accent/50"
+                          "m-1 flex w-[calc(100%-0.5rem)] items-center gap-3 rounded-2xl p-3 text-left transition-all hover:bg-background hover:shadow-sm",
+                          selectedConversationId === conversation.id && "bg-background shadow-sm ring-1 ring-primary/15"
                         )}
                       >
                         <div className="relative shrink-0">
@@ -289,7 +314,7 @@ export default function DashboardMessagesPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-medium text-sm truncate">{conversation.participantName}</h3>
+                            <h3 className="truncate text-sm font-semibold">{conversation.participantName}</h3>
                             <span className="text-[10px] text-muted-foreground shrink-0">
                               {conversation.lastMessageAt ? formatRelativeTime(conversation.lastMessageAt) : ""}
                             </span>
@@ -311,11 +336,14 @@ export default function DashboardMessagesPage() {
                 </div>
               </aside>
 
-              <section className="hidden md:flex flex-col flex-1">
+              <section className={cn("flex flex-1 flex-col", selectedConversationId ? "" : "hidden md:flex")}>
                 {selectedConversation ? (
                   <>
-                    <div className="flex items-center justify-between p-4 border-b border-border">
+                    <div className="flex items-center justify-between border-b border-border/70 bg-background/90 p-4 backdrop-blur-sm">
                       <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className="-ml-2 h-9 w-9 md:hidden" onClick={() => setSelectedConversationId("")} aria-label="Back to conversations">
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={selectedConversation.participantAvatar} alt={selectedConversation.participantName} />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
@@ -342,7 +370,7 @@ export default function DashboardMessagesPage() {
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="flex-1 space-y-3 overflow-y-auto bg-linear-to-b from-muted/25 via-background to-muted/10 p-4">
                       {loadingMessages ? (
                         <div className="flex h-full items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -362,13 +390,13 @@ export default function DashboardMessagesPage() {
                             >
                               <div
                                 className={cn(
-                                  "max-w-[70%] rounded-2xl px-4 py-2.5",
+                                  "max-w-[82%] rounded-2xl px-4 py-2.5 shadow-sm sm:max-w-[70%]",
                                   isOwn
-                                    ? "bg-primary text-primary-foreground rounded-br-md"
-                                    : "bg-muted rounded-bl-md"
+                                    ? "rounded-br-md bg-linear-to-br from-primary to-primary/85 text-primary-foreground"
+                                    : "rounded-bl-md border border-border/60 bg-background"
                                 )}
                               >
-                                <p className="text-sm whitespace-pre-wrap `break-words`">{message.content}</p>
+                                <p className="wrap-break-word text-sm whitespace-pre-wrap">{message.content}</p>
                                 <div
                                   className={cn(
                                     "flex items-center gap-1 mt-1",
@@ -393,18 +421,19 @@ export default function DashboardMessagesPage() {
                           );
                         })
                       )}
+                      <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="p-4 border-t border-border">
-                      <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                    <div className="border-t border-border/70 bg-background/95 p-4 backdrop-blur-sm">
+                      <form onSubmit={handleSendMessage} className="flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/30 p-1.5 focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/5">
                         <Input
                           placeholder="Type a message..."
                           value={newMessage}
                           onChange={(event) => setNewMessage(event.target.value)}
-                          className="flex-1"
+                          className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
                           disabled={sending}
                         />
-                        <Button type="submit" variant="gradient" size="icon" className="h-10 w-10 shrink-0" disabled={!newMessage.trim() || sending}>
+                        <Button type="submit" variant="gradient" size="icon" className="h-10 w-10 shrink-0 rounded-xl" disabled={!newMessage.trim() || sending}>
                           {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                         </Button>
                       </form>

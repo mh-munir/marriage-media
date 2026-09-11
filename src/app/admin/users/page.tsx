@@ -29,6 +29,7 @@ interface AdminUser {
     isPremium?: boolean;
     isVerified?: boolean;
   } | null;
+  subscription?: { plan: string; expiryDate: string; isActive: boolean } | null;
 }
 
 export default function AdminUsersPage() {
@@ -132,6 +133,7 @@ export default function AdminUsersPage() {
                   <th className="px-6 py-3">Member</th>
                   <th className="px-6 py-3">Role</th>
                   <th className="px-6 py-3">Trust</th>
+                  <th className="px-6 py-3">Subscription</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Joined</th>
                 </tr>
@@ -141,7 +143,7 @@ export default function AdminUsersPage() {
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-slate-500"
-                      colSpan={5}
+                      colSpan={6}
                     >
                       Loading {isAdminTeam ? "admin accounts" : "members"}...
                     </td>
@@ -150,7 +152,7 @@ export default function AdminUsersPage() {
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-red-600"
-                      colSpan={5}
+                      colSpan={6}
                     >
                       {error}
                     </td>
@@ -168,6 +170,18 @@ export default function AdminUsersPage() {
                               : "No profile"}
                         </p>
                         <p className="text-xs text-slate-500">{user.email}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.subscription?.isActive ? (
+                          <div className="space-y-1">
+                            <Badge className="capitalize bg-amber-100 text-amber-800">{user.subscription.plan}</Badge>
+                            <p className="text-xs text-slate-500">
+                              Expires {new Date(user.subscription.expiryDate).toLocaleDateString()} · {Math.max(0, Math.ceil((new Date(user.subscription.expiryDate).getTime() - Date.now()) / 86_400_000))} days left
+                            </p>
+                          </div>
+                        ) : user.subscription ? (
+                          <span className="text-xs text-slate-500">{user.subscription.plan} expired</span>
+                        ) : <span className="text-xs text-slate-500">Free</span>}
                       </td>
                       <td className="px-6 py-4">
                         <Badge
