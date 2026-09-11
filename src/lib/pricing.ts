@@ -1,0 +1,47 @@
+export interface PricingPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  period: string;
+  popular: boolean;
+  features: string[];
+  notIncluded: string[];
+  icon: string;
+}
+
+export const defaultPricingPlans: PricingPlan[] = [
+  {
+    id: "basic",
+    name: "Basic",
+    description: "Get started with basic features",
+    price: "0",
+    period: "forever",
+    popular: false,
+    features: ["Create Profile", "Basic Search", "5 Interests per day", "Save Favorites", "View Profile Photos"],
+    notIncluded: ["Unlimited Chat", "View Contact Info", "AI Match Recommendations", "Profile Boost", "See Who Viewed You", "Featured Badge"],
+    icon: "heart",
+  },
+  {
+    id: "gold",
+    name: "Gold",
+    description: "Maximum visibility and features",
+    price: "1,999",
+    period: "/month",
+    popular: false,
+    features: ["Everything in Premium", "Top Search Results", "Profile Highlight", "Dedicated Matchmaker", "Profile Boost (3x/month)", "VIP Support"],
+    notIncluded: [],
+    icon: "sparkles",
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    description: "Everything you need to find your match",
+    price: "999",
+    period: "/month",
+    popular: true,
+    features: ["Everything in Basic", "Unlimited Interests", "Unlimited Chat", "View Contact Info", "AI Match Recommendations", "Profile Boost (1x/month)", "See Who Viewed You", "Featured Badge", "Priority Support"],
+    notIncluded: [],
+    icon: "crown",
+  },
+];

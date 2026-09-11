@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
+import type { PricingPlan } from "@/lib/pricing";
 
 export interface ISitePage extends Document {
   slug: string;
@@ -8,6 +9,8 @@ export interface ISitePage extends Document {
   seoTitle: string;
   seoDescription: string;
   isPublished: boolean;
+  sections?: Array<Record<string, unknown>>;
+  pricingPlans?: PricingPlan[];
   updatedAt: Date;
   createdAt: Date;
 }
@@ -21,6 +24,8 @@ const SitePageSchema = new Schema<ISitePage>(
     seoTitle: { type: String, default: "", trim: true },
     seoDescription: { type: String, default: "", trim: true },
     isPublished: { type: Boolean, default: true },
+    sections: { type: [Schema.Types.Mixed], default: [] },
+    pricingPlans: { type: [Schema.Types.Mixed], default: [] },
   },
   { timestamps: true }
 );

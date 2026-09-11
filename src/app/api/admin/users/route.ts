@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "";
     const skip = (page - 1) * limit;
 
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { role: "user" };
 
     if (search) {
       filter.$or = [
@@ -75,6 +75,11 @@ export async function PUT(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
+
+    const target = await User.findOne({ _id: userId, role: "user" }).select("_id").lean();
+    if (!target) {
+      return NextResponse.json({ error: "Website member not found" }, { status: 404 });
     }
 
     const user = await User.findByIdAndUpdate(

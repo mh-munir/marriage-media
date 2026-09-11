@@ -64,19 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = React.useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/me", {
-        method: "GET",
-        headers: store.token ? { Authorization: `Bearer ${store.token}` } : undefined,
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        store.logout();
-        return;
-      }
-
-      const result = (await response.json()) as { user: AuthUser };
+      const result = await apiClient.get<{ user: AuthUser }>("/api/auth/me", { cache: "no-store" });
       store.setUser(result.user);
     } catch {
       store.logout();

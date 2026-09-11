@@ -1,5 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useAuthStore } from "@/stores/auth-store";
+import { adminFetch } from "@/lib/admin-fetch";
+
+function getAuthToken() {
+  const storedToken = useAuthStore.getState().token;
+  if (storedToken) return storedToken;
+  return document.cookie
+    .split("; ")
+    .find((cookie) => cookie.startsWith("token="))
+    ?.split("=")[1];
+}
 
 export interface AppNotification {
   id: string;
@@ -124,12 +135,9 @@ export const useNotificationStore = create<NotificationState>()(
         set({ isLoading: true });
 
         try {
-          const token = document.cookie
-            .split("; ")
-            .find((c) => c.startsWith("token="))
-            ?.split("=")[1];
+          const token = getAuthToken();
 
-          const res = await fetch(`/api/notifications?page=${page}&limit=20`, {
+          const res = await adminFetch(`/api/notifications?page=${page}&limit=20`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
 
@@ -166,10 +174,7 @@ export const useNotificationStore = create<NotificationState>()(
 
       fetchPreferences: async () => {
         try {
-          const token = document.cookie
-            .split("; ")
-            .find((c) => c.startsWith("token="))
-            ?.split("=")[1];
+          const token = getAuthToken();
 
           const res = await fetch("/api/notifications/preferences", {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -209,10 +214,7 @@ export const useNotificationStore = create<NotificationState>()(
         });
 
         try {
-          const token = document.cookie
-            .split("; ")
-            .find((c) => c.startsWith("token="))
-            ?.split("=")[1];
+          const token = getAuthToken();
 
           await fetch("/api/notifications/read", {
             method: "PUT",
@@ -235,10 +237,7 @@ export const useNotificationStore = create<NotificationState>()(
         }));
 
         try {
-          const token = document.cookie
-            .split("; ")
-            .find((c) => c.startsWith("token="))
-            ?.split("=")[1];
+          const token = getAuthToken();
 
           await fetch("/api/notifications/read", {
             method: "PUT",
@@ -262,10 +261,7 @@ export const useNotificationStore = create<NotificationState>()(
         }));
 
         try {
-          const token = document.cookie
-            .split("; ")
-            .find((c) => c.startsWith("token="))
-            ?.split("=")[1];
+          const token = getAuthToken();
 
           await fetch("/api/notifications", {
             method: "DELETE",
@@ -284,10 +280,7 @@ export const useNotificationStore = create<NotificationState>()(
         set({ notifications: [], unreadCount: 0 });
 
         try {
-          const token = document.cookie
-            .split("; ")
-            .find((c) => c.startsWith("token="))
-            ?.split("=")[1];
+          const token = getAuthToken();
 
           await fetch("/api/notifications", {
             method: "DELETE",
@@ -306,10 +299,7 @@ export const useNotificationStore = create<NotificationState>()(
         set({ preferences: newPrefs });
 
         try {
-          const token = document.cookie
-            .split("; ")
-            .find((c) => c.startsWith("token="))
-            ?.split("=")[1];
+          const token = getAuthToken();
 
           await fetch("/api/notifications/preferences", {
             method: "PUT",

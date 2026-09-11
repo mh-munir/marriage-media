@@ -1,65 +1,22 @@
 export const dynamic = "force-dynamic";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Coupon from "@/models/Coupon";
-
-interface PricingPlan {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  period: string;
-  popular: boolean;
-  features: string[];
-  notIncluded: string[];
-  icon: string;
-}
-
-const defaultPlans: PricingPlan[] = [
-  {
-    id: "free",
-    name: "Free",
-    description: "Get started with basic features",
-    price: "0",
-    period: "forever",
-    popular: false,
-    features: ["Create Profile", "Basic Search", "5 Interests per day", "Save Favorites", "View Profile Photos"],
-    notIncluded: ["Unlimited Chat", "View Contact Info", "AI Match Recommendations", "Profile Boost", "See Who Viewed You", "Featured Badge"],
-    icon: "heart",
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    description: "Everything you need to find your match",
-    price: "999",
-    period: "/month",
-    popular: true,
-    features: ["Everything in Free", "Unlimited Interests", "Unlimited Chat", "View Contact Info", "AI Match Recommendations", "Profile Boost (1x/month)", "See Who Viewed You", "Featured Badge", "Priority Support"],
-    notIncluded: [],
-    icon: "crown",
-  },
-  {
-    id: "gold",
-    name: "Gold",
-    description: "Maximum visibility and features",
-    price: "1,999",
-    period: "/month",
-    popular: false,
-    features: ["Everything in Premium", "Top Search Results", "Profile Highlight", "Dedicated Matchmaker", "Profile Boost (3x/month)", "VIP Support"],
-    notIncluded: [],
-    icon: "sparkles",
-  },
-];
+import { SitePage } from "@/models";
+import { defaultPricingPlans } from "@/lib/pricing";
 
 export async function GET() {
   try {
     await connectToDatabase();
 
-    const couponCount = await Coupon.countDocuments({ isActive: true });
+    const [couponCount, pricingPage] = await Promise.all([
+      Coupon.countDocuments({ isActive: true }),
+      SitePage.findOne({ slug: "pricing" }).select("pricingPlans").lean(),
+    ]);
 
     return NextResponse.json({
-      plans: defaultPlans,
+      plans: pricingPage?.pricingPlans?.length ? pricingPage.pricingPlans : defaultPricingPlans,
       testimonials: [
         {
           name: "Farhana & Imran",
@@ -81,7 +38,7 @@ export async function GET() {
         },
       ],
       faqs: [
-        { q: "Can I upgrade my plan later?", a: "Yes, you can upgrade from Free to Premium or Gold at any time." },
+        { q: "Can I upgrade my plan later?", a: "Yes, you can upgrade from Basic to Premium or Gold at any time." },
         { q: "Is there a refund policy?", a: "Yes, we offer a 7-day money-back guarantee." },
         { q: "What payment methods do you accept?", a: "We accept bKash, Nagad, SSLCommerz, and Stripe." },
         { q: "Can I cancel my subscription?", a: "Yes, you can cancel anytime from your dashboard." },

@@ -19,6 +19,7 @@ import { Footer } from "@/components/layout/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
+import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
 
 const values = [
   {
@@ -70,17 +71,33 @@ const team = [
   },
 ];
 
-const stats = [
-  { label: "Active Users", value: "50,000+" },
-  { label: "Successful Matches", value: "10,000+" },
-  { label: "Verified Profiles", value: "25,000+" },
-  { label: "Happy Families", value: "8,000+" },
-];
+const statLabels = ["Active Users", "Premium Profiles", "Verified Profiles", "Happy Families"];
 
 export default function AboutPage() {
   const { page, loading } = useSitePage("about");
-  if (loading) return null;
+  const { sections, loading: managedLoading } = useManagedPage("about");
+  const [liveStats, setLiveStats] = React.useState<Record<string, number> | null>(null);
+  React.useEffect(() => {
+    let mounted = true;
+    fetch("/api/about/stats").then(async (response) => response.ok ? response.json() : { stats: null }).then((data: { stats?: Record<string, number> | null }) => { if (mounted) setLiveStats(data.stats || null); }).catch(() => undefined);
+    return () => { mounted = false; };
+  }, []);
+  if (loading || managedLoading) return null;
   if (page?.content) return <SitePageOverride page={page} />;
+
+  const managed = sections.length ? sections : defaultManagedSections("about");
+  const hero = sectionValue(managed, "hero", defaultManagedSections("about")[0]);
+  const mission = sectionValue(managed, "mission", defaultManagedSections("about")[2]);
+  const vision = sectionValue(managed, "vision", defaultManagedSections("about")[3]);
+  const valuesSection = sectionValue(managed, "values", defaultManagedSections("about")[4]);
+  const teamSection = sectionValue(managed, "team", defaultManagedSections("about")[5]);
+  const recognition = sectionValue(managed, "recognition", defaultManagedSections("about")[6]);
+  const managedValues = values.map((value, index) => ({ ...value, title: valuesSection.items[index]?.title || value.title, description: valuesSection.items[index]?.text || value.description }));
+  const managedTeam = team.map((member, index) => {
+    const item = teamSection.items[index];
+    const [role, description] = (item?.text || `${member.role} | ${member.description}`).split(" | ");
+    return { ...member, name: item?.title || member.name, role, description, imageUrl: item?.imageUrl || "", imageAlt: item?.imageAlt || item?.title || member.name };
+  });
 
   return (
     <div className="min-h-screen">
@@ -97,17 +114,16 @@ export default function AboutPage() {
             className="text-center max-w-3xl mx-auto"
           >
             <Badge variant="secondary" className="mb-4">
-              About Us
+              {hero.eyebrow}
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-              Building Dreams of{" "}
+              {hero.title}{" "}
               <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
                 Happy Marriages
               </span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Marriage Media was founded with a simple mission: to help people find their
-              perfect life partner through technology, trust, and genuine care.
+              {hero.description}
             </p>
           </motion.div>
         </div>
@@ -117,12 +133,15 @@ export default function AboutPage() {
       <section className="py-16 border-y border-border bg-card/50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-bold text-primary">{stat.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+            {statLabels.map((label) => {
+              const key = label === "Active Users" ? "activeUsers" : label === "Premium Profiles" ? "premiumProfiles" : label === "Verified Profiles" ? "verifiedProfiles" : "happyFamilies";
+              return <div key={label} className="text-center">
+                <div className="text-3xl font-bold text-primary">
+                  {liveStats ? `${liveStats[key].toLocaleString()}+` : "..."}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">{label}</div>
               </div>
-            ))}
+            })}
           </div>
         </div>
       </section>
@@ -139,13 +158,10 @@ export default function AboutPage() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <Target className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold">Our Mission</h2>
+                <h2 className="text-2xl font-bold">{mission.title}</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                To revolutionize the matchmaking experience in Bangladesh by combining
-                traditional values with modern technology. We strive to create a safe,
-                trusted platform where individuals and families can find compatible life
-                partners with confidence and ease.
+                {mission.description}
               </p>
             </motion.div>
             <motion.div
@@ -156,13 +172,10 @@ export default function AboutPage() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <Eye className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold">Our Vision</h2>
+                <h2 className="text-2xl font-bold">{vision.title}</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                To become Bangladesh's most trusted and loved matrimony platform,
-                known for our commitment to genuine profiles, privacy, and helping millions
-                of people find their happily ever after. We envision a world where every
-                person finds their perfect match.
+                {vision.description}
               </p>
             </motion.div>
           </div>
@@ -187,7 +200,7 @@ export default function AboutPage() {
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value, index) => (
+            {managedValues.map((value, index) => (
               <motion.div
                 key={value.title}
                 initial={{ opacity: 0, y: 30 }}
@@ -228,7 +241,7 @@ export default function AboutPage() {
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {team.map((member, index) => (
+            {managedTeam.map((member, index) => (
               <motion.div
                 key={member.name}
                 initial={{ opacity: 0, y: 30 }}
@@ -238,11 +251,8 @@ export default function AboutPage() {
               >
                 <Card className="text-center hover:shadow-lg transition-all duration-300">
                   <CardContent className="p-6">
-                    <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl mx-auto mb-4">
-                      {member.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                    <div className="h-20 w-20 overflow-hidden rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl mx-auto mb-4">
+                      {member.imageUrl ? <img src={member.imageUrl} alt={member.imageAlt} className="h-full w-full object-cover" /> : member.name.split(" ").map((n) => n[0]).join("")}
                     </div>
                     <h3 className="font-semibold">{member.name}</h3>
                     <p className="text-sm text-primary mb-2">{member.role}</p>
@@ -321,11 +331,9 @@ export default function AboutPage() {
             className="text-center max-w-3xl mx-auto"
           >
             <Award className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h2 className="text-3xl font-bold mb-4">Trusted by Thousands</h2>
+            <h2 className="text-3xl font-bold mb-4">{recognition.title}</h2>
             <p className="text-muted-foreground text-lg">
-              Marriage Media has been recognized as one of the leading matrimony platforms
-              in Bangladesh. Our commitment to trust, safety, and genuine connections has
-              earned us the loyalty of over 50,000 active users and thousands of happy marriages.
+              {recognition.description}
             </p>
           </motion.div>
         </div>

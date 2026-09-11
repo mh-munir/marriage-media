@@ -13,6 +13,7 @@ interface BlogDocument {
   featuredImage?: { url?: string };
   publishedAt?: Date | string;
   createdAt?: Date | string;
+  likes?: number;
 }
 
 function mapBlogPost(post: BlogDocument) {
@@ -23,6 +24,7 @@ function mapBlogPost(post: BlogDocument) {
     excerpt: post.excerpt || "",
     category: post.category || "General",
     imageUrl: post.featuredImage?.url || null,
+    likes: post.likes || 0,
     publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : null,
     createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : null,
   };
@@ -44,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     const posts = await Blog.find(query)
-      .select("title slug excerpt category featuredImage publishedAt createdAt")
+      .select("title slug excerpt category featuredImage publishedAt createdAt likes")
       .sort({ publishedAt: -1, createdAt: -1 })
       .limit(safeLimit)
       .lean<BlogDocument[]>()

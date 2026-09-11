@@ -24,11 +24,11 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin(request);
     await connectToDatabase();
-    const body = (await request.json()) as Partial<{ slug: string; title: string; description: string; content: string; seoTitle: string; seoDescription: string; isPublished: boolean }>;
+    const body = (await request.json()) as Partial<{ slug: string; title: string; description: string; content: string; seoTitle: string; seoDescription: string; isPublished: boolean; sections: Array<Record<string, unknown>> }>;
     if (!body.slug || !PAGE_SLUGS.has(body.slug) || !body.title?.trim()) return NextResponse.json({ error: "A valid page slug and title are required" }, { status: 400 });
     const page = await SitePage.findOneAndUpdate(
       { slug: body.slug },
-      { $set: { title: body.title.trim(), description: body.description || "", content: body.content || "", seoTitle: body.seoTitle || "", seoDescription: body.seoDescription || "", isPublished: body.isPublished !== false } },
+      { $set: { title: body.title.trim(), description: body.description || "", content: body.content || "", seoTitle: body.seoTitle || "", seoDescription: body.seoDescription || "", isPublished: body.isPublished !== false, ...(Array.isArray(body.sections) ? { sections: body.sections } : {}) } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
     return NextResponse.json({ page });

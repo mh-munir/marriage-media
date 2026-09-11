@@ -26,14 +26,17 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
 
+    const blogFilter = type === "success-stories"
+      ? { category: /success stories/i }
+      : { category: { $not: /success stories/i } };
     const [blogs, total] = await Promise.all([
-      Blog.find()
+      Blog.find(blogFilter)
         .populate("author", "email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Blog.countDocuments(),
+      Blog.countDocuments(blogFilter),
     ]);
 
     return NextResponse.json({
@@ -54,13 +57,14 @@ export async function POST(request: NextRequest) {
     const admin = await requireAdmin(request);
 
     const body = await request.json();
-    const { blogId, title, content, excerpt, category, tags, isPublished, metaTitle, metaDescription, featuredImage } = body;
+    const { blogId, title, content, excerpt, category, tags, isPublished, metaTitle, metaDescription, featuredImage, likes } = body;
+    const likeCount = Number.isFinite(Number(likes)) ? Math.max(0, Math.floor(Number(likes))) : 0;
 
     if (blogId) {
       // Update
       const blog = await Blog.findByIdAndUpdate(
         blogId,
-        { $set: { title, content, excerpt, category, tags, isPublished, metaTitle, metaDescription, featuredImage, publishedAt: isPublished ? new Date() : undefined } },
+        { $set: { title, content, excerpt, category, tags, isPublished, metaTitle, metaDescription, featuredImage, likes: likeCount, publishedAt: isPublished ? new Date() : undefined } },
         { new: true }
       );
       return NextResponse.json({ blog });
@@ -79,6 +83,7 @@ export async function POST(request: NextRequest) {
       metaTitle: metaTitle || "",
       metaDescription: metaDescription || "",
       featuredImage: featuredImage || { url: "", publicId: "" },
+      likes: likeCount,
       author: admin._id,
     });
 

@@ -2,11 +2,12 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Profile, User } from "@/models";
+import { Profile, User, Verification } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculateAge, validatePhoneNumber } from "@/lib/utils";
+import { calculateAge } from "@/lib/utils";
 import { notifyProfileMatches } from "@/lib/profile-matching";
 import { allocatePublicId } from "@/lib/public-id";
+import { createNotification } from "@/lib/notifications";
 
 let aboutMeMigrationComplete = false;
 
@@ -58,7 +59,7 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
   const missingFields: string[] = requiredFields
     .filter(([field]) => !String(body[field] || "").trim())
     .map(([, label]) => label);
-  if (body.fatherContactNumber && !validatePhoneNumber(String(body.fatherContactNumber))) {
+  if (body.fatherContactNumber && !/^\d{11}$/.test(String(body.fatherContactNumber))) {
     missingFields.push("Father's Contact Number must be exactly 11 digits");
   }
   const partnerPreferences = body.partnerPreferences;
@@ -66,6 +67,35 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
     missingFields.push("At least one Expected Partner preference");
   }
   return missingFields;
+}
+
+async function submitProfileReview(userId: string) {
+  const existingReview = await Verification.findOne({
+    userId,
+    type: "profile",
+    status: { $in: ["pending", "under_review", "approved"] },
+  });
+  if (existingReview) return;
+
+  await Verification.create({
+    userId,
+    type: "profile",
+    documentUrl: "profile-review",
+    documentType: "profile",
+    contributesToBadge: false,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    timeline: [{ status: "pending", timestamp: new Date(), note: "Profile completed and submitted for admin review" }],
+  });
+
+  const admins = await User.find({ role: { $in: ["admin", "superadmin"] }, isActive: true }).select("_id").lean();
+  await Promise.all(admins.map((admin) => createNotification({
+    userId: admin._id.toString(),
+    type: "verification",
+    title: "Profile ready for verification",
+    message: "A member completed their profile and is waiting for approval.",
+    link: "/admin/verification",
+    channels: ["inapp"],
+  })));
 }
 
 export async function GET(request: NextRequest) {
@@ -128,12 +158,15 @@ export async function POST(request: NextRequest) {
       publicId,
       ...body,
       age,
+      isVisible: false,
     });
 
     const completionPercentage = calculateProfileCompletion(body);
 
     // Update user profile completion
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
+    await Profile.findByIdAndUpdate(profile._id, { isVisible: false });
+    if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 
     return NextResponse.json({ profile }, { status: 201 });
@@ -182,6 +215,8 @@ export async function PUT(request: NextRequest) {
 
     const completionPercentage = calculateProfileCompletion(body);
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
+    await Profile.findByIdAndUpdate(profile._id, { isVisible: false });
+    if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 
     return NextResponse.json({ profile });

@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
+import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
 
 interface PricingPlan {
   id: string;
@@ -80,7 +81,7 @@ const premiumBenefits = [
 
 export default function PricingPage() {
   const { page, loading } = useSitePage("pricing");
-  const [billingCycle, setBillingCycle] = React.useState<"monthly" | "quarterly" | "yearly">("monthly");
+  const { sections, loading: managedLoading } = useManagedPage("pricing");
   const [pricingData, setPricingData] = React.useState<PricingData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -113,8 +114,15 @@ export default function PricingPage() {
     };
   }, []);
 
-  if (loading) return null;
+  if (loading || managedLoading) return null;
   if (page?.content) return <SitePageOverride page={page} />;
+
+  const defaults = defaultManagedSections("pricing");
+  const hero = sectionValue(sections.length ? sections : defaults, "hero", defaults[0]);
+  const benefits = sectionValue(sections.length ? sections : defaults, "benefits", defaults[1]);
+  const testimonialsSection = sectionValue(sections.length ? sections : defaults, "testimonials", defaults[2]);
+  const faqSection = sectionValue(sections.length ? sections : defaults, "faq", defaults[3]);
+  const managedBenefits = premiumBenefits.map((benefit, index) => ({ ...benefit, title: benefits.items[index]?.title || benefit.title, description: benefits.items[index]?.text || benefit.description }));
 
   const plans = pricingData?.plans ?? [];
   const testimonials = pricingData?.testimonials ?? [];
@@ -136,43 +144,15 @@ export default function PricingPage() {
           >
             <Badge variant="premium" className="mb-4">
               <Crown className="h-3.5 w-3.5 mr-1" />
-              Pricing
+              {hero.eyebrow}
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-              Find Your Perfect Plan
+              {hero.title}
             </h1>
             <p className="text-lg text-muted-foreground">
-              Choose the plan that suits your journey to finding your life partner.
-              Start free and upgrade when you're ready.
+              {hero.description}
             </p>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Billing Toggle */}
-      <section className="py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center gap-2">
-            {(["monthly", "quarterly", "yearly"] as const).map((cycle) => (
-              <button
-                key={cycle}
-                onClick={() => setBillingCycle(cycle)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                  billingCycle === cycle
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-accent"
-                }`}
-              >
-                {cycle.charAt(0).toUpperCase() + cycle.slice(1)}
-                {cycle === "quarterly" && (
-                  <span className="ml-1 text-xs">Save 10%</span>
-                )}
-                {cycle === "yearly" && (
-                  <span className="ml-1 text-xs">Save 20%</span>
-                )}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -263,13 +243,13 @@ export default function PricingPage() {
             <Badge variant="secondary" className="mb-4">
               Why Upgrade?
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">Unlock Premium Features</h2>
+            <h2 className="text-3xl font-bold mb-4">{benefits.title}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Premium members find their match 3x faster. Here's what you get.
+              {benefits.description}
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {premiumBenefits.map((benefit, index) => (
+            {managedBenefits.map((benefit, index) => (
               <motion.div
                 key={benefit.title}
                 initial={{ opacity: 0, y: 30 }}
@@ -302,9 +282,9 @@ export default function PricingPage() {
             className="text-center mb-16"
           >
             <Badge variant="secondary" className="mb-4">
-              Success Stories
+              {testimonialsSection.eyebrow}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">What Our Premium Members Say</h2>
+            <h2 className="text-3xl font-bold mb-4">{testimonialsSection.title}</h2>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (
@@ -356,7 +336,7 @@ export default function PricingPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold mb-4">{faqSection.title}</h2>
           </motion.div>
           <div className="space-y-4">
             {faqs.map((faq) => (

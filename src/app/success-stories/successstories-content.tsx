@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Users,
   Sparkles,
+  X,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
+import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
 
 interface StoryCard {
   id: string;
@@ -32,17 +34,12 @@ interface StoryCard {
   publishedAt: string | null;
 }
 
-const stats = [
-  { label: "Happy Couples", value: "Live", icon: Heart },
-  { label: "Success Rate", value: "Database", icon: Star },
-  { label: "Average Match Time", value: "Live", icon: Calendar },
-  { label: "Cities Covered", value: "Live", icon: MapPin },
-];
-
 export default function SuccessStoriesPage() {
   const { page, loading: pageLoading } = useSitePage("success-stories");
+  const { sections, loading: managedLoading } = useManagedPage("success-stories");
   const [stories, setStories] = React.useState<StoryCard[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [selectedImage, setSelectedImage] = React.useState<{ url: string; alt: string; title: string; text: string } | null>(null);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -72,8 +69,19 @@ export default function SuccessStoriesPage() {
       isMounted = false;
     };
   }, []);
-  if (pageLoading) return null;
+  React.useEffect(() => {
+    if (!selectedImage) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setSelectedImage(null); };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [selectedImage]);
+  if (pageLoading || managedLoading) return null;
   if (page?.content) return <SitePageOverride page={page} />;
+
+  const defaults = defaultManagedSections("success-stories");
+  const hero = sectionValue(sections.length ? sections : defaults, "hero", defaults[0]);
+  const gallery = sectionValue(sections.length ? sections : defaults, "gallery", defaults[1]);
+  const cta = sectionValue(sections.length ? sections : defaults, "cta", defaults[2]);
 
   return (
     <div className="min-h-screen">
@@ -93,44 +101,48 @@ export default function SuccessStoriesPage() {
           >
             <Badge variant="secondary" className="mb-4">
               <Heart className="h-3.5 w-3.5 mr-1" />
-              Success Stories
+              {hero.eyebrow}
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-              Love Stories That{" "}
+              {hero.title}{" "}
               <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
                 Inspire
               </span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Real couples who found their perfect match on Marriage Media. Their stories
-              could be your story.
+              {hero.description}
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-16 border-y border-border bg-card/50">
+      {/* Gallery */}
+      {gallery.visible ? <section className="border-y border-border bg-card/50 py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-center"
-              >
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mb-3">
-                  <stat.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div className="text-3xl font-bold">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mx-auto mb-12 max-w-2xl text-center">
+            <Badge variant="secondary" className="mb-4">{gallery.eyebrow}</Badge>
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">{gallery.title}</h2>
+            <p className="text-muted-foreground">{gallery.description}</p>
+          </motion.div>
+          <div className="grid auto-rows-[14rem] grid-cols-2 gap-4 md:auto-rows-[18rem] md:grid-cols-4">
+            {gallery.items.filter((item) => item.imageUrl).map((item, index) => (
+              <motion.figure key={`${item.imageUrl}-${index}`} initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className={`group relative overflow-hidden rounded-2xl ${index === 0 ? "col-span-2 row-span-2" : index === 3 ? "col-span-2" : ""}`}>
+                <button type="button" className="absolute inset-0 z-10 cursor-zoom-in" aria-label={`Open ${item.title || "success story image"} fullscreen`} onClick={() => setSelectedImage({ url: item.imageUrl || "", alt: item.imageAlt || item.title || "Success story", title: item.title, text: item.text })} />
+                <img src={item.imageUrl} alt={item.imageAlt || item.title || "Success story"} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+                {item.title || item.text ? <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-5 pb-5 pt-12 text-white"><p className="font-semibold">{item.title}</p><p className="mt-1 text-sm text-white/80">{item.text}</p></figcaption> : null}
+              </motion.figure>
             ))}
           </div>
         </div>
-      </section>
+      </section> : null}
+
+      {selectedImage ? <div role="dialog" aria-modal="true" aria-label="Fullscreen success story image" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" onClick={() => setSelectedImage(null)}>
+        <button type="button" aria-label="Close fullscreen image" className="absolute right-5 top-5 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" onClick={() => setSelectedImage(null)}><X className="h-6 w-6" /></button>
+        <div className="relative max-h-[90vh] max-w-6xl" onClick={(event) => event.stopPropagation()}>
+          <img src={selectedImage.url} alt={selectedImage.alt} className="max-h-[82vh] max-w-full rounded-xl object-contain" />
+          {selectedImage.title || selectedImage.text ? <div className="mt-3 text-center text-white"><p className="font-semibold">{selectedImage.title}</p><p className="text-sm text-white/70">{selectedImage.text}</p></div> : null}
+        </div>
+      </div> : null}
 
       {/* Stories Grid */}
       <section className="py-24">
@@ -208,15 +220,14 @@ export default function SuccessStoriesPage() {
             <div className="relative">
               <Users className="h-12 w-12 text-white/80 mx-auto mb-4" />
               <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                Your Love Story Starts Here
+                {cta.title}
               </h2>
               <p className="text-white/80 max-w-xl mx-auto mb-8">
-                Join thousands of happy couples who found their perfect match on Marriage Media.
-                Start your journey today.
+                {cta.description}
               </p>
               <Button variant="secondary" size="lg" asChild>
                 <Link href="/register">
-                  Create Free Account
+                  {cta.buttonText || "Create Free Account"}
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>

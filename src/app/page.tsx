@@ -44,7 +44,7 @@ const steps = [
 export default function HomePage() {
   const { page, loading } = useSitePage("home");
   if (loading) return null;
-  if (page?.content) return <SitePageOverride page={page} />;
+  if (page?.content || page?.sections?.length) return <SitePageOverride page={page} />;
 
   return (
     <div className="home-page min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">

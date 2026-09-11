@@ -94,12 +94,16 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
             initial={{ opacity: 0, x: 20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.95 }}
-            className="fixed right-0 top-0 h-full w-full max-w-md z-50 bg-white dark:bg-gray-900 border-l border-border shadow-xl flex flex-col"
+            transition={{ type: "spring", stiffness: 340, damping: 30 }}
+            className="fixed inset-y-3 right-3 z-50 flex h-[calc(100%-1.5rem)] w-[min( calc(100%-1.5rem), 27rem)] flex-col overflow-hidden rounded-3xl border border-border/70 bg-background/95 shadow-2xl shadow-slate-950/20 backdrop-blur-2xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <div className="relative overflow-hidden border-b border-border/60 bg-linear-to-br from-primary/10 via-background to-rose-500/5 p-5">
+              <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
+              <div className="relative flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold">Notifications</h2>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Bell className="h-5 w-5" /></div>
+                <div><h2 className="text-lg font-semibold">Notifications</h2><p className="text-xs text-muted-foreground">Your latest activity</p></div>
                 {unreadCount > 0 && (
                   <Badge className="h-5 min-w-5 text-[10px] px-1">{unreadCount}</Badge>
                 )}
@@ -121,26 +125,25 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
                   <X className="h-5 w-5" />
                 </Button>
               </div>
+              </div>
             </div>
 
             {/* Notifications List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-2">
               {isLoading && notifications.length === 0 ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                    <Bell className="h-8 w-8 text-primary/50" />
+                <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10">
+                    <Bell className="h-8 w-8 text-primary/60" />
                   </div>
-                  <p className="text-sm font-medium">No notifications</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    You're all caught up!
-                  </p>
+                  <p className="text-sm font-semibold">You’re all caught up</p>
+                  <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">New activity will appear here when something needs your attention.</p>
                 </div>
               ) : (
-                <div className="divide-y divide-border/50">
+                <div className="space-y-2">
                   {notifications.map((notification) => (
                     <NotificationItem
                       key={notification.id}
@@ -172,7 +175,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="p-3 border-t border-border/50 flex gap-2">
+              <div className="flex gap-2 border-t border-border/60 p-3">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -218,12 +221,12 @@ function NotificationItem({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={cn(
-        "flex gap-3 p-4 cursor-pointer transition-colors hover:bg-accent/50 group",
-        !notification.isRead && "bg-primary/5"
+        "group flex cursor-pointer gap-3 rounded-2xl border border-transparent p-3 transition-colors hover:border-border/70 hover:bg-accent/50",
+        !notification.isRead && "border-primary/10 bg-primary/5"
       )}
       onClick={() => !notification.isRead && onRead(notification.id)}
     >
-      <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", colorClass)}>
+      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", colorClass)}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">

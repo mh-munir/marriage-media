@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, ArrowRight, Search, BookOpen } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Search, BookOpen, Heart } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,7 @@ interface BlogPost {
   imageUrl: string | null;
   publishedAt: string | null;
   createdAt: string | null;
+  likes: number;
 }
 
 const categories = ["All", "Tips & Advice", "Technology", "Success Stories", "Culture", "Safety"];
@@ -122,9 +123,9 @@ export default function BlogContent() {
                       </div>
                       <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2">{post.title}</h3>
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{post.excerpt}</p>
-                      <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 text-xs text-muted-foreground"><Calendar className="h-3 w-3" />{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Recently published"}</div>
-                        <span className="text-sm text-primary hover:underline font-medium flex items-center gap-1">Read more<ArrowRight className="h-3 w-3" /></span>
+                        <span className="flex items-center gap-3"><span className="flex items-center gap-1 text-xs text-rose-500"><Heart className="h-3 w-3 fill-current" />{post.likes.toLocaleString()}</span><span className="text-sm text-primary hover:underline font-medium flex items-center gap-1">Read more<ArrowRight className="h-3 w-3" /></span></span>
                       </div>
                     </CardContent>
                   </Card>

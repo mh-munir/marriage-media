@@ -19,6 +19,7 @@ interface DatePickerProps {
 export function DatePicker({ value, onChange, placeholder = "Pick a date", disabled }: DatePickerProps) {
   const selectedDate = value ? parseISO(value) : undefined;
   const validDate = selectedDate && isValid(selectedDate) ? selectedDate : undefined;
+  const currentYear = new Date().getFullYear();
 
   return (
     <Popover>
@@ -43,6 +44,9 @@ export function DatePicker({ value, onChange, placeholder = "Pick a date", disab
           onSelect={(date) => onChange(date ? format(date, "yyyy-MM-dd") : "")}
           disabled={{ after: new Date() }}
           defaultMonth={validDate}
+          captionLayout="dropdown"
+          startMonth={new Date(1940, 0)}
+          endMonth={new Date(currentYear, 11)}
           autoFocus
         />
       </PopoverContent>

@@ -411,12 +411,6 @@ export default function DashboardProfilePage() {
     event.target.value = "";
     if (!files.length) return;
 
-    if (!profileExists) {
-      setError("Please save your basic profile information first, then upload images.");
-      setActiveSection("basic");
-      return;
-    }
-
     if (profile.photos.length + files.length > 5) {
       setError("You can upload a maximum of 5 images.");
       return;
@@ -438,8 +432,12 @@ export default function DashboardProfilePage() {
         if (!response.ok) throw new Error(result.error || "Image upload failed");
         uploaded.push(result.photo);
       }
-      setProfile((current) => ({ ...current, photos: [...current.photos, ...uploaded] }));
-      const primaryPhoto = uploaded.find((photo) => photo.isPrimary);
+      const normalizedUploaded = uploaded.map((photo, index) => ({
+        ...photo,
+        isPrimary: profile.photos.length === 0 && index === 0,
+      }));
+      setProfile((current) => ({ ...current, photos: [...current.photos, ...normalizedUploaded] }));
+      const primaryPhoto = normalizedUploaded.find((photo) => photo.isPrimary);
       if (primaryPhoto) updateUser({ avatar: primaryPhoto.url });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Image upload failed.");
@@ -568,7 +566,7 @@ export default function DashboardProfilePage() {
                       <CardContent className="space-y-5">
                         {!profileExists ? (
                           <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-                            Save your basic profile information first to enable image uploads.
+                            You can upload photos now. They will be saved with your profile.
                           </p>
                         ) : null}
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -578,7 +576,7 @@ export default function DashboardProfilePage() {
                               {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
                             </div>
                           ))}
-                          {profileExists && profile.photos.length < 5 ? (
+                          {profile.photos.length < 5 ? (
                             <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary">
                               {isUploading ? <Loader2 className="mb-2 h-6 w-6 animate-spin" /> : <Sparkles className="mb-2 h-6 w-6" />}
                               {isUploading ? "Uploading..." : "Add images"}
@@ -721,8 +719,10 @@ export default function DashboardProfilePage() {
                             type="tel"
                             inputMode="numeric"
                             pattern="[0-9]*"
+                            maxLength={11}
+                            minLength={11}
                             value={profile.fatherContactNumber}
-                            onChange={(e) => setProfile({ ...profile, fatherContactNumber: sanitizePhoneNumberInput(e.target.value) })}
+                            onChange={(e) => setProfile({ ...profile, fatherContactNumber: sanitizePhoneNumberInput(e.target.value).slice(0, 11) })}
                           />
                         </div>
                         <Input

@@ -1,0 +1,73 @@
+"use client";
+
+import * as React from "react";
+
+export interface ManagedPageItem {
+  title: string;
+  text: string;
+  imageUrl?: string;
+  imageAlt?: string;
+}
+
+export interface ManagedPageSection {
+  id: string;
+  visible: boolean;
+  eyebrow: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageAlt: string;
+  buttonText: string;
+  buttonLink: string;
+  items: ManagedPageItem[];
+}
+
+export function sectionValue(sections: ManagedPageSection[] | undefined, id: string, fallback: ManagedPageSection): ManagedPageSection {
+  return sections?.find((section) => section.id === id) || fallback;
+}
+
+export function useManagedPage(slug: string) {
+  const [sections, setSections] = React.useState<ManagedPageSection[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    let mounted = true;
+    fetch(`/api/site-pages/${slug}`).then(async (response) => response.ok ? response.json() : { page: null }).then((data: { page?: { sections?: ManagedPageSection[] } | null }) => {
+      if (mounted) setSections(data.page?.sections || []);
+    }).catch(() => undefined).finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, [slug]);
+  return { sections, loading };
+}
+
+export function itemValue(section: ManagedPageSection, index: number, fallback: ManagedPageItem): ManagedPageItem {
+  return section.items[index] || fallback;
+}
+
+export function ensureManagedSections(slug: string, sections: ManagedPageSection[] | undefined): ManagedPageSection[] {
+  const defaults = defaultManagedSections(slug);
+  if (!sections?.length) return defaults;
+  return defaults.map((fallback) => sections.find((section) => section.id === fallback.id) || fallback);
+}
+
+export function defaultManagedSections(slug: string): ManagedPageSection[] {
+  if (slug === "about") return [
+    { id: "hero", visible: true, eyebrow: "About Us", title: "Building Dreams of Happy Marriages", description: "Marriage Media was founded with a simple mission: to help people find their perfect life partner through technology, trust, and genuine care.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+    { id: "stats", visible: true, eyebrow: "", title: "", description: "", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "Active Users", text: "50,000+" }, { title: "Successful Matches", text: "10,000+" }, { title: "Verified Profiles", text: "25,000+" }, { title: "Happy Families", text: "8,000+" }] },
+    { id: "mission", visible: true, eyebrow: "Our Mission", title: "Our Mission", description: "To revolutionize the matchmaking experience in Bangladesh by combining traditional values with modern technology. We strive to create a safe, trusted platform where individuals and families can find compatible life partners with confidence and ease.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+    { id: "vision", visible: true, eyebrow: "Our Vision", title: "Our Vision", description: "To become Bangladesh's most trusted and loved matrimony platform, known for our commitment to genuine profiles, privacy, and helping millions of people find their happily ever after. We envision a world where every person finds their perfect match.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+    { id: "values", visible: true, eyebrow: "Our Values", title: "What We Stand For", description: "Our core values guide everything we do, from building features to serving our community.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "Trust & Safety", text: "Every profile is manually verified by our team to ensure authenticity and prevent fake accounts." }, { title: "Genuine Connections", text: "We focus on meaningful relationships that lead to lasting marriages, not casual encounters." }, { title: "Community First", text: "We build a supportive community where singles and families can find matches with confidence." }, { title: "Innovation", text: "Our AI-powered matching algorithm analyzes compatibility across 50+ data points for better matches." }] },
+    { id: "team", visible: true, eyebrow: "Our Team", title: "Meet the People Behind Marriage Media", description: "A passionate team dedicated to helping you find your perfect match.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "Tanvir Ahmed", text: "Founder & CEO | Visionary leader with 10+ years in the matchmaking industry." }, { title: "Sabrina Rahman", text: "Head of Operations | Expert in building scalable platforms and exceptional user experiences." }, { title: "Imran Hossain", text: "Lead Engineer | Full-stack developer passionate about creating secure, reliable systems." }, { title: "Farhana Khan", text: "Community Manager | Dedicated to helping users find their perfect match." }] },
+    { id: "recognition", visible: true, eyebrow: "", title: "Trusted by Thousands", description: "Marriage Media has been recognized as one of the leading matrimony platforms in Bangladesh. Our commitment to trust, safety, and genuine connections has earned us the loyalty of over 50,000 active users and thousands of happy marriages.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+  ];
+  if (slug === "pricing") return [
+    { id: "hero", visible: true, eyebrow: "Pricing", title: "Find Your Perfect Plan", description: "Choose the plan that suits your journey to finding your life partner. Start free and upgrade when you're ready.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+    { id: "benefits", visible: true, eyebrow: "Why Upgrade?", title: "Unlock Premium Features", description: "Premium members find their match 3x faster. Here's what you get.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "Unlimited Chat", text: "Send and receive unlimited messages with your matches." }, { title: "AI Matching", text: "Get personalized match recommendations powered by AI." }, { title: "View Contact Info", text: "Access phone numbers and email addresses of your matches." }, { title: "Profile Boost", text: "Get 10x more profile views with monthly profile boosts." }] },
+    { id: "testimonials", visible: true, eyebrow: "Success Stories", title: "What Our Premium Members Say", description: "", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+    { id: "faq", visible: true, eyebrow: "", title: "Frequently Asked Questions", description: "", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+  ];
+  return [
+    { id: "hero", visible: true, eyebrow: "Success Stories", title: "Love Stories That Inspire", description: "Real couples who found their perfect match on Marriage Media. Their stories could be your story.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [] },
+    { id: "gallery", visible: true, eyebrow: "Success Stories", title: "Moments That Matter", description: "A glimpse at the couples and memories made through Marriage Media.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "", text: "", imageUrl: "/images/home/celebration.jpg", imageAlt: "A joyful wedding celebration" }, { title: "", text: "", imageUrl: "/images/home/couple.jpg", imageAlt: "A happy couple" }, { title: "", text: "", imageUrl: "/images/home/hero-couple.jpg", imageAlt: "A couple walking together" }] },
+    { id: "cta", visible: true, eyebrow: "", title: "Your Love Story Starts Here", description: "Join thousands of happy couples who found their perfect match on Marriage Media. Start your journey today.", imageUrl: "", imageAlt: "", buttonText: "Create Free Account", buttonLink: "/register", items: [] },
+  ];
+}

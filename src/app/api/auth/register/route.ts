@@ -6,6 +6,7 @@ import connectToDatabase from "@/lib/mongodb";
 import { User } from "@/models";
 import { registerSchema } from "@/lib/validations";
 import { allocatePublicId } from "@/lib/public-id";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +57,22 @@ export async function POST(request: NextRequest) {
       isEmailVerified: false,
       isActive: true,
     });
+
+    try {
+      const admins = await User.find({ role: { $in: ["admin", "superadmin"] }, isActive: true }).select("_id").lean();
+      await Promise.all(
+        admins.map((admin) => createNotification({
+          userId: admin._id.toString(),
+          type: "system",
+          title: "New member registration",
+          message: `A new member account (${user.publicId || normalizedPhone}) was created.`,
+          link: "/admin/users",
+          channels: ["inapp"],
+        })),
+      );
+    } catch (notificationError) {
+      console.error("Admin registration notification failed:", notificationError);
+    }
 
     return NextResponse.json(
       {

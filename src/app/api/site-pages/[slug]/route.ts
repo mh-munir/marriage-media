@@ -11,7 +11,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { slug } = await params;
     if (!PAGE_SLUGS.has(slug)) return NextResponse.json({ error: "Page not found" }, { status: 404 });
     await connectToDatabase();
-    const page = await SitePage.findOne({ slug, isPublished: true }).select("slug title description content seoTitle seoDescription").lean();
+    const page = await SitePage.findOne({ slug, isPublished: true }).select("slug title description content seoTitle seoDescription sections").lean();
     return NextResponse.json({ page: page || null });
   } catch {
     return NextResponse.json({ page: null });

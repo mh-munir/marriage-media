@@ -38,12 +38,9 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = await Profile.findOne<IProfile>({ userId: user._id });
+    const existingPhotoCount = profile?.photos.length || 0;
 
-    if (!profile) {
-      return jsonError("Profile not found.", 404);
-    }
-
-    if (profile.photos.length >= 5) {
+    if (existingPhotoCount >= 5) {
       return jsonError("You can upload a maximum of 5 images.", 400);
     }
 
@@ -83,7 +80,7 @@ export async function POST(request: NextRequest) {
       return jsonError("Cloudinary returned an invalid response.");
     }
 
-    const isFirstPhoto = profile.photos.length === 0;
+    const isFirstPhoto = existingPhotoCount === 0;
 
     const newPhoto = {
         url,
@@ -92,13 +89,14 @@ export async function POST(request: NextRequest) {
         isApproved: isFirstPhoto, // Auto-approve the first photo
     };
 
-    const updated = await Profile.findOneAndUpdate(
-      { userId: user._id },
-      { $push: { photos: newPhoto } },
-      { new: true }
-    );
-
-    if (!updated) return jsonError("Failed to update profile.", 500);
+    if (profile) {
+      const updated = await Profile.findOneAndUpdate(
+        { userId: user._id },
+        { $push: { photos: newPhoto } },
+        { new: true }
+      );
+      if (!updated) return jsonError("Failed to update profile.", 500);
+    }
 
     return NextResponse.json({
       photo: {

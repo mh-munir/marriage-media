@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Verification, User } from "@/models";
+import { Verification, User, Profile } from "@/models";
 import { requireAdmin } from "@/lib/auth";
 import { sendVerificationApprovedEmail } from "@/lib/email";
 import { updateProfileBadge } from "@/lib/verification";
@@ -47,8 +47,16 @@ export async function GET(request: NextRequest) {
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
 
+    const profileUserIds = verifications.filter((item) => item.type === "profile").map((item) => typeof item.userId === "object" ? item.userId._id : item.userId).filter(Boolean);
+    const profiles = profileUserIds.length ? await Profile.find({ userId: { $in: profileUserIds } }).select("userId firstName lastName photos profileCompleted").lean() : [];
+    const profileByUserId = new Map(profiles.map((profile) => [profile.userId.toString(), profile]));
+    const reviewItems = verifications.map((item) => {
+      const reviewUserId = typeof item.userId === "object" && item.userId ? item.userId._id : item.userId;
+      return { ...item, profile: item.type === "profile" && reviewUserId ? profileByUserId.get(reviewUserId.toString()) || null : null };
+    });
+
     return NextResponse.json({
-      verifications,
+      verifications: reviewItems,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       statusCounts: statusCounts.reduce(
         (acc: Record<string, number>, item: { _id: string; count: number }) => {
@@ -144,6 +152,9 @@ export async function PUT(request: NextRequest) {
     // If approved, update profile badge
     if (status === "approved") {
       await updateProfileBadge(verification.userId.toString());
+      if (verification.type === "profile") {
+        await Profile.findOneAndUpdate({ userId: verification.userId }, { isVisible: true });
+      }
 
       const user = await User.findById(verification.userId);
       if (user) {
@@ -162,6 +173,9 @@ export async function PUT(request: NextRequest) {
 
     // If rejected, notify user
     if (status === "rejected") {
+      if (verification.type === "profile") {
+        await Profile.findOneAndUpdate({ userId: verification.userId }, { isVisible: false });
+      }
       await createNotification({
         userId: verification.userId.toString(),
         type: "verification",

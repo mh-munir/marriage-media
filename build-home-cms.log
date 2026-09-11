@@ -1,0 +1,134 @@
+
+> marriage-media@0.1.0 build
+> next build
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 28.8s
+  Running TypeScript ...
+  Finished TypeScript in 21.7s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/27) ...
+  Generating static pages using 3 workers (6/27) 
+  Generating static pages using 3 workers (13/27) 
+  Generating static pages using 3 workers (20/27) 
+✓ Generating static pages using 3 workers (27/27) in 1100ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ● /[slug]
+│ ├ /careers
+│ ├ /help
+│ ├ /safety
+│ └ [+7 more paths]
+├ ƒ /about
+├ ○ /admin
+├ ○ /admin/analytics
+├ ○ /admin/audit
+├ ○ /admin/cms
+├ ○ /admin/login
+├ ○ /admin/photos
+├ ○ /admin/security
+├ ○ /admin/users
+├ ○ /admin/verification
+├ ƒ /api/admin/analytics
+├ ƒ /api/admin/audit
+├ ƒ /api/admin/auth/login
+├ ƒ /api/admin/cms
+├ ƒ /api/admin/coupons
+├ ƒ /api/admin/fraud
+├ ƒ /api/admin/photos/approve
+├ ƒ /api/admin/photos/pending
+├ ƒ /api/admin/security
+├ ƒ /api/admin/site-pages
+├ ƒ /api/admin/users
+├ ƒ /api/admin/verifications
+├ ƒ /api/ai
+├ ƒ /api/ai/bio
+├ ƒ /api/ai/compatibility
+├ ƒ /api/ai/conversation-starter
+├ ƒ /api/ai/fake-detection
+├ ƒ /api/ai/recommendations
+├ ƒ /api/analytics/visitors
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/refresh
+├ ƒ /api/auth/register
+├ ƒ /api/auth/verify-phone
+├ ƒ /api/blog
+├ ƒ /api/calls/history
+├ ƒ /api/chat/backup
+├ ƒ /api/chat/conversations
+├ ƒ /api/chat/messages
+├ ƒ /api/chat/reactions
+├ ƒ /api/chat/search
+├ ƒ /api/contact
+├ ƒ /api/coupon/validate
+├ ƒ /api/device/sessions
+├ ƒ /api/health
+├ ƒ /api/interests
+├ ƒ /api/locations
+├ ƒ /api/notifications
+├ ƒ /api/notifications/preferences
+├ ƒ /api/notifications/push-subscription
+├ ƒ /api/notifications/read
+├ ƒ /api/payment/checkout
+├ ƒ /api/payment/history
+├ ƒ /api/payment/refund
+├ ƒ /api/payment/webhook
+├ ƒ /api/pricing
+├ ƒ /api/profile
+├ ƒ /api/profile/[userId]
+├ ƒ /api/profile/boost
+├ ƒ /api/profile/favorites
+├ ƒ /api/profile/photos/upload
+├ ƒ /api/profile/search
+├ ƒ /api/referral
+├ ƒ /api/search/nearby
+├ ƒ /api/search/recently-viewed
+├ ƒ /api/search/recommendations
+├ ƒ /api/search/saved
+├ ƒ /api/search/trending
+├ ƒ /api/site-pages/[slug]
+├ ƒ /api/subscription
+├ ƒ /api/success-stories
+├ ƒ /api/verification
+├ ƒ /api/verification/email
+├ ƒ /api/verification/face
+├ ƒ /api/verification/phone
+├ ƒ /api/verification/status
+├ ƒ /blog
+├ ƒ /contact
+├ ƒ /dashboard
+├ ƒ /dashboard/analytics
+├ ƒ /dashboard/favorites
+├ ƒ /dashboard/interests
+├ ƒ /dashboard/messages
+├ ƒ /dashboard/notifications
+├ ƒ /dashboard/notifications/preferences
+├ ƒ /dashboard/profile
+├ ƒ /dashboard/profile/[userId]
+├ ƒ /dashboard/search
+├ ƒ /dashboard/settings
+├ ƒ /dashboard/verification
+├ ○ /login
+├ ƒ /pricing
+├ ○ /register
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+└ ƒ /success-stories
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

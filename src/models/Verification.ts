@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export type VerificationType =
+  | "profile"
   | "nid"
   | "passport"
   | "face"
@@ -99,7 +100,7 @@ const VerificationSchema = new Schema<IVerification>(
     },
     type: {
       type: String,
-      enum: ["nid", "passport", "face", "selfie", "phone", "email", "photo", "identity", "social"],
+      enum: ["profile", "nid", "passport", "face", "selfie", "phone", "email", "photo", "identity", "social"],
       required: true,
     },
 

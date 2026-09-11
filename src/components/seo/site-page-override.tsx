@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { HomePageOverride, type HomeSection } from "@/components/seo/home-page-override";
 
 export interface SitePageData {
   slug: string;
@@ -12,6 +13,7 @@ export interface SitePageData {
   seoTitle: string;
   seoDescription: string;
   isPublished: boolean;
+  sections?: HomeSection[];
 }
 
 export function useSitePage(slug: string) {
@@ -38,5 +40,6 @@ export function useSitePage(slug: string) {
 }
 
 export function SitePageOverride({ page }: { page: SitePageData }) {
+  if (page.slug === "home" && page.sections?.length) return <HomePageOverride sections={page.sections} />;
   return <div className="min-h-screen"><Header /><main className="bg-background"><section className="mx-auto max-w-4xl px-5 py-24 sm:px-8"><p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Marriage Media</p><h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">{page.title}</h1>{page.description ? <p className="mt-5 text-lg text-muted-foreground">{page.description}</p> : null}<article className="prose prose-slate mt-12 max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: page.content }} /></section></main><Footer /></div>;
 }
