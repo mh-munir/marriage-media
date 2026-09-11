@@ -20,13 +20,11 @@ import {
   Search,
   Download,
   Play,
-  Pause,
   FileText,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useChatStore, type Message, type Reaction } from "@/stores/chat-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -76,7 +74,7 @@ export function ChatWindow({
   const { user } = useAuthStore();
   const { socket } = useSocket();
 
-  const conversationMessages = messages[conversationId] || [];
+  const conversationMessages = React.useMemo(() => messages[conversationId] || [], [conversationId, messages]);
   const otherUserId = participantId(conversationId, user?.id || "");
   const isParticipantTyping = typingUsers[otherUserId];
 
@@ -717,9 +715,9 @@ export function ChatWindow({
                 "😊", "😂", "❤️", "👍", "🙏", "😍", "🎉", "🔥",
                 "💯", "😘", "🥰", "💕", "😢", "🤔", "👋", "✨",
                 "🌹", "💪", "🫶", "😊", "🤝", "🎂", "🕌", "☪️",
-              ].map((emoji) => (
+              ].map((emoji, index) => (
                 <button
-                  key={`${emoji}-${Math.random()}`}
+                        key={`${emoji}-${index}`}
                   onClick={() => {
                     setMessage((prev) => prev + emoji);
                     setShowEmojiPicker(false);
