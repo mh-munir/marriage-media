@@ -29,7 +29,7 @@ interface AdminUser {
     isPremium?: boolean;
     isVerified?: boolean;
   } | null;
-  subscription?: { plan: string; expiryDate: string; isActive: boolean } | null;
+  subscription?: { plan: string; expiryDate: string; isActive: boolean; daysRemaining: number } | null;
 }
 
 export default function AdminUsersPage() {
@@ -176,7 +176,7 @@ export default function AdminUsersPage() {
                           <div className="space-y-1">
                             <Badge className="capitalize bg-amber-100 text-amber-800">{user.subscription.plan}</Badge>
                             <p className="text-xs text-slate-500">
-                              Expires {new Date(user.subscription.expiryDate).toLocaleDateString()} · {Math.max(0, Math.ceil((new Date(user.subscription.expiryDate).getTime() - Date.now()) / 86_400_000))} days left
+                              Expires {new Date(user.subscription.expiryDate).toLocaleDateString()} · {user.subscription.daysRemaining} days left
                             </p>
                           </div>
                         ) : user.subscription ? (
