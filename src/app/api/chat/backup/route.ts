@@ -1,9 +1,48 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Message, Conversation } from "@/models";
 import { requireAuth } from "@/lib/auth";
+
+type PopulatedPerson = {
+  _id: Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+};
+
+type BackupMessage = {
+  _id: unknown;
+  senderId?: PopulatedPerson | null;
+  content: string;
+  messageType: string;
+  createdAt: Date;
+};
+
+type BackupConversation = {
+  _id: Types.ObjectId;
+  participants: PopulatedPerson[];
+};
+
+type BackupExport = {
+  conversationId: unknown;
+  participant: string;
+  messageCount: number;
+  messages: Array<{
+    id: unknown;
+    sender: string;
+    content: string;
+    type: string;
+    timestamp: Date;
+  }>;
+};
+
+function personName(person?: PopulatedPerson | null): string {
+  if (!person) return "Unknown";
+  return `${person.firstName || ""} ${person.lastName || ""}`.trim() || person.email || "Unknown";
+}
 
 /**
  * GET /api/chat/backup?conversationId=xxx
@@ -25,9 +64,9 @@ export async function GET(request: NextRequest) {
       })
         .populate("participants", "firstName lastName email")
         .sort({ lastMessageAt: -1 })
-        .lean();
+        .lean<BackupConversation[]>();
 
-      const backupData: any[] = [];
+      const backupData: BackupExport[] = [];
 
       for (const conv of userConversations) {
         const messages = await Message.find({
@@ -36,22 +75,22 @@ export async function GET(request: NextRequest) {
         })
           .populate("senderId", "firstName lastName email")
           .sort({ createdAt: 1 })
-          .lean();
+          .lean<BackupMessage[]>();
 
         const otherParticipant = conv.participants.find(
-          (p: any) => p._id.toString() !== user._id.toString()
+          (p) => p._id.toString() !== user._id.toString()
         );
 
         backupData.push({
           conversationId: conv._id,
           participant: otherParticipant
-            ? `${(otherParticipant as any).firstName || ""} ${(otherParticipant as any).lastName || ""}`.trim() || (otherParticipant as any).email
+            ? personName(otherParticipant)
             : "Unknown",
           messageCount: messages.length,
           messages: messages.map((m) => ({
             id: m._id,
             sender: m.senderId
-              ? `${(m.senderId as any).firstName || ""} ${(m.senderId as any).lastName || ""}`.trim() || (m.senderId as any).email
+              ? personName(m.senderId)
               : "Unknown",
             content: m.content,
             type: m.messageType,
@@ -95,14 +134,14 @@ export async function GET(request: NextRequest) {
     const conversation = await Conversation.findById(conversationId).populate(
       "participants",
       "firstName lastName email"
-    );
+    ).lean<BackupConversation>();
 
     if (!conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
     }
 
     const isParticipant = conversation.participants.some(
-      (p: any) => p._id.toString() === user._id.toString()
+      (p) => p._id.toString() === user._id.toString()
     );
 
     if (!isParticipant) {
@@ -115,16 +154,16 @@ export async function GET(request: NextRequest) {
     })
       .populate("senderId", "firstName lastName email")
       .sort({ createdAt: 1 })
-      .lean();
+      .lean<BackupMessage[]>();
 
     const otherParticipant = conversation.participants.find(
-      (p: any) => p._id.toString() !== user._id.toString()
+      (p) => p._id.toString() !== user._id.toString()
     );
 
     const formattedMessages = messages.map((m) => ({
       id: m._id,
       sender: m.senderId
-        ? `${(m.senderId as any).firstName || ""} ${(m.senderId as any).lastName || ""}`.trim() || (m.senderId as any).email
+        ? personName(m.senderId)
         : "Unknown",
       content: m.content,
       type: m.messageType,
@@ -133,7 +172,7 @@ export async function GET(request: NextRequest) {
 
     if (format === "txt") {
       let textContent = `Chat Backup - Conversation\n`;
-      textContent += `With: ${otherParticipant ? `${(otherParticipant as any).firstName || ""} ${(otherParticipant as any).lastName || ""}`.trim() || (otherParticipant as any).email : "Unknown"}\n`;
+      textContent += `With: ${personName(otherParticipant)}\n`;
       textContent += `Exported: ${new Date().toISOString()}\n`;
       textContent += `Messages: ${messages.length}\n`;
       textContent += "=".repeat(60) + "\n\n";
@@ -155,7 +194,7 @@ export async function GET(request: NextRequest) {
       conversation: {
         id: conversation._id,
         participant: otherParticipant
-          ? `${(otherParticipant as any).firstName || ""} ${(otherParticipant as any).lastName || ""}`.trim() || (otherParticipant as any).email
+          ? personName(otherParticipant)
           : "Unknown",
       },
       messages: formattedMessages,

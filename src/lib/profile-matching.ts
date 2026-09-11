@@ -118,6 +118,100 @@ export function calculatePartnerMatchScore(
   return Math.round((matchedFields / activeFields.length) * 100);
 }
 
+type CompatibilityProfile = MatchableProfile & {
+  caste?: string;
+  motherTongue?: string;
+  hobbies?: string[];
+  diet?: string;
+  smoke?: string;
+  isVerified?: boolean;
+};
+
+export function calculateCompatibilityScore(
+  profile: CompatibilityProfile,
+  currentProfile: CompatibilityProfile
+): number {
+  let score = 0;
+  let maxScore = 0;
+
+  maxScore += 20;
+  if (profile.religion === currentProfile.religion) score += 20;
+
+  if (currentProfile.caste && profile.caste) {
+    maxScore += 10;
+    if (profile.caste === currentProfile.caste) score += 10;
+  }
+
+  if (currentProfile.motherTongue && profile.motherTongue) {
+    maxScore += 5;
+    if (profile.motherTongue === currentProfile.motherTongue) score += 5;
+  }
+
+  maxScore += 15;
+  const ageDiff = Math.abs((profile.age ?? 0) - (currentProfile.age ?? 0));
+  if (ageDiff <= 2) score += 15;
+  else if (ageDiff <= 5) score += 12;
+  else if (ageDiff <= 8) score += 8;
+  else if (ageDiff <= 12) score += 4;
+
+  maxScore += 10;
+  const educationLevels = [
+    "Primary", "Secondary", "Higher Secondary", "Diploma",
+    "Bachelor's Degree", "Master's Degree", "PhD", "Professional Degree",
+  ];
+  const profileEducation = educationLevels.indexOf(profile.highestEducation || "");
+  const currentEducation = educationLevels.indexOf(currentProfile.highestEducation || "");
+  if (profileEducation !== -1 && currentEducation !== -1) {
+    const educationDiff = Math.abs(profileEducation - currentEducation);
+    if (educationDiff === 0) score += 10;
+    else if (educationDiff === 1) score += 8;
+    else if (educationDiff === 2) score += 5;
+  }
+
+  maxScore += 15;
+  if (profile.division === currentProfile.division) {
+    score += 8;
+    if (profile.district === currentProfile.district) {
+      score += 5;
+      if (profile.area && currentProfile.area && profile.area === currentProfile.area) score += 2;
+    }
+  }
+
+  if (currentProfile.familyValues && profile.familyValues) {
+    maxScore += 8;
+    const familyValues = ["Orthodox", "Traditional", "Moderate", "Liberal", "Secular"];
+    const profileValue = familyValues.indexOf(profile.familyValues);
+    const currentValue = familyValues.indexOf(currentProfile.familyValues);
+    if (profileValue !== -1 && currentValue !== -1) {
+      const valueDiff = Math.abs(profileValue - currentValue);
+      if (valueDiff === 0) score += 8;
+      else if (valueDiff === 1) score += 5;
+      else if (valueDiff === 2) score += 2;
+    }
+  }
+
+  if (currentProfile.diet && profile.diet) {
+    maxScore += 5;
+    if (profile.diet === currentProfile.diet) score += 5;
+    else if ((currentProfile.diet === "Halal" && profile.diet === "Non-Veg") || (currentProfile.diet === "Non-Veg" && profile.diet === "Halal")) score += 3;
+  }
+
+  if (Array.isArray(currentProfile.hobbies) && Array.isArray(profile.hobbies)) {
+    maxScore += 7;
+    score += Math.min(currentProfile.hobbies.filter((hobby) => profile.hobbies?.includes(hobby)).length * 2, 7);
+  }
+
+  if (currentProfile.smoke && profile.smoke) {
+    maxScore += 3;
+    if (profile.smoke === currentProfile.smoke) score += 3;
+  }
+
+  maxScore += 3;
+  if (profile.isVerified) score += 3;
+
+  return maxScore > 0 ? Math.round((score / maxScore) * 100) : 50;
+}
+
 export async function notifyProfileMatches(profileUserId: string): Promise<void> {
   try {
     const sourceProfile = await Profile.findOne({ userId: profileUserId, isVisible: true, isDeactivated: false })

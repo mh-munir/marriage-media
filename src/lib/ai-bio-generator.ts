@@ -13,7 +13,6 @@ interface ProfileInfo {
   hobbies: string[];
   familyValues: string;
   diet: string;
-  aboutMe?: string;
   partnerPreference?: string;
   country: string;
   division?: string;

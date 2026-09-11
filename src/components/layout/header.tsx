@@ -74,37 +74,39 @@ export function Header() {
 
   return (
     <header
-      className={cn(
-        "fixed left-0 right-0 top-0 z-50 transition-all duration-300",
-        isScrolled
-          ? "px-3 pt-3 sm:px-5"
-          : "px-3 pt-3 sm:px-5"
-      )}
+      className="fixed left-0 right-0 top-0 z-50 px-3 pt-4 transition-all duration-300 sm:px-6"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="flex h-16 items-center justify-between rounded-2xl border border-white/60 bg-background/85 px-3 shadow-lg shadow-rose-950/5 backdrop-blur-xl sm:px-5 dark:border-white/10">
+        <div
+          className={cn(
+            "grid grid-cols-[1fr_auto_1fr] items-center rounded-full px-3 transition-all duration-300 sm:px-5",
+            isScrolled
+              ? "h-14 border border-border/70 bg-background/98 shadow-xl shadow-rose-950/10 backdrop-blur-2xl sm:h-16"
+              : "h-18 border border-white/80 bg-white/95 shadow-lg shadow-rose-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-background/95"
+          )}
+        >
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-2.5" aria-label="Marriage Media home">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-orange-400 shadow-md shadow-rose-500/25 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
-              <Heart className="h-4.5 w-4.5 text-white" fill="white" />
+          <Link href="/" className="group flex items-center gap-3" aria-label="Marriage Media home">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
+              <Heart className="h-5 w-5 text-primary" fill="currentColor" />
             </div>
-            <span className="hidden text-lg font-bold tracking-tight sm:block">
-              Marriage<span className="text-primary">Media</span>
+            <span className="hidden font-serif text-xl font-semibold tracking-tight sm:block">
+              Marriage <span className="text-primary">Media</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden items-center gap-1 rounded-xl bg-muted/60 p-1 md:flex" aria-label="Primary navigation">
+          <nav className="hidden items-center gap-1 rounded-full border border-border/50 bg-muted/70 p-1.5 shadow-sm backdrop-blur md:flex" aria-label="Primary navigation">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 aria-current={pathname === link.href ? "page" : undefined}
                 className={cn(
-                  "rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200",
+                  "rounded-full px-4 py-2.5 text-[13px] font-medium transition-all duration-200",
                   pathname === link.href
-                    ? "bg-background text-primary shadow-sm"
-                    : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-background hover:text-foreground"
                 )}
               >
                 {link.label}
@@ -113,13 +115,13 @@ export function Header() {
           </nav>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="ml-auto flex items-center gap-1 rounded-full border border-border/50 bg-muted/60 p-1 sm:gap-1.5">
             {/* Theme Toggle */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded-full text-muted-foreground hover:bg-background hover:text-primary"
               aria-label="Toggle theme"
             >
               <motion.div
@@ -141,7 +143,7 @@ export function Header() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="relative rounded-full text-muted-foreground hover:bg-background hover:text-primary"
                   aria-label="Open notifications"
                   onClick={() => setNotificationsOpen(true)}
                 >
@@ -151,7 +153,7 @@ export function Header() {
 
                 <Button
                   variant="outline"
-                  className="hidden rounded-xl border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 md:inline-flex"
+                  className="hidden rounded-full border-primary/25 bg-primary/5 text-primary hover:bg-primary/10 md:inline-flex"
                   onClick={() => void logout()}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -160,10 +162,10 @@ export function Header() {
               </>
             ) : (
               <div className="hidden md:flex items-center gap-2">
-                <Button variant="ghost" asChild className="rounded-xl text-muted-foreground">
+                <Button variant="ghost" asChild className="rounded-full text-muted-foreground">
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button variant="gradient" asChild className="rounded-xl shadow-md shadow-primary/20">
+                <Button variant="gradient" asChild className="rounded-full px-5 shadow-md shadow-primary/20">
                   <Link href="/register">Register Free</Link>
                 </Button>
               </div>
@@ -173,7 +175,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden rounded-xl"
+              className="rounded-full md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle navigation menu"
               aria-expanded={mobileOpen}
@@ -193,11 +195,11 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border/50 glass"
+            className="mt-3 overflow-hidden rounded-2xl border border-border/70 bg-background/95 shadow-xl backdrop-blur-2xl md:hidden"
           >
             <nav
               id="mobile-navigation"
-              className="mx-auto max-w-7xl px-4 py-4 space-y-1"
+              className="mx-auto max-w-7xl space-y-1 px-4 py-4"
               aria-label="Mobile navigation"
             >
               {links.map((link) => (

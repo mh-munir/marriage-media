@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { requireAuth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { Profile } from "@/models";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +12,7 @@ function jsonError(message: string, status = 400) {
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
-    const adminUser = await requireAuth(request);
-
-    if (adminUser.role !== "admin") {
-      return jsonError("Forbidden: You are not an administrator.", 403);
-    }
+    await requireAdmin(request);
 
     const pendingPhotos = await Profile.aggregate([
       { $unwind: "$photos" },
@@ -49,6 +45,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

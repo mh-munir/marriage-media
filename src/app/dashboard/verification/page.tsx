@@ -4,15 +4,13 @@ export const dynamic = "force-dynamic";
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { sanitizePhoneNumberInput } from "@/lib/utils";
 import {
   Shield,
   ShieldCheck,
   ShieldX,
   Clock,
   CheckCircle,
-  Phone,
-  Mail,
-  CreditCard,
   FileCheck,
   ScanFace,
   Camera,
@@ -668,9 +666,11 @@ export default function VerificationPage() {
                         <label className="text-sm font-medium">Phone Number</label>
                         <div className="flex gap-2">
                           <Input
-                            placeholder="+880 1XXXXXXXXX"
+                            placeholder="01XXXXXXXXX"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            onChange={(e) => setPhoneNumber(sanitizePhoneNumberInput(e.target.value))}
                           />
                           <Button
                             onClick={handleSendPhoneOTP}
@@ -946,7 +946,7 @@ export default function VerificationPage() {
               {activeModal === "selfie" && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Upload a recent selfie for manual review. This helps us confirm you're the person in your profile photos.
+                    Upload a recent selfie for manual review. This helps us confirm you&apos;re the person in your profile photos.
                   </p>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Upload Selfie</label>

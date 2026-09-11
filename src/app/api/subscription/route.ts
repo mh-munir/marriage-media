@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Payment, Profile, User, Coupon, Referral } from "@/models";
+import { Payment, Profile, Coupon } from "@/models";
 import { requireAuth, generateInvoiceNumber, generateTransactionId } from "@/lib/auth";
 import { sendPaymentConfirmationEmail } from "@/lib/email";
 

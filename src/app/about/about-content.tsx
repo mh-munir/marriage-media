@@ -18,6 +18,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 
 const values = [
   {
@@ -77,6 +78,10 @@ const stats = [
 ];
 
 export default function AboutPage() {
+  const { page, loading } = useSitePage("about");
+  if (loading) return null;
+  if (page?.content) return <SitePageOverride page={page} />;
+
   return (
     <div className="min-h-screen">
       <Header />

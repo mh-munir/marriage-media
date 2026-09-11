@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, formatRelativeTime, getInitials } from "@/lib/utils";
 import { useSocket } from "@/providers/socket-provider";
+import { useSearchParams } from "next/navigation";
 
 interface ConversationSummary {
   id: string;
@@ -83,6 +84,8 @@ function mapMessage(raw: Record<string, unknown>): ChatMessage {
 }
 
 export default function DashboardMessagesPage() {
+  const searchParams = useSearchParams();
+  const requestedConversationId = searchParams.get("conversationId") || "";
   const [conversations, setConversations] = React.useState<ConversationSummary[]>([]);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [selectedConversationId, setSelectedConversationId] = React.useState("");
@@ -138,20 +141,20 @@ export default function DashboardMessagesPage() {
       const data = await conversationsResponse.json() as { conversations?: ConversationSummary[] };
       const nextConversations = data.conversations || [];
       setConversations(nextConversations);
-      setSelectedConversationId((current) => current || nextConversations[0]?.id || "");
+      setSelectedConversationId((current) => current || requestedConversationId || nextConversations[0]?.id || "");
     } catch {
       setConversations([]);
     } finally {
       setLoadingConversations(false);
     }
-  }, []);
+  }, [requestedConversationId]);
 
   React.useEffect(() => {
-    void loadConversations();
+    queueMicrotask(() => void loadConversations());
   }, [loadConversations]);
 
   React.useEffect(() => {
-    void loadMessages(selectedConversationId);
+    queueMicrotask(() => void loadMessages(selectedConversationId));
   }, [loadMessages, selectedConversationId]);
 
   React.useEffect(() => {

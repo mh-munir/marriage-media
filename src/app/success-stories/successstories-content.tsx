@@ -20,6 +20,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 
 interface StoryCard {
   id: string;
@@ -39,6 +40,7 @@ const stats = [
 ];
 
 export default function SuccessStoriesPage() {
+  const { page, loading: pageLoading } = useSitePage("success-stories");
   const [stories, setStories] = React.useState<StoryCard[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -70,6 +72,9 @@ export default function SuccessStoriesPage() {
       isMounted = false;
     };
   }, []);
+  if (pageLoading) return null;
+  if (page?.content) return <SitePageOverride page={page} />;
+
   return (
     <div className="min-h-screen">
       <Header />

@@ -27,7 +27,6 @@ interface ProfileData {
   hobbies: string[];
   familyValues: string;
   diet: string;
-  aboutMe: string;
   partnerPreference: string;
   maritalStatus: string;
   photos: { url: string; isPrimary: boolean }[];
@@ -155,9 +154,9 @@ export async function aiCompatibilityScore(
   try {
     const result = await chatCompletion({
       systemPrompt: `You are a compatibility expert for a marriage platform. Analyze two profiles and return a detailed compatibility score. Return JSON: {"score": 0-100, "breakdown": {"religion": 0-25, "age": 0-15, "education": 0-15, "location": 0-15, "values": 0-10, "hobbies": 0-10, "lifestyle": 0-10}, "summary": "brief summary", "advice": "relationship advice"}`,
-      userPrompt: `Profile 1: ${profile1.firstName}, age ${profile1.age}, ${profile1.profession}, ${profile1.religion}, ${profile1.division}, education: ${profile1.highestEducation}, hobbies: ${profile1.hobbies.join(", ")}, familyValues: ${profile1.familyValues}, diet: ${profile1.diet}, aboutMe: ${(profile1.aboutMe || "").slice(0, 200)}
+      userPrompt: `Profile 1: ${profile1.firstName}, age ${profile1.age}, ${profile1.profession}, ${profile1.religion}, ${profile1.division}, education: ${profile1.highestEducation}, hobbies: ${profile1.hobbies.join(", ")}, familyValues: ${profile1.familyValues}, diet: ${profile1.diet}
 
-Profile 2: ${profile2.firstName}, age ${profile2.age}, ${profile2.profession}, ${profile2.religion}, ${profile2.division}, education: ${profile2.highestEducation}, hobbies: ${profile2.hobbies.join(", ")}, familyValues: ${profile2.familyValues}, diet: ${profile2.diet}, aboutMe: ${(profile2.aboutMe || "").slice(0, 200)}`,
+    Profile 2: ${profile2.firstName}, age ${profile2.age}, ${profile2.profession}, ${profile2.religion}, ${profile2.division}, education: ${profile2.highestEducation}, hobbies: ${profile2.hobbies.join(", ")}, familyValues: ${profile2.familyValues}, diet: ${profile2.diet}`,
       maxTokens: 1024,
       temperature: 0.3,
     });
@@ -200,7 +199,7 @@ export async function aiGenerateBio(profile: ProfileData): Promise<string> {
   try {
     const result = await chatCompletion({
       systemPrompt: `You are a professional bio writer for a Bangladeshi marriage platform. Write a warm, authentic, engaging bio (150-250 words) that highlights the person's personality, values, and what they're looking for. Make it sound genuine and personal, not generic.`,
-      userPrompt: `Write a marriage profile bio for: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.highestEducation}, ${profile.religion}, from ${profile.division || profile.country}. Hobbies: ${profile.hobbies.join(", ")}. Family values: ${profile.familyValues}. Diet: ${profile.diet}. About: ${(profile.aboutMe || "").slice(0, 300)}. Partner preference: ${(profile.partnerPreference || "").slice(0, 200)}`,
+      userPrompt: `Write a marriage profile bio for: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.highestEducation}, ${profile.religion}, from ${profile.division || profile.country}. Hobbies: ${profile.hobbies.join(", ")}. Family values: ${profile.familyValues}. Diet: ${profile.diet}. Partner preference: ${(profile.partnerPreference || "").slice(0, 200)}`,
       maxTokens: 600,
       temperature: 0.8,
     });
@@ -270,7 +269,7 @@ export async function aiProfileImprovements(
   try {
     const result = await chatCompletion({
       systemPrompt: `You are a dating profile optimization expert. Analyze the profile and suggest specific improvements. Return a JSON array of objects with field, current, suggestion, and priority (high/medium/low). Focus on the 5-8 most impactful improvements.`,
-      userPrompt: `Profile: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.highestEducation}, ${profile.religion}, ${profile.division || profile.country}. Hobbies: ${profile.hobbies.join(", ") || "none listed"}. AboutMe: "${(profile.aboutMe || "empty")}". PartnerPreference: "${(profile.partnerPreference || "empty")}". Photos: ${profile.photos.length} uploaded. MaritalStatus: ${profile.maritalStatus}.`,
+      userPrompt: `Profile: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.highestEducation}, ${profile.religion}, ${profile.division || profile.country}. Hobbies: ${profile.hobbies.join(", ") || "none listed"}. PartnerPreference: "${(profile.partnerPreference || "empty")}". Photos: ${profile.photos.length} uploaded. MaritalStatus: ${profile.maritalStatus}.`,
       maxTokens: 1024,
       temperature: 0.4,
     });
@@ -283,9 +282,6 @@ export async function aiProfileImprovements(
 
 function basicProfileImprovements(profile: ProfileData): ProfileImprovement[] {
   const improvements: ProfileImprovement[] = [];
-  if (!profile.aboutMe || profile.aboutMe.length < 50) {
-    improvements.push({ field: "aboutMe", current: profile.aboutMe || "empty", suggestion: "Write a detailed 'About Me' section (100+ words) describing your personality, values, and what makes you unique.", priority: "high" });
-  }
   if (profile.hobbies.length < 3) {
     improvements.push({ field: "hobbies", current: profile.hobbies.join(", ") || "none", suggestion: "Add at least 5-7 hobbies to increase profile visibility and matches.", priority: "high" });
   }
@@ -386,7 +382,7 @@ export async function aiFakeProfileDetection(
   try {
     const result = await chatCompletion({
       systemPrompt: `You are a fake profile detection AI for a marriage platform. Analyze profile data for signs of fake/fraudulent accounts. Return JSON: {"isFake": boolean, "confidence": 0.0-1.0, "riskScore": 0-100, "flags": ["flag1", ...]}`,
-      userPrompt: `Profile: ${profile.firstName} ${profile.lastName}, age ${profile.age}, ${profile.profession}, ${profile.religion}, ${profile.country}. About: "${(profile.aboutMe || "").slice(0, 300)}". Partner pref: "${(profile.partnerPreference || "").slice(0, 200)}". Hobbies: ${profile.hobbies.join(", ") || "none"}. Photos: ${profile.photos.length}. Marital status: ${profile.maritalStatus}. Education: ${profile.highestEducation}.`,
+      userPrompt: `Profile: ${profile.firstName} ${profile.lastName}, age ${profile.age}, ${profile.profession}, ${profile.religion}, ${profile.country}. Partner pref: "${(profile.partnerPreference || "").slice(0, 200)}". Hobbies: ${profile.hobbies.join(", ") || "none"}. Photos: ${profile.photos.length}. Marital status: ${profile.maritalStatus}. Education: ${profile.highestEducation}.`,
       maxTokens: 512,
       temperature: 0.1,
     });
@@ -402,7 +398,6 @@ function ruleBasedFakeDetection(profile: ProfileData): FakeDetectionResult {
   let riskScore = 0;
 
   if (profile.photos.length === 0) { flags.push("No photos"); riskScore += 30; }
-  if (!profile.aboutMe || profile.aboutMe.length < 10) { flags.push("Very short bio"); riskScore += 15; }
   if (profile.hobbies.length === 0) { flags.push("No hobbies listed"); riskScore += 10; }
   if (!profile.profession || profile.profession === "Unknown") { flags.push("No profession"); riskScore += 15; }
   if (profile.photos.length === 1) { flags.push("Only one photo"); riskScore += 10; }

@@ -4,8 +4,17 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { Profile, User } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculateAge } from "@/lib/utils";
+import { calculateAge, validatePhoneNumber } from "@/lib/utils";
 import { notifyProfileMatches } from "@/lib/profile-matching";
+import { allocatePublicId } from "@/lib/public-id";
+
+let aboutMeMigrationComplete = false;
+
+async function removeLegacyAboutMeField() {
+  if (aboutMeMigrationComplete) return;
+  await Profile.updateMany({ aboutMe: { $exists: true } }, { $unset: { aboutMe: 1 } });
+  aboutMeMigrationComplete = true;
+}
 
 function calculateProfileCompletion(body: Record<string, unknown>) {
   const completionFields = [
@@ -22,7 +31,6 @@ function calculateProfileCompletion(body: Record<string, unknown>) {
     body.district,
     body.highestEducation,
     body.profession,
-    body.aboutMe,
     body.partnerPreference ||
       (body.partnerPreferences && Object.values(body.partnerPreferences).some(Boolean)),
   ];
@@ -46,11 +54,13 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
     ["district", "District"],
     ["highestEducation", "Highest Education"],
     ["profession", "Profession"],
-    ["aboutMe", "About Me"],
   ] as const;
   const missingFields: string[] = requiredFields
     .filter(([field]) => !String(body[field] || "").trim())
     .map(([, label]) => label);
+  if (body.fatherContactNumber && !validatePhoneNumber(String(body.fatherContactNumber))) {
+    missingFields.push("Father's Contact Number must be exactly 11 digits");
+  }
   const partnerPreferences = body.partnerPreferences;
   if (!partnerPreferences || typeof partnerPreferences !== "object" || !Object.values(partnerPreferences).some(Boolean)) {
     missingFields.push("At least one Expected Partner preference");
@@ -62,6 +72,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    await removeLegacyAboutMeField();
 
     const profile = await Profile.findOne({ userId: user._id });
     if (!profile) {
@@ -80,8 +91,10 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    await removeLegacyAboutMeField();
 
     const body = await request.json();
+    delete body.aboutMe;
 
     const missingFields = getMissingRequiredFields(body);
     if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 2) {
@@ -105,8 +118,14 @@ export async function POST(request: NextRequest) {
     const age = calculateAge(body.dateOfBirth);
 
     // Create profile
+    const publicId = user.publicId || await allocatePublicId();
+    if (!user.publicId) {
+      await User.findByIdAndUpdate(user._id, { publicId });
+    }
+
     const profile = await Profile.create({
       userId: user._id,
+      publicId,
       ...body,
       age,
     });
@@ -129,8 +148,10 @@ export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    await removeLegacyAboutMeField();
 
     const body = await request.json();
+    delete body.aboutMe;
 
     const missingFields = getMissingRequiredFields(body);
     if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 2) {
@@ -148,7 +169,7 @@ export async function PUT(request: NextRequest) {
 
     const profile = await Profile.findOneAndUpdate(
       { userId: user._id },
-      { $set: body },
+      { $set: body, $unset: { aboutMe: 1 } },
       { new: true, runValidators: true }
     );
 

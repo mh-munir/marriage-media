@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { Input } from "@/components/ui/input";
 
 interface BlogPost {
@@ -23,6 +24,7 @@ interface BlogPost {
 const categories = ["All", "Tips & Advice", "Technology", "Success Stories", "Culture", "Safety"];
 
 export default function BlogContent() {
+  const { page, loading } = useSitePage("blog");
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [posts, setPosts] = React.useState<BlogPost[]>([]);
@@ -56,6 +58,9 @@ export default function BlogContent() {
       isMounted = false;
     };
   }, []);
+
+  if (loading) return null;
+  if (page?.content) return <SitePageOverride page={page} />;
 
   const filteredPosts = posts.filter((post) => {
     const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;

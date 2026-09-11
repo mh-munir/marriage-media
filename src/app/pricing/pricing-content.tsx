@@ -22,6 +22,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 
 interface PricingPlan {
   id: string;
@@ -78,6 +79,7 @@ const premiumBenefits = [
 ];
 
 export default function PricingPage() {
+  const { page, loading } = useSitePage("pricing");
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "quarterly" | "yearly">("monthly");
   const [pricingData, setPricingData] = React.useState<PricingData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -110,6 +112,9 @@ export default function PricingPage() {
       isMounted = false;
     };
   }, []);
+
+  if (loading) return null;
+  if (page?.content) return <SitePageOverride page={page} />;
 
   const plans = pricingData?.plans ?? [];
   const testimonials = pricingData?.testimonials ?? [];

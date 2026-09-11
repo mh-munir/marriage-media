@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
       hobbies: profile.hobbies,
       familyValues: profile.familyValues,
       diet: profile.diet,
-      aboutMe: profile.aboutMe,
       partnerPreference: profile.partnerPreference,
       country: profile.country,
       division: profile.division,

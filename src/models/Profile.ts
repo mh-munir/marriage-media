@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IProfile extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  publicId?: string;
   // Basic Info
   email?: string;
   firstName: string;
@@ -62,8 +63,6 @@ export interface IProfile extends Document {
   drink?: "Yes" | "No" | "Occasionally";
   hobbies: string[];
 
-  // About
-  aboutMe: string;
   partnerPreference: string;
   partnerPreferences: {
     age: string;
@@ -120,6 +119,13 @@ export interface IProfile extends Document {
 
 const ProfileSchema = new Schema<IProfile>(
   {
+    publicId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -249,7 +255,6 @@ const ProfileSchema = new Schema<IProfile>(
     drink: { type: String, enum: ["Yes", "No", "Occasionally"], default: "No" },
     hobbies: [{ type: String }],
 
-    aboutMe: { type: String, default: "", maxlength: [1000, "About me cannot exceed 1000 characters"] },
     partnerPreference: { type: String, default: "", maxlength: [1000, "Partner preference cannot exceed 1000 characters"] },
     partnerPreferences: {
       age: { type: String, default: "" },

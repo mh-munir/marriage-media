@@ -6,7 +6,6 @@ import * as React from "react";
 import {
   Bell,
   Mail,
-  MessageSquare,
   Smartphone,
   MessageCircle,
   Moon,
@@ -302,7 +301,7 @@ export default function NotificationPreferencesPage() {
             <div>
               <CardTitle className="text-base">Quiet Hours</CardTitle>
               <CardDescription>
-                Pause non-urgent notifications during specific hours. You'll still receive security alerts.
+                Pause non-urgent notifications during specific hours. You&apos;ll still receive security alerts.
               </CardDescription>
             </div>
           </div>

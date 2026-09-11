@@ -35,11 +35,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = React.useState(true);
   const [period, setPeriod] = React.useState("30");
 
-  React.useEffect(() => {
-    fetchAnalytics();
-  }, [period]);
-
-  async function fetchAnalytics() {
+  const fetchAnalytics = React.useCallback(async () => {
     try {
       const res = await fetch(`/api/analytics/visitors?period=${period}`);
       const result = await res.json();
@@ -49,7 +45,11 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [period]);
+
+  React.useEffect(() => {
+    void fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (

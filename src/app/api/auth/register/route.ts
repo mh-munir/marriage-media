@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
 import { User } from "@/models";
 import { registerSchema } from "@/lib/validations";
+import { allocatePublicId } from "@/lib/public-id";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const user = await User.create({
+      publicId: await allocatePublicId(),
       phone: normalizedPhone,
       password: hashedPassword,
       role: "user",
@@ -59,6 +61,7 @@ export async function POST(request: NextRequest) {
       {
         message: "Account created successfully",
         userId: user._id,
+        publicId: user.publicId,
       },
       { status: 201 }
     );

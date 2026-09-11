@@ -22,7 +22,6 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +34,7 @@ import {
   HEIGHTS,
   WEIGHTS,
   INCOME_RANGES,
+  sanitizePhoneNumberInput,
 } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/stores/auth-store";
@@ -69,7 +69,6 @@ interface ProfileFormData {
   fatherContactNumber: string;
   motherName: string;
   siblings: Array<{ name: string; relation: "Brother" | "Sister" }>;
-  aboutMe: string;
   partnerPreference: string;
   partnerPreferences: {
     age: string;
@@ -126,7 +125,6 @@ const createInitialProfile = (): ProfileFormData => ({
   fatherContactNumber: "",
   motherName: "",
   siblings: [],
-  aboutMe: "",
   partnerPreference: "",
   partnerPreferences: {
     age: "",
@@ -323,7 +321,6 @@ export default function DashboardProfilePage() {
       profile.district,
       profile.highestEducation,
       profile.profession,
-      profile.aboutMe,
       Object.values(profile.partnerPreferences).some(Boolean),
     ];
 
@@ -346,7 +343,6 @@ export default function DashboardProfilePage() {
       { value: profile.district, label: "District" },
       { value: profile.highestEducation, label: "Highest Education" },
       { value: profile.profession, label: "Profession" },
-      { value: profile.aboutMe, label: "About Me" },
     ];
     const missingFields = requiredFields
       .filter(({ value }) => !String(value || "").trim())
@@ -711,18 +707,134 @@ export default function DashboardProfilePage() {
                           </div>
                         </section>
 
-                          <section>
-                            <h2 className="mb-4 text-lg font-semibold">About You</h2>
-                            <div className="space-y-4">
-                              <Textarea
-                                label="About Me"
-                                value={profile.aboutMe}
-                                onChange={(e) => setProfile({ ...profile, aboutMe: e.target.value })}
-                                rows={5}
-                                placeholder="Tell others about yourself..."
+                        <section>
+                          <h2 className="mb-4 text-lg font-semibold">Family Information</h2>
+                          <div className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Input
+                            label="Father's Name"
+                            value={profile.fatherName}
+                            onChange={(e) => setProfile({ ...profile, fatherName: e.target.value })}
+                          />
+                          <Input
+                            label="Father's Contact Number"
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={profile.fatherContactNumber}
+                            onChange={(e) => setProfile({ ...profile, fatherContactNumber: sanitizePhoneNumberInput(e.target.value) })}
+                          />
+                        </div>
+                        <Input
+                          label="Mother's Name"
+                          value={profile.motherName}
+                          onChange={(e) => setProfile({ ...profile, motherName: e.target.value })}
+                        />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">Family Type</label>
+                            <select
+                              value={profile.familyType}
+                              onChange={(e) => setProfile({ ...profile, familyType: e.target.value })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="Joint">Joint</option>
+                              <option value="Nuclear">Nuclear</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">Family Status</label>
+                            <select
+                              value={profile.familyStatus}
+                              onChange={(e) => setProfile({ ...profile, familyStatus: e.target.value })}
+                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                            >
+                              <option value="Middle Class">Middle Class</option>
+                              <option value="Upper Middle Class">Upper Middle Class</option>
+                              <option value="Rich">Rich</option>
+                              <option value="Affluent">Affluent</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1.5">Family Values</label>
+                          <select
+                            value={profile.familyValues}
+                            onChange={(e) => setProfile({ ...profile, familyValues: e.target.value })}
+                            className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                          >
+                            <option value="Orthodox">Orthodox</option>
+                            <option value="Traditional">Traditional</option>
+                            <option value="Moderate">Moderate</option>
+                            <option value="Liberal">Liberal</option>
+                            <option value="Secular">Secular</option>
+                          </select>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <label className="text-sm font-medium text-foreground">Brothers and Sisters</label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setProfile({
+                                ...profile,
+                                siblings: [...profile.siblings, { name: "", relation: "Brother" }],
+                              })}
+                            >
+                              Add sibling
+                            </Button>
+                          </div>
+                          {profile.siblings.map((sibling, index) => (
+                            <div key={`sibling-${index}`} className="flex items-end gap-3">
+                              <Input
+                                label={`Sibling ${index + 1} name`}
+                                value={sibling.name}
+                                onChange={(e) => setProfile({
+                                  ...profile,
+                                  siblings: profile.siblings.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, name: e.target.value } : item
+                                  ),
+                                })}
                               />
+                              <div className="w-36 shrink-0">
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">Relation</label>
+                                <select
+                                  value={sibling.relation}
+                                  onChange={(e) => setProfile({
+                                    ...profile,
+                                    siblings: profile.siblings.map((item, itemIndex) =>
+                                      itemIndex === index
+                                        ? { ...item, relation: e.target.value as "Brother" | "Sister" }
+                                        : item
+                                    ),
+                                  })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                                >
+                                  <option value="Brother">Brother</option>
+                                  <option value="Sister">Sister</option>
+                                </select>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`Remove sibling ${index + 1}`}
+                                onClick={() => setProfile({
+                                  ...profile,
+                                  siblings: profile.siblings.filter((_, itemIndex) => itemIndex !== index),
+                                })}
+                              >
+                                Remove
+                              </Button>
                             </div>
-                          </section>
+                          ))}
+                          {!profile.siblings.length ? (
+                            <p className="text-sm text-muted-foreground">No brothers or sisters added.</p>
+                          ) : null}
+                        </div>
+                          </div>
+                        </section>
 
                         <section>
                           <h2 className="mb-4 text-lg font-semibold">Location Information</h2>
@@ -847,133 +959,6 @@ export default function DashboardProfilePage() {
                               <option key={i} value={i}>{i}</option>
                             ))}
                           </select>
-                        </div>
-                          </div>
-                        </section>
-
-                        <section>
-                          <h2 className="mb-4 text-lg font-semibold">Family Information</h2>
-                          <div className="space-y-4">
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Family Type</label>
-                            <select
-                              value={profile.familyType}
-                              onChange={(e) => setProfile({ ...profile, familyType: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              <option value="Joint">Joint</option>
-                              <option value="Nuclear">Nuclear</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Family Status</label>
-                            <select
-                              value={profile.familyStatus}
-                              onChange={(e) => setProfile({ ...profile, familyStatus: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              <option value="Middle Class">Middle Class</option>
-                              <option value="Upper Middle Class">Upper Middle Class</option>
-                              <option value="Rich">Rich</option>
-                              <option value="Affluent">Affluent</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">Family Values</label>
-                          <select
-                            value={profile.familyValues}
-                            onChange={(e) => setProfile({ ...profile, familyValues: e.target.value })}
-                            className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                          >
-                            <option value="Orthodox">Orthodox</option>
-                            <option value="Traditional">Traditional</option>
-                            <option value="Moderate">Moderate</option>
-                            <option value="Liberal">Liberal</option>
-                            <option value="Secular">Secular</option>
-                          </select>
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <Input
-                            label="Father's Name"
-                            value={profile.fatherName}
-                            onChange={(e) => setProfile({ ...profile, fatherName: e.target.value })}
-                          />
-                          <Input
-                            label="Father's Contact Number"
-                            type="tel"
-                            value={profile.fatherContactNumber}
-                            onChange={(e) => setProfile({ ...profile, fatherContactNumber: e.target.value })}
-                          />
-                        </div>
-                        <Input
-                          label="Mother's Name"
-                          value={profile.motherName}
-                          onChange={(e) => setProfile({ ...profile, motherName: e.target.value })}
-                        />
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <label className="text-sm font-medium text-foreground">Brothers and Sisters</label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setProfile({
-                                ...profile,
-                                siblings: [...profile.siblings, { name: "", relation: "Brother" }],
-                              })}
-                            >
-                              Add sibling
-                            </Button>
-                          </div>
-                          {profile.siblings.map((sibling, index) => (
-                            <div key={`sibling-${index}`} className="flex items-end gap-3">
-                              <Input
-                                label={`Sibling ${index + 1} name`}
-                                value={sibling.name}
-                                onChange={(e) => setProfile({
-                                  ...profile,
-                                  siblings: profile.siblings.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, name: e.target.value } : item
-                                  ),
-                                })}
-                              />
-                              <div className="w-36 shrink-0">
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">Relation</label>
-                                <select
-                                  value={sibling.relation}
-                                  onChange={(e) => setProfile({
-                                    ...profile,
-                                    siblings: profile.siblings.map((item, itemIndex) =>
-                                      itemIndex === index
-                                        ? { ...item, relation: e.target.value as "Brother" | "Sister" }
-                                        : item
-                                    ),
-                                  })}
-                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                                >
-                                  <option value="Brother">Brother</option>
-                                  <option value="Sister">Sister</option>
-                                </select>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                aria-label={`Remove sibling ${index + 1}`}
-                                onClick={() => setProfile({
-                                  ...profile,
-                                  siblings: profile.siblings.filter((_, itemIndex) => itemIndex !== index),
-                                })}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          ))}
-                          {!profile.siblings.length ? (
-                            <p className="text-sm text-muted-foreground">No brothers or sisters added.</p>
-                          ) : null}
                         </div>
                           </div>
                         </section>

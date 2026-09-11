@@ -11,7 +11,6 @@ import {
   Eye,
   Crown,
   Search,
-  TrendingUp,
   Star,
   ArrowRight,
   Loader2,
@@ -22,15 +21,15 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfileCard } from "@/components/profile-card";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useNotificationStore } from "@/stores/notification-store";
-import { getInitials } from "@/lib/utils";
 
 interface ProfileSummary {
   profileViews?: number;
+  createdAt?: string;
   profileCompleted?: number;
   firstName?: string;
   lastName?: string;
@@ -40,11 +39,15 @@ interface ProfileSummary {
   district?: string;
   area?: string;
   photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>;
+  isFavorite?: boolean;
+  isPremium?: boolean;
+  isVerified?: boolean;
 }
 
 interface RecommendedMatch {
   userId?: string;
   _id?: string;
+  publicId?: string;
   firstName?: string;
   lastName?: string;
   age?: number;
@@ -54,6 +57,22 @@ interface RecommendedMatch {
   area?: string;
   compatibility?: number;
   photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>;
+  profileViews?: number;
+  createdAt?: string;
+  isFavorite?: boolean;
+  isPremium?: boolean;
+  isVerified?: boolean;
+  isOnline?: boolean;
+}
+
+function normalizeProfileId(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  if (value && typeof value === "object" && "$oid" in value) {
+    const objectId = (value as { $oid?: unknown }).$oid;
+    return typeof objectId === "string" ? objectId.trim() : "";
+  }
+  return "";
 }
 
 function formatCount(value: number): string {
@@ -63,17 +82,9 @@ function formatCount(value: number): string {
   }).format(value);
 }
 
-function getPrimaryPhoto(photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>): string | undefined {
-  const approved = photos?.filter((photo) => photo.isApproved && photo.url) ?? [];
-  return approved.find((photo) => photo.isPrimary)?.url ?? approved[0]?.url ?? undefined;
-}
-
-function getLocation(profile: Pick<ProfileSummary, "division" | "district" | "area">): string {
-  return [profile.area, profile.district, profile.division].filter(Boolean).join(", ") || "Location not added";
-}
-
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const { unreadCount, fetchNotifications } = useNotificationStore();
   const [profile, setProfile] = React.useState<ProfileSummary | null>(null);
   const [recommendations, setRecommendations] = React.useState<RecommendedMatch[]>([]);
@@ -115,7 +126,15 @@ export default function DashboardPage() {
           : [];
         const unread = conversations.reduce((sum: number, conversation) => sum + (conversation?.unreadCount || 0), 0);
         setConversationStats({ total: conversations.length, unread });
-        setRecommendations(Array.isArray(recommendationsData.profiles) ? recommendationsData.profiles : []);
+        setRecommendations(
+          Array.isArray(recommendationsData.profiles)
+            ? recommendationsData.profiles
+                .filter((match: RecommendedMatch) => (match.compatibility ?? 0) >= 50)
+                .sort((first: RecommendedMatch, second: RecommendedMatch) =>
+                  (second.compatibility ?? 0) - (first.compatibility ?? 0)
+                )
+            : []
+        );
       } catch {
         if (isMounted) {
           setProfile(null);
@@ -139,6 +158,57 @@ export default function DashboardPage() {
 
   const profileCompletion = profile?.profileCompleted ?? user?.profileCompleted ?? 0;
   const displayName = user?.firstName || user?.email?.split("@")[0] || "there";
+
+  const toggleRecommendationFavorite = React.useCallback(async (profileUserId: string) => {
+    const update = (list: RecommendedMatch[]) => list.map((match) =>
+      String(match.userId || match._id) === String(profileUserId)
+        ? { ...match, isFavorite: !match.isFavorite }
+        : match
+    );
+
+    setRecommendations(update);
+    try {
+      const response = await fetch("/api/profile/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileUserId }),
+      });
+      if (!response.ok) throw new Error("Unable to update favorite.");
+      const result = (await response.json()) as { isFavorite?: boolean };
+      setRecommendations((current) => current.map((match) =>
+        String(match.userId || match._id) === String(profileUserId)
+          ? { ...match, isFavorite: Boolean(result.isFavorite) }
+          : match
+      ));
+    } catch {
+      setRecommendations(update);
+    }
+  }, []);
+
+  const viewRecommendation = React.useCallback(async (profileUserId: string) => {
+    if (!profileUserId) return;
+
+    router.push(`/dashboard/profile/${profileUserId}`);
+    void fetch("/api/search/recently-viewed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profileUserId }),
+    }).catch(() => undefined);
+  }, [router]);
+
+  const openProfileMessages = React.useCallback(async (profileUserId: string) => {
+    if (!profileUserId) return;
+
+    const response = await fetch("/api/chat/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participantId: profileUserId }),
+    });
+    const result = await response.json() as { conversationId?: string };
+    if (response.ok && result.conversationId) {
+      router.push(`/dashboard/messages?conversationId=${encodeURIComponent(result.conversationId)}`);
+    }
+  }, [router]);
 
   const stats = React.useMemo(
     () => [
@@ -277,55 +347,43 @@ export default function DashboardPage() {
                     </div>
                   ) : recommendations.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      Add your Expected partner preferences to see profiles with 70% or higher matches.
+                      Add your Expected partner preferences to see profiles with more than 50% matches.
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {recommendations.map((match, index) => {
-                        const name = [match.firstName, match.lastName].filter(Boolean).join(" ") || "Match";
-                        const location = getLocation(match);
-                        const matchIdentifier = [match.userId, match._id].find(
-                          (value): value is string => Boolean(value && value.trim())
-                        ) || "recommendation";
+                        const matchIdentifier = normalizeProfileId(match.userId) || normalizeProfileId(match._id);
+                        if (!matchIdentifier) return null;
+
                         return (
-                          <div
+                          <ProfileCard
                             key={`${matchIdentifier}-${index}`}
-                            className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-colors"
-                          >
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={getPrimaryPhoto(match.photos)} alt={name} />
-                              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                                {getInitials(name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium truncate">{name}</h4>
-                                {typeof match.age === "number" ? (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {match.age} yrs
-                                  </Badge>
-                                ) : null}
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate">
-                                {match.profession || "Profile shared"} · {location}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <div className="flex items-center gap-1">
-                                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                                <span className="text-sm font-semibold text-emerald-500">
-                                  {match.compatibility ?? 0}%
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-muted-foreground">match</span>
-                            </div>
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link href="/dashboard/search">
-                                <ArrowRight className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                          </div>
+                            profile={{
+                              userId: matchIdentifier,
+                              publicId: match.publicId,
+                              firstName: match.firstName || "",
+                              lastName: match.lastName || "",
+                              age: typeof match.age === "number" ? match.age : null,
+                              profession: match.profession || "",
+                              division: match.division || "",
+                              district: match.district || "",
+                              area: match.area || "",
+                              imageUrl: match.photos?.find((photo) => photo.isPrimary && photo.url)?.url
+                                || match.photos?.find((photo) => photo.isApproved && photo.url)?.url
+                                || null,
+                              isPremium: Boolean(match.isPremium),
+                              isVerified: Boolean(match.isVerified),
+                              isFavorite: Boolean(match.isFavorite),
+                              isOnline: Boolean(match.isOnline),
+                              profileViews: match.profileViews,
+                              createdAt: match.createdAt,
+                              matchPercentage: match.compatibility ?? 0,
+                            }}
+                            index={index}
+                            onFavorite={(profileUserId) => void toggleRecommendationFavorite(profileUserId)}
+                            onMessage={(profileUserId) => void openProfileMessages(profileUserId)}
+                            onView={(profileUserId) => void viewRecommendation(profileUserId)}
+                          />
                         );
                       })}
                     </div>

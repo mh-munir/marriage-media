@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const profileIds = favorites.map((favorite) => favorite.profileId);
     const profiles = await Profile.find({ userId: { $in: profileIds } })
-      .select("userId firstName lastName age height profession highestEducation photos isPremium isVerified aboutMe district division religion")
+      .select("userId firstName lastName age height profession highestEducation photos isPremium isVerified district division religion")
       .lean<{
         userId: Types.ObjectId;
         firstName?: string;
@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
         photos?: Array<{ url?: string }>;
         isPremium?: boolean;
         isVerified?: boolean;
-        aboutMe?: string;
       }[]>()
       .exec();
 
@@ -66,7 +65,6 @@ export async function GET(request: NextRequest) {
         compatibility: profile?.isPremium ? 92 : 86,
         isPremium: Boolean(profile?.isPremium),
         isVerified: Boolean(profile?.isVerified),
-        about: profile?.aboutMe ?? "",
         addedAt: favorite.createdAt ? new Date(favorite.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Recently saved",
       };
     });

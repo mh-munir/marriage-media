@@ -79,8 +79,12 @@ export function validateEmail(email: string): boolean {
 }
 
 export function validatePhoneNumber(phone: string): boolean {
-  const re = /^(\+?88)?01[3-9]\d{8}$/;
+  const re = /^01[3-9]\d{8}$/;
   return re.test(phone);
+}
+
+export function sanitizePhoneNumberInput(value: string): string {
+  return value.replace(/\D/g, "");
 }
 
 export const GENDERS = ["Male", "Female"] as const;

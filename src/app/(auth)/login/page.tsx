@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { loginSchema } from "@/lib/validations";
+import { sanitizePhoneNumberInput } from "@/lib/utils";
 import { useAuthStore, type AuthUser } from "@/stores/auth-store";
 import type { z } from "zod";
 
@@ -68,11 +69,15 @@ function LoginFormInner() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center `bg-gradient-to-br` from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 px-4 py-12">
+    <div
+      className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-12"
+      style={{ backgroundImage: "url('/images/home/hero-bg2.png')" }}
+    >
+      <div className="absolute inset-0 bg-black/35" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="relative z-10 w-full max-w-md"
       >
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
@@ -84,7 +89,7 @@ function LoginFormInner() {
           </span>
         </Link>
 
-        <Card className="shadow-xl border-0">
+        <Card className="border-white/40 bg-background/90 shadow-2xl backdrop-blur-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Welcome Back</CardTitle>
             <CardDescription>
@@ -109,9 +114,13 @@ function LoginFormInner() {
               <Input
                 label="Mobile Number"
                 type="tel"
-                placeholder="+8801XXXXXXXXX"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 error={errors.phone?.message}
                 {...register("phone")}
+                onInput={(event) => {
+                  event.currentTarget.value = sanitizePhoneNumberInput(event.currentTarget.value);
+                }}
               />
 
               <div className="relative">
@@ -169,7 +178,8 @@ function LoginFormInner() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center `bg-gradient-to-br` from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20">
+      <div className="flex min-h-screen items-center justify-center bg-cover bg-center" style={{ backgroundImage: "url('/images/home/hero-bg2.png')" }}>
+        <div className="absolute inset-0 bg-black/35" />
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>

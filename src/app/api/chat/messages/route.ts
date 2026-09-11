@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     if (replyTo) {
       const replyMessage = await Message.findById(replyTo).populate("senderId", "firstName lastName");
       if (replyMessage) {
-        const sender = replyMessage.senderId as any;
+        const sender = replyMessage.senderId as { firstName?: string; lastName?: string; email?: string };
         replyPreview = {
           senderName: sender.firstName
             ? `${sender.firstName} ${sender.lastName || ""}`

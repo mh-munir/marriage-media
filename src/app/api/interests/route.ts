@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
-import { Interest, Profile, User, Notification } from "@/models";
+import { Interest, Profile, Notification } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { isPremiumUser } from "@/lib/auth";
 

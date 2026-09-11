@@ -18,7 +18,7 @@ import { blacklistIP, unblacklistIP, whitelistIP, removeWhitelistIP } from "@/li
  */
 export async function GET(request: NextRequest) {
   try {
-    const admin = await requireAdmin(request);
+    await requireAdmin(request);
     await connectToDatabase();
 
     const url = new URL(request.url);

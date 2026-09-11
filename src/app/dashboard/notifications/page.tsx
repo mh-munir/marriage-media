@@ -15,7 +15,6 @@ import {
   CheckCheck,
   Trash2,
   Loader2,
-  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

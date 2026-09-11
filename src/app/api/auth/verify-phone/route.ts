@@ -5,6 +5,7 @@ import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
 import { Verification } from "@/models";
 import { createNotification } from "@/lib/notifications";
+import { validatePhoneNumber } from "@/lib/utils";
 
 // In-memory OTP store (use Redis in production)
 const otpStore = new Map<string, { code: string; expiresAt: number }>();
@@ -26,6 +27,13 @@ export async function POST(request: NextRequest) {
     if (!phone) {
       return NextResponse.json(
         { error: "Phone number is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!validatePhoneNumber(phone)) {
+      return NextResponse.json(
+        { error: "Mobile number must be exactly 11 digits" },
         { status: 400 }
       );
     }

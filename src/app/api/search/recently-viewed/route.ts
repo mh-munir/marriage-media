@@ -33,7 +33,6 @@ type ViewedProfile = {
   boostedAt?: Date;
   lastActiveAt?: Date;
   photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>;
-  aboutMe?: string;
   maritalStatus?: string;
 };
 
@@ -42,7 +41,7 @@ type ViewBody = {
 };
 
 const PROFILE_SELECT =
-  "userId firstName lastName age height religion caste division district area highestEducation profession isPremium premiumExpiry isVerified isProfileBoosted boostedAt lastActiveAt photos aboutMe maritalStatus";
+  "userId firstName lastName age height religion caste division district area highestEducation profession isPremium premiumExpiry isVerified isProfileBoosted boostedAt lastActiveAt photos maritalStatus";
 
 function parsePositiveInt(value: string | null, fallback: number, max: number): number {
   const parsed = Number.parseInt(value || "", 10);
@@ -147,7 +146,6 @@ export async function GET(request: NextRequest) {
         isFavorite: favoriteIds.has(profile.userId.toString()),
         isOnline: Boolean(lastActiveAt && lastActiveAt.getTime() >= onlineSince),
         lastActiveAt: lastActiveAt?.toISOString() ?? null,
-        aboutMe: profile.aboutMe || "",
         maritalStatus: profile.maritalStatus || "",
         viewCount: record.viewCount,
         lastViewedAt: record.lastViewedAt.toISOString(),
@@ -197,18 +195,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    await Promise.all([
-      ProfileView.findOneAndUpdate(
+    const now = new Date();
+    try {
+      await ProfileView.create({
+        viewerId: user._id,
+        viewedId: profile.userId,
+        viewCount: 1,
+        lastViewedAt: now,
+      });
+    } catch (viewError: unknown) {
+      // The unique viewer/profile index makes repeat visits update-only, including concurrent requests.
+      if (!viewError || typeof viewError !== "object" || !("code" in viewError) || viewError.code !== 11000) {
+        throw viewError;
+      }
+      await ProfileView.updateOne(
         { viewerId: user._id, viewedId: profile.userId },
-        {
-          $inc: { viewCount: 1 },
-          $set: { lastViewedAt: new Date() },
-          $setOnInsert: { viewerId: user._id, viewedId: profile.userId },
-        },
-        { new: true, upsert: true }
-      ),
-      Profile.updateOne({ userId: profile.userId }, { $inc: { profileViews: 1 } }),
-    ]);
+        { $inc: { viewCount: 1 }, $set: { lastViewedAt: now } }
+      );
+    }
+
+    const uniqueViewers = await ProfileView.countDocuments({ viewedId: profile.userId });
+    await Profile.updateOne({ userId: profile.userId }, { $set: { profileViews: uniqueViewers } });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

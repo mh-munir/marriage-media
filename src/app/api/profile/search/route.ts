@@ -5,7 +5,8 @@ import type { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculatePartnerMatchScore } from "@/lib/profile-matching";
+import { calculateCompatibilityScore, calculatePartnerMatchScore } from "@/lib/profile-matching";
+import { ensurePublicIdForProfile } from "@/lib/public-id";
 
 type ProfilePhoto = {
   url?: string;
@@ -16,6 +17,7 @@ type ProfilePhoto = {
 type SearchProfile = {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
+  publicId?: string;
   firstName?: string;
   lastName?: string;
   gender?: string;
@@ -32,7 +34,6 @@ type SearchProfile = {
   profession?: string;
   workingWith?: string;
   familyStatus?: string;
-  aboutMe?: string;
   photos?: ProfilePhoto[];
   isPremium?: boolean;
   isVerified?: boolean;
@@ -48,7 +49,7 @@ type SearchProfile = {
 };
 
 const PROFILE_SELECT =
-  "userId firstName lastName gender age height religion caste motherTongue country division district area highestEducation profession workingWith familyStatus aboutMe photos isPremium isVerified isProfileBoosted boostedAt premiumExpiry lastActiveAt profileViews maritalStatus profileCreatedBy createdAt";
+  "userId publicId firstName lastName gender age height weight maritalStatus religion caste motherTongue country division district thana union area nationality highestEducation institution profession workingWith annualIncome familyType familyStatus familyValues diet smoke drink hobbies photos isPremium isVerified isProfileBoosted boostedAt premiumExpiry lastActiveAt profileViews profileCreatedBy createdAt";
 
 function parsePositiveInt(value: string | null, fallback: number, max: number): number {
   const parsed = Number.parseInt(value || "", 10);
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
 
     // 1. Gender filter
     const currentProfile = await Profile.findOne({ userId: user._id })
-      .select("gender partnerPreferences")
+      .select("gender age height weight maritalStatus religion caste motherTongue country division district thana union area highestEducation profession annualIncome familyType familyStatus familyValues diet smoke drink hobbies isVerified partnerPreferences")
       .lean();
     if (currentProfile?.gender) {
       filter.gender = currentProfile.gender === "Male" ? "Female" : "Male";
@@ -327,7 +328,6 @@ export async function GET(request: NextRequest) {
         { firstName: regex },
         { lastName: regex },
         { profession: regex },
-        { aboutMe: regex },
         { district: regex },
         { area: regex },
       ];
@@ -339,6 +339,28 @@ export async function GET(request: NextRequest) {
       userId: { $ne: user._id },
       ...(typeof filter.gender === "string" ? { gender: filter.gender } : {}),
     };
+    const basicEducation = searchParams.get("education");
+    const location = searchParams.get("location");
+    const basicAgeMin = Number(searchParams.get("ageMin"));
+    const basicAgeMax = Number(searchParams.get("ageMax"));
+    if (basicEducation) databaseFilter.highestEducation = basicEducation;
+    if (location) {
+      databaseFilter.$or = [
+        { country: { $regex: location, $options: "i" } },
+        { division: { $regex: location, $options: "i" } },
+        { district: { $regex: location, $options: "i" } },
+        { area: { $regex: location, $options: "i" } },
+      ];
+    }
+    if ((basicAgeMin > 0 && Number.isFinite(basicAgeMin)) || (basicAgeMax > 0 && Number.isFinite(basicAgeMax))) {
+      databaseFilter.age = {};
+      if (basicAgeMin > 0 && Number.isFinite(basicAgeMin)) (databaseFilter.age as Record<string, number>).$gte = basicAgeMin;
+      if (basicAgeMax > 0 && Number.isFinite(basicAgeMax)) (databaseFilter.age as Record<string, number>).$lte = basicAgeMax;
+    }
+    if (searchParams.get("premiumOnly") === "true") {
+      databaseFilter.isPremium = true;
+      databaseFilter.premiumExpiry = { $gt: new Date() };
+    }
 
     // Pagination
     const page = parsePositiveInt(searchParams.get("page"), 1, 10_000);
@@ -373,12 +395,14 @@ export async function GET(request: NextRequest) {
       : [];
     const favoriteIds = new Set(favorites.map((favorite) => favorite.profileId.toString()));
 
-    const enrichedProfiles = profiles.map((profile) => {
+    const enrichedProfiles = await Promise.all(profiles.map(async (profile) => {
       const lastActiveAt = profile.lastActiveAt instanceof Date ? profile.lastActiveAt : null;
+      const publicId = await ensurePublicIdForProfile(profile.userId, profile.publicId);
 
       return {
         _id: profile._id.toString(),
         userId: profile.userId.toString(),
+        publicId,
         firstName: profile.firstName || "",
         lastName: profile.lastName || "",
         gender: profile.gender || "",
@@ -395,7 +419,6 @@ export async function GET(request: NextRequest) {
         profession: profile.profession || "",
         workingWith: profile.workingWith || "",
         familyStatus: profile.familyStatus || "",
-        aboutMe: profile.aboutMe || "",
         imageUrl: getPrimaryPhoto(profile.photos),
         isPremium: Boolean(
           profile.isPremium &&
@@ -411,9 +434,9 @@ export async function GET(request: NextRequest) {
         maritalStatus: profile.maritalStatus || "",
         profileCreatedBy: profile.profileCreatedBy || "",
         createdAt: profile.createdAt?.toISOString() ?? null,
-        matchPercentage: calculatePartnerMatchScore(profile, currentProfile?.partnerPreferences),
+        matchPercentage: calculatePartnerMatchScore(profile, currentProfile?.partnerPreferences) || calculateCompatibilityScore(profile, currentProfile as typeof profile),
       };
-    });
+    }));
 
     return NextResponse.json({
       profiles: enrichedProfiles,

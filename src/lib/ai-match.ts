@@ -31,7 +31,6 @@ interface ProfileData {
   hobbies: string[];
   familyValues: string;
   diet: string;
-  aboutMe: string;
   partnerPreference: string;
   photos: { url: string; isPrimary: boolean }[];
   isPremium: boolean;
@@ -169,7 +168,7 @@ export function calculateProfileCompletion(profile: Record<string, unknown>): nu
   const requiredFields = [
     "firstName", "lastName", "gender", "dateOfBirth", "height",
     "maritalStatus", "religion", "highestEducation", "profession",
-    "country", "division", "district", "aboutMe",
+    "country", "division", "district",
   ];
 
   const optionalFields = [

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { requireAuth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { Profile } from "@/models";
 import { validateBody } from "@/lib/validation";
 import mongoose from "mongoose";
@@ -24,11 +24,7 @@ const photoActionSchema = {
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
-    const adminUser = await requireAuth(request);
-
-    if (adminUser.role !== "admin") {
-      return jsonError("Forbidden: You are not an administrator.", 403);
-    }
+    await requireAdmin(request);
 
     const { isValid, body, error } = await validateBody<{
       userId: string;
@@ -59,6 +55,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

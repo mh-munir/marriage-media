@@ -9,7 +9,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (phone: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -34,14 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hasCheckedSession = React.useRef(false);
 
   const login = React.useCallback(
-    async (email: string, password: string, rememberMe = false) => {
+    async (phone: string, password: string, rememberMe = false) => {
       const result = await apiClient.post<{
         user: AuthUser;
-        token: string;
+        accessToken: string;
         refreshToken: string;
-      }>("/api/auth/login", { email, password, rememberMe });
+      }>("/api/auth/login", { phone, password, rememberMe });
 
-      store.login(result.user, result.token, result.refreshToken);
+      store.login(result.user, result.accessToken, result.refreshToken);
     },
     [store]
   );
@@ -66,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch("/api/auth/me", {
         method: "GET",
+        headers: store.token ? { Authorization: `Bearer ${store.token}` } : undefined,
         credentials: "include",
         cache: "no-store",
       });
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (hasCheckedSession.current) return;
-    if (pathname === "/login" || pathname === "/register") return;
+    if (pathname === "/login" || pathname === "/register" || pathname === "/admin/login") return;
     hasCheckedSession.current = true;
     void refreshUser();
   }, [pathname, refreshUser]);

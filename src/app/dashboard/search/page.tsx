@@ -3,22 +3,17 @@
 export const dynamic = "force-dynamic";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  Crown,
   Eye,
   Loader2,
   RotateCcw,
   Search,
-  ShieldCheck,
   Sparkles,
-  Star,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -26,10 +21,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileCard } from "@/components/profile-card";
 
 type BrowseProfile = {
   _id: string;
   userId: string;
+  publicId?: string;
   firstName: string;
   lastName: string;
   age: number | null;
@@ -41,7 +38,6 @@ type BrowseProfile = {
   area: string;
   highestEducation: string;
   profession: string;
-  aboutMe: string;
   imageUrl: string | null;
   isPremium: boolean;
   isVerified: boolean;
@@ -70,6 +66,14 @@ type ProfileResponse = {
   error?: string;
 };
 
+type BasicSearchFilters = {
+  education: string;
+  location: string;
+  ageMin: string;
+  ageMax: string;
+  premiumOnly: boolean;
+};
+
 const PAGE_SIZE = 12;
 
 const emptyPagination: PaginationState = {
@@ -90,9 +94,14 @@ const sortOptions = [
   { value: "views-desc", label: "Most Viewed" },
 ];
 
-function buildSearchUrl(page: number, sortBy: string) {
+function buildSearchUrl(page: number, sortBy: string, filters: BasicSearchFilters) {
   const params = new URLSearchParams();
 
+  if (filters.education) params.set("education", filters.education);
+  if (filters.location) params.set("location", filters.location);
+  if (filters.ageMin) params.set("ageMin", filters.ageMin);
+  if (filters.ageMax) params.set("ageMax", filters.ageMax);
+  if (filters.premiumOnly) params.set("premiumOnly", "true");
   params.set("sortBy", sortBy);
   params.set("page", String(page));
   params.set("limit", String(PAGE_SIZE));
@@ -107,18 +116,6 @@ function normalizePagination(pagination?: Partial<PaginationState>): PaginationS
     total: pagination?.total ?? 0,
     pages: pagination?.pages ?? 0,
   };
-}
-
-function profileName(profile: BrowseProfile): string {
-  return [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Marriage Media Member";
-}
-
-function initials(profile: BrowseProfile): string {
-  return `${profile.firstName?.[0] || ""}${profile.lastName?.[0] || ""}`.toUpperCase() || "MM";
-}
-
-function formatLocation(profile: BrowseProfile): string {
-  return [profile.area, profile.district, profile.division].filter(Boolean).join(", ") || "Location not added";
 }
 
 function formatCount(value: number): string {
@@ -143,6 +140,13 @@ export default function DashboardSearchPage() {
   const router = useRouter();
   const [view, setView] = React.useState<"browse" | "recent">("browse");
   const [sortBy, setSortBy] = React.useState("relevance");
+  const [filters, setFilters] = React.useState<BasicSearchFilters>({
+    education: "",
+    location: "",
+    ageMin: "",
+    ageMax: "",
+    premiumOnly: false,
+  });
   const [profiles, setProfiles] = React.useState<BrowseProfile[]>([]);
   const [pagination, setPagination] = React.useState<PaginationState>(emptyPagination);
   const [recentProfiles, setRecentProfiles] = React.useState<BrowseProfile[]>([]);
@@ -172,7 +176,7 @@ export default function DashboardSearchPage() {
       }
 
       try {
-        const data = await fetchJson(buildSearchUrl(page, sortBy));
+        const data = await fetchJson(buildSearchUrl(page, sortBy, filters));
         if (requestId !== requestIdRef.current) return;
 
         const nextProfiles = data.profiles ?? [];
@@ -192,7 +196,7 @@ export default function DashboardSearchPage() {
         }
       }
     },
-    [sortBy]
+    [filters, sortBy]
   );
 
   const loadRecentProfiles = React.useCallback(
@@ -225,12 +229,8 @@ export default function DashboardSearchPage() {
   );
 
   React.useEffect(() => {
-    void loadBrowseProfiles(1);
-  }, [loadBrowseProfiles]);
-
-  React.useEffect(() => {
     if (view === "recent") {
-      void loadRecentProfiles(1);
+      queueMicrotask(() => void loadRecentProfiles(1));
     }
   }, [loadRecentProfiles, view]);
 
@@ -274,7 +274,7 @@ export default function DashboardSearchPage() {
 
   React.useEffect(() => {
     if (view === "browse") {
-      void loadBrowseProfiles(1);
+      queueMicrotask(() => void loadBrowseProfiles(1));
     }
   }, [loadBrowseProfiles, sortBy, view]);
 
@@ -329,6 +329,23 @@ export default function DashboardSearchPage() {
       setError(viewError instanceof Error ? viewError.message : "Unable to record profile view.");
     }
     }, [router]);
+
+  const openProfileMessages = React.useCallback(async (profileUserId: string) => {
+    if (!profileUserId) return;
+
+    try {
+      const response = await fetch("/api/chat/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId: profileUserId }),
+      });
+      const result = await response.json() as { conversationId?: string; error?: string };
+      if (!response.ok || !result.conversationId) throw new Error(result.error || "Unable to open messages.");
+      router.push(`/dashboard/messages?conversationId=${encodeURIComponent(result.conversationId)}`);
+    } catch (messageError) {
+      setError(messageError instanceof Error ? messageError.message : "Unable to open messages.");
+    }
+  }, [router]);
 
   const currentProfiles = view === "browse" ? profiles : recentProfiles;
   const currentPagination = view === "browse" ? pagination : recentPagination;
@@ -396,6 +413,59 @@ export default function DashboardSearchPage() {
             </div>
           </div>
 
+          <div className="mb-6 grid gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-5">
+            <select
+              value={filters.education}
+              onChange={(event) => setFilters((current) => ({ ...current, education: event.target.value }))}
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+              aria-label="Filter by education"
+            >
+              <option value="">All Education</option>
+              <option value="Primary">Primary</option>
+              <option value="Secondary">Secondary</option>
+              <option value="Higher Secondary">Higher Secondary</option>
+              <option value="Bachelor's Degree">Bachelor&apos;s Degree</option>
+              <option value="Master's Degree">Master&apos;s Degree</option>
+              <option value="PhD">PhD</option>
+            </select>
+            <input
+              value={filters.location}
+              onChange={(event) => setFilters((current) => ({ ...current, location: event.target.value }))}
+              placeholder="Location"
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+              aria-label="Filter by location"
+            />
+            <input
+              value={filters.ageMin}
+              onChange={(event) => setFilters((current) => ({ ...current, ageMin: event.target.value }))}
+              type="number"
+              min="18"
+              max="80"
+              placeholder="Min age"
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+              aria-label="Minimum age"
+            />
+            <input
+              value={filters.ageMax}
+              onChange={(event) => setFilters((current) => ({ ...current, ageMax: event.target.value }))}
+              type="number"
+              min="18"
+              max="80"
+              placeholder="Max age"
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+              aria-label="Maximum age"
+            />
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-input bg-background px-3 text-sm">
+              <input
+                type="checkbox"
+                checked={filters.premiumOnly}
+                onChange={(event) => setFilters((current) => ({ ...current, premiumOnly: event.target.checked }))}
+                className="h-4 w-4 accent-primary"
+              />
+              Premium only
+            </label>
+          </div>
+
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {isLoading ? (
@@ -444,6 +514,7 @@ export default function DashboardSearchPage() {
               <ProfileGrid
                 profiles={currentProfiles}
                 onFavorite={toggleFavorite}
+                onMessage={openProfileMessages}
                 onView={recordProfileView}
               />
             ) : (
@@ -495,10 +566,12 @@ function mergeProfiles(current: BrowseProfile[], next: BrowseProfile[]) {
 function ProfileGrid({
   profiles,
   onFavorite,
+  onMessage,
   onView,
 }: {
   profiles: BrowseProfile[];
   onFavorite: (profileUserId: string) => void;
+  onMessage: (profileUserId: string) => void;
   onView: (profileUserId: string) => void;
 }) {
   return (
@@ -509,97 +582,11 @@ function ProfileGrid({
           profile={profile}
           index={index}
           onFavorite={onFavorite}
+          onMessage={onMessage}
           onView={onView}
         />
       ))}
     </div>
-  );
-}
-
-function ProfileCard({
-  profile,
-  index,
-  onFavorite,
-  onView,
-}: {
-  profile: BrowseProfile;
-  index: number;
-  onFavorite: (profileUserId: string) => void;
-  onView: (profileUserId: string) => void;
-}) {
-  const name = profileName(profile);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.025, 0.2) }}
-      role="link"
-      tabIndex={0}
-      onClick={() => onView(profile.userId)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onView(profile.userId);
-        }
-      }}
-      className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-    >
-      <Card className="h-full rounded-2xl border-border/70 transition-shadow hover:shadow-lg">
-        <div className="flex min-h-32 items-center gap-3 p-3 sm:gap-4 sm:p-4">
-          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-linear-to-br from-rose-100 to-pink-100 ring-2 ring-background shadow-sm dark:from-rose-950/40 dark:to-pink-950/30">
-          {profile.imageUrl ? (
-            <Image
-              src={profile.imageUrl}
-              alt={name}
-              fill
-              sizes="80px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-xl font-bold text-primary/40">
-              {initials(profile)}
-            </div>
-          )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="truncate text-base font-semibold sm:text-lg">{name}</h2>
-              {profile.age ? <Badge variant="secondary" className="shrink-0 text-xs">{profile.age} yrs</Badge> : null}
-              {profile.isOnline ? <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-label="Online" /> : null}
-            </div>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
-              {profile.profession || "Profile shared"} · {formatLocation(profile)}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {profile.isVerified ? <Badge variant="verified" className="text-[10px]"><ShieldCheck className="mr-1 h-3 w-3" />Verified</Badge> : null}
-              {profile.isPremium ? <Badge variant="premium" className="text-[10px]"><Crown className="mr-1 h-3 w-3" />Premium</Badge> : null}
-              {profile.profileViews ? <span className="text-xs text-muted-foreground"><Eye className="mr-1 inline h-3 w-3" />{formatCount(profile.profileViews)}</span> : null}
-            </div>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <div className="text-right">
-              <div className="text-sm font-semibold text-emerald-600">{profile.matchPercentage}%</div>
-              <div className="text-[10px] text-muted-foreground">match</div>
-            </div>
-            <button
-              type="button"
-              aria-label={profile.isFavorite ? "Remove from favorites" : "Add to favorites"}
-              onClick={(event) => {
-                event.stopPropagation();
-                onFavorite(profile.userId);
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
-            >
-              <Star className={profile.isFavorite ? "h-4 w-4 fill-amber-400 text-amber-500" : "h-4 w-4"} />
-            </button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(event) => { event.stopPropagation(); onView(profile.userId); }} aria-label={`View ${name}`}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </motion.div>
   );
 }
 

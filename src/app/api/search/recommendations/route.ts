@@ -2,9 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Profile } from "@/models";
+import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculatePartnerMatchScore } from "@/lib/profile-matching";
+import { calculateCompatibilityScore, calculatePartnerMatchScore } from "@/lib/profile-matching";
+import { ensurePublicIdForProfile } from "@/lib/public-id";
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,34 +38,34 @@ export async function GET(request: NextRequest) {
 
     // Get all potential matches (limit to reasonable set for scoring)
     const allProfiles = await Profile.find(filter)
-      .select("firstName lastName gender age height weight bloodGroup religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues diet smoke drink hobbies aboutMe partnerPreference partnerPreferences photos isPremium isVerified isProfileBoosted boostedAt lastActiveAt profileViews maritalStatus profileCreatedBy")
+      .select("userId publicId firstName lastName gender age height weight bloodGroup religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified isProfileBoosted boostedAt lastActiveAt profileViews maritalStatus profileCreatedBy createdAt")
       .limit(500)
       .lean();
+
+    const favoriteRecords = await Favorite.find({
+      userId: user._id,
+    }).select("profileId").lean<{ profileId: typeof user._id }[]>();
+    const favoriteIds = new Set(favoriteRecords.map((favorite) => favorite.profileId.toString()));
 
     // Score each profile based on compatibility with current user's profile
     const scoredProfiles = allProfiles.map((profile) => {
       const partnerMatch = calculatePartnerMatchScore(profile, myProfile.partnerPreferences);
       let score = 0;
-      let maxScore = 0;
 
       // Religion match (high weight)
-      maxScore += 20;
       if (profile.religion === myProfile.religion) score += 20;
 
       // Caste match (if specified)
       if (myProfile.caste && profile.caste) {
-        maxScore += 10;
         if (profile.caste === myProfile.caste) score += 10;
       }
 
       // Mother tongue match
       if (myProfile.motherTongue && profile.motherTongue) {
-        maxScore += 5;
         if (profile.motherTongue === myProfile.motherTongue) score += 5;
       }
 
       // Age compatibility (closer age = better)
-      maxScore += 15;
       const ageDiff = Math.abs(profile.age - myProfile.age);
       if (ageDiff <= 2) score += 15;
       else if (ageDiff <= 5) score += 12;
@@ -72,7 +73,6 @@ export async function GET(request: NextRequest) {
       else if (ageDiff <= 12) score += 4;
 
       // Education level compatibility
-      maxScore += 10;
       const eduLevels = [
         "Primary",
         "Secondary",
@@ -89,11 +89,8 @@ export async function GET(request: NextRequest) {
         const eduDiff = Math.abs(myEduIdx - theirEduIdx);
         if (eduDiff === 0) score += 10;
         else if (eduDiff === 1) score += 8;
-        else if (eduDiff === 2) score += 5;
       }
-
       // Location compatibility
-      maxScore += 15;
       if (profile.division === myProfile.division) {
         score += 8;
         if (profile.district === myProfile.district) {
@@ -106,7 +103,6 @@ export async function GET(request: NextRequest) {
 
       // Family values compatibility
       if (myProfile.familyValues && profile.familyValues) {
-        maxScore += 8;
         const familyValueOrder = ["Orthodox", "Traditional", "Moderate", "Liberal", "Secular"];
         const myIdx = familyValueOrder.indexOf(myProfile.familyValues);
         const theirIdx = familyValueOrder.indexOf(profile.familyValues);
@@ -120,7 +116,6 @@ export async function GET(request: NextRequest) {
 
       // Diet compatibility
       if (myProfile.diet && profile.diet) {
-        maxScore += 5;
         if (profile.diet === myProfile.diet) score += 5;
         else if (
           (myProfile.diet === "Halal" && profile.diet === "Non-Veg") ||
@@ -132,7 +127,6 @@ export async function GET(request: NextRequest) {
 
       // Hobbies overlap
       if (Array.isArray(myProfile.hobbies) && Array.isArray(profile.hobbies)) {
-        maxScore += 7;
         const commonHobbies = myProfile.hobbies.filter((h: string) =>
           profile.hobbies?.includes(h)
         );
@@ -142,32 +136,33 @@ export async function GET(request: NextRequest) {
 
       // Lifestyle compatibility (smoke/drink)
       if (myProfile.smoke && profile.smoke) {
-        maxScore += 3;
         if (profile.smoke === myProfile.smoke) score += 3;
         else if (myProfile.smoke === "No" && profile.smoke === "No") score += 3;
       }
 
       // Bonus for verified profiles
-      maxScore += 3;
       if (profile.isVerified) score += 3;
-
-      // Calculate percentage
-      const compatibility = maxScore > 0 ? Math.round((score / maxScore) * 100) : 50;
 
       return {
         ...profile,
-        userId: String(profile.userId),
-        compatibility: partnerMatch || compatibility,
+        userId: profile.userId ? String(profile.userId) : "",
+        isFavorite: favoriteIds.has(String(profile.userId)),
+        compatibility: partnerMatch || calculateCompatibilityScore(profile, myProfile),
         score,
       };
-    }).filter((profile) => profile.compatibility >= 70);
+    }).filter((profile) => profile.compatibility >= 50);
 
     // Sort by compatibility score (highest first)
-    scoredProfiles.sort((a, b) => b.compatibility - a.compatibility);
+    scoredProfiles.sort((a, b) => b.compatibility - a.compatibility || b.score - a.score);
 
     // Paginate
     const total = scoredProfiles.length;
-    const paginatedProfiles = scoredProfiles.slice(skip, skip + limit);
+    const paginatedProfiles = await Promise.all(
+      scoredProfiles.slice(skip, skip + limit).map(async (profile) => ({
+        ...profile,
+        publicId: await ensurePublicIdForProfile(profile.userId, profile.publicId),
+      }))
+    );
 
     return NextResponse.json({
       profiles: paginatedProfiles,

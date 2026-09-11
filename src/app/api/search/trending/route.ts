@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         })
         .skip(skip)
         .limit(limit)
-        .select("firstName lastName gender age height religion caste division district area highestEducation profession isPremium isVerified isProfileBoosted boostedAt lastActiveAt photos aboutMe maritalStatus profileViews")
+        .select("firstName lastName gender age height religion caste division district area highestEducation profession isPremium isVerified isProfileBoosted boostedAt lastActiveAt photos maritalStatus profileViews")
         .lean(),
       Profile.countDocuments({
         ...filter,

@@ -156,7 +156,7 @@ function calculateProfileCompleteness(profile: Record<string, unknown>): number 
   const fields = [
     "firstName", "lastName", "gender", "dateOfBirth", "height",
     "maritalStatus", "religion", "highestEducation", "profession",
-    "country", "division", "district", "aboutMe", "partnerPreference",
+    "country", "division", "district", "partnerPreference",
     "hobbies", "familyType", "familyStatus", "familyValues",
     "fatherName", "motherName", "institution", "annualIncome",
   ];
@@ -193,6 +193,6 @@ export async function getRecentlyActiveProfiles(
   })
     .sort({ lastActiveAt: -1 })
     .limit(limit)
-    .select("firstName lastName gender age height religion profession highestEducation country division district photos isPremium isVerified isProfileBoosted lastActiveAt aboutMe")
+    .select("firstName lastName gender age height religion profession highestEducation country division district photos isPremium isVerified isProfileBoosted lastActiveAt")
     .lean();
 }

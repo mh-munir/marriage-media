@@ -53,7 +53,7 @@ export default function ContactContent() {
               Get In <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">Touch</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              Have questions? We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
             </p>
           </motion.div>
         </div>
@@ -77,7 +77,7 @@ export default function ContactContent() {
                         <Send className="h-8 w-8 text-emerald-500" />
                       </div>
                       <h3 className="text-xl font-semibold mb-2">Message Sent!</h3>
-                      <p className="text-muted-foreground">Thank you for reaching out. We'll get back to you within 24 hours.</p>
+                      <p className="text-muted-foreground">Thank you for reaching out. We&apos;ll get back to you within 24 hours.</p>
                       <Button variant="outline" className="mt-4" onClick={() => setSubmitted(false)}>Send Another</Button>
                     </div>
                   ) : (

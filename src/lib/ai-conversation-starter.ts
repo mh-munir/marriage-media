@@ -15,7 +15,6 @@ interface UserProfile {
   diet: string;
   country: string;
   division?: string;
-  aboutMe?: string;
   photos: { url: string; isPrimary: boolean }[];
 }
 

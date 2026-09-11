@@ -25,7 +25,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 
 interface AIStatus {
   available: boolean;
@@ -39,7 +38,6 @@ interface AIResult {
 
 export default function AISettingsPage() {
   const [status, setStatus] = React.useState<AIStatus | null>(null);
-  const [loading, setLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState("overview");
   const [results, setResults] = React.useState<Record<string, AIResult>>({});
   const [featureLoading, setFeatureLoading] = React.useState<string | null>(null);
@@ -49,15 +47,12 @@ export default function AISettingsPage() {
   }, []);
 
   async function fetchStatus() {
-    setLoading(true);
     try {
       const res = await fetch("/api/ai?feature=status");
       const data = await res.json();
       setStatus(data);
     } catch {
       console.error("Failed to fetch AI status");
-    } finally {
-      setLoading(false);
     }
   }
 

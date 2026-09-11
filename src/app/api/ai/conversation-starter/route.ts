@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
         diet: userProfile.diet,
         country: userProfile.country,
         division: userProfile.division,
-        aboutMe: userProfile.aboutMe,
         photos: userProfile.photos,
       },
       {
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest) {
         diet: matchProfile.diet,
         country: matchProfile.country,
         division: matchProfile.division,
-        aboutMe: matchProfile.aboutMe,
         photos: matchProfile.photos,
       }
     );
@@ -74,7 +72,6 @@ export async function POST(request: NextRequest) {
         diet: userProfile.diet,
         country: userProfile.country,
         division: userProfile.division,
-        aboutMe: userProfile.aboutMe,
         photos: userProfile.photos,
       },
       {
@@ -89,7 +86,6 @@ export async function POST(request: NextRequest) {
         diet: matchProfile.diet,
         country: matchProfile.country,
         division: matchProfile.division,
-        aboutMe: matchProfile.aboutMe,
         photos: matchProfile.photos,
       }
     );

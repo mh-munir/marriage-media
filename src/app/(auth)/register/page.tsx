@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { registerSchema } from "@/lib/validations";
-import { cn } from "@/lib/utils";
+import { cn, sanitizePhoneNumberInput } from "@/lib/utils";
 import type { z } from "zod";
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -58,11 +58,15 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20 px-4 py-12">
+    <div
+      className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-12"
+      style={{ backgroundImage: "url('/images/home/hero-bg2.png')" }}
+    >
+      <div className="absolute inset-0 bg-black/35" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="relative z-10 w-full max-w-md"
       >
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
@@ -74,7 +78,7 @@ export default function RegisterPage() {
           </span>
         </Link>
 
-        <Card className="shadow-xl border-0">
+        <Card className="border-white/40 bg-background/90 shadow-2xl backdrop-blur-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Create Your Account</CardTitle>
             <CardDescription>
@@ -92,9 +96,13 @@ export default function RegisterPage() {
               <Input
                 label="Mobile Number"
                 type="tel"
-                placeholder="+8801XXXXXXXXX"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 error={errors.phone?.message}
                 {...register("phone")}
+                onInput={(event) => {
+                  event.currentTarget.value = sanitizePhoneNumberInput(event.currentTarget.value);
+                }}
               />
 
               <div className="relative">

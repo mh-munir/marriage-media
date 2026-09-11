@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let result: { verification: any; error?: string };
+    let result: Awaited<ReturnType<typeof submitFaceVerification>>;
 
     if (verifyType === "face") {
       result = await submitFaceVerification(

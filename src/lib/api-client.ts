@@ -52,7 +52,7 @@ class ApiClient {
 
   private async refreshToken(): Promise<boolean> {
     try {
-      const { refreshToken, token } = useAuthStore.getState();
+      const { refreshToken } = useAuthStore.getState();
       if (!refreshToken) return false;
 
       const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
@@ -64,7 +64,8 @@ class ApiClient {
       if (!response.ok) return false;
 
       const data = await response.json();
-      useAuthStore.getState().setTokens(data.token, data.refreshToken);
+      if (!data.accessToken || !data.refreshToken) return false;
+      useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
       return true;
     } catch {
       return false;

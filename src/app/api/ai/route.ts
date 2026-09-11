@@ -78,13 +78,16 @@ export async function POST(request: NextRequest) {
         if (!targetUserId) return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
         const targetProfile = await Profile.findOne({ userId: targetUserId }).lean();
         if (!profile || !targetProfile) return NextResponse.json({ error: "Profiles not found" }, { status: 404 });
-        const result = await aiCompatibilityScore(profile as any, targetProfile as any);
+        const result = await aiCompatibilityScore(
+          profile as Parameters<typeof aiCompatibilityScore>[0],
+          targetProfile as Parameters<typeof aiCompatibilityScore>[1]
+        );
         return NextResponse.json({ ...result, aiAvailable: AI_AVAILABLE });
       }
 
       case "bio-generator": {
         if (!profile) return NextResponse.json({ error: "Complete your profile first" }, { status: 404 });
-        const bio = await aiGenerateBio(profile as any);
+        const bio = await aiGenerateBio(profile as Parameters<typeof aiGenerateBio>[0]);
         return NextResponse.json({ bio, aiAvailable: AI_AVAILABLE });
       }
 
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
 
       case "profile-improvements": {
         if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-        const improvements = await aiProfileImprovements(profile as any);
+        const improvements = await aiProfileImprovements(profile as Parameters<typeof aiProfileImprovements>[0]);
         return NextResponse.json({ improvements, aiAvailable: AI_AVAILABLE });
       }
 
@@ -104,7 +107,10 @@ export async function POST(request: NextRequest) {
         if (!targetUserId) return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
         const targetProfile = await Profile.findOne({ userId: targetUserId }).lean();
         if (!profile || !targetProfile) return NextResponse.json({ error: "Profiles not found" }, { status: 404 });
-        const starters = await aiConversationStarters(profile as any, targetProfile as any);
+        const starters = await aiConversationStarters(
+          profile as Parameters<typeof aiConversationStarters>[0],
+          targetProfile as Parameters<typeof aiConversationStarters>[1]
+        );
         return NextResponse.json({ starters, aiAvailable: AI_AVAILABLE });
       }
 
@@ -120,7 +126,9 @@ export async function POST(request: NextRequest) {
         const userId = targetUserId || user._id.toString();
         const targetProfile = await Profile.findOne({ userId }).lean();
         if (!targetProfile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-        const fakeResult = await aiFakeProfileDetection(targetProfile as any);
+        const fakeResult = await aiFakeProfileDetection(
+          targetProfile as unknown as Parameters<typeof aiFakeProfileDetection>[0]
+        );
         return NextResponse.json({ ...fakeResult, aiAvailable: AI_AVAILABLE });
       }
 

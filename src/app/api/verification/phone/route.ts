@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { sendPhoneOTP, verifyPhoneOTP } from "@/lib/verification";
+import { validatePhoneNumber } from "@/lib/utils";
 
 /**
  * POST /api/verification/phone
@@ -21,11 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Basic phone validation
-    const phoneRegex = /^\+?[0-9]{10,15}$/;
-    if (!phoneRegex.test(phone.replace(/\s/g, ""))) {
+    if (!validatePhoneNumber(phone)) {
       return NextResponse.json(
-        { error: "Invalid phone number format" },
+        { error: "Mobile number must be exactly 11 digits" },
         { status: 400 }
       );
     }

@@ -22,8 +22,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,9 +132,11 @@ export default function SecurityDashboardPage() {
     try {
       const res = await fetch(`/api/admin/security?section=login-history&limit=${limit}&skip=${page * limit}`);
       const data = await res.json();
-      setLoginLogs(data.logs);
-      setTotal(data.total);
+      setLoginLogs(Array.isArray(data.logs) ? data.logs : []);
+      setTotal(typeof data.total === "number" ? data.total : 0);
     } catch {
+      setLoginLogs([]);
+      setTotal(0);
       console.error("Failed to fetch login history");
     } finally {
       setLoading(false);
@@ -148,9 +148,11 @@ export default function SecurityDashboardPage() {
     try {
       const res = await fetch(`/api/admin/security?section=audit-logs&limit=${limit}&skip=${page * limit}`);
       const data = await res.json();
-      setAuditLogs(data.logs);
-      setTotal(data.total);
+      setAuditLogs(Array.isArray(data.logs) ? data.logs : []);
+      setTotal(typeof data.total === "number" ? data.total : 0);
     } catch {
+      setAuditLogs([]);
+      setTotal(0);
       console.error("Failed to fetch audit logs");
     } finally {
       setLoading(false);
@@ -162,8 +164,9 @@ export default function SecurityDashboardPage() {
     try {
       const res = await fetch("/api/admin/security?section=active-sessions");
       const data = await res.json();
-      setSessions(data.sessions);
+      setSessions(Array.isArray(data.sessions) ? data.sessions : []);
     } catch {
+      setSessions([]);
       console.error("Failed to fetch active sessions");
     } finally {
       setLoading(false);
@@ -223,10 +226,9 @@ export default function SecurityDashboardPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-20 pb-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="pb-12">
+      <main>
+        <div className="mx-auto max-w-7xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
             <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
               <Shield className="h-6 w-6" /> Security Dashboard
@@ -523,7 +525,6 @@ export default function SecurityDashboardPage() {
           </Tabs>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

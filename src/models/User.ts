@@ -14,6 +14,7 @@ export interface IPushSubscription {
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
+  publicId?: string;
   email: string;
   password: string;
   role: "user" | "admin" | "superadmin";
@@ -47,6 +48,13 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
+    publicId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
+    },
     email: {
       type: String,
       required: false,

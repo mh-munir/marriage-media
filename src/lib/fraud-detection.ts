@@ -64,11 +64,6 @@ export async function analyzeUserBehavior(
       reasons.push("New account with no photos");
     }
 
-    // Check for copy-paste bio patterns
-    if (profile.aboutMe && profile.aboutMe.length < 10) {
-      riskScore += 10;
-      reasons.push("Very short bio");
-    }
   }
 
   // 5. Check for suspicious payment patterns

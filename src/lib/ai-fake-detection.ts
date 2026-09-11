@@ -25,7 +25,7 @@ export async function detectFakeProfile(userId: string): Promise<FakeDetectionRe
 
   // 1. Check profile completeness
   const requiredFields = [
-    "firstName", "lastName", "aboutMe", "partnerPreference",
+    "firstName", "lastName", "partnerPreference",
     "fatherName", "motherName", "institution",
   ];
   const filledRequired = requiredFields.filter(f => profile[f as keyof typeof profile]);
@@ -50,24 +50,7 @@ export async function detectFakeProfile(userId: string): Promise<FakeDetectionRe
     }
   }
 
-  // 3. Check about me length and quality
-  if (profile.aboutMe) {
-    const aboutLength = profile.aboutMe.length;
-    if (aboutLength < 20) {
-      riskScore += 15;
-      flags.push("Very short 'About Me' section");
-      recommendations.push("Write a detailed 'About Me' to attract genuine matches");
-    }
-    // Check for spam patterns
-    const spamPatterns = [/buy now/i, /click here/i, /whatsapp/i, /\d{10,}/, /www\./i, /http/i];
-    const hasSpam = spamPatterns.some(p => p.test(profile.aboutMe));
-    if (hasSpam) {
-      riskScore += 30;
-      flags.push("Suspicious content detected in About Me");
-    }
-  }
-
-  // 4. Check partner preference
+  // 3. Check partner preference
   if (!profile.partnerPreference || profile.partnerPreference.length < 10) {
     riskScore += 10;
     flags.push("Missing or minimal partner preferences");
@@ -196,7 +179,6 @@ export function getProfileCompletionSuggestions(
   const suggestions: ProfileSuggestion[] = [];
 
   const fieldChecks: Array<{ field: string; label: string; priority: "high" | "medium" | "low"; description: string }> = [
-    { field: "aboutMe", label: "About Me", priority: "high", description: "Write about yourself to attract more matches" },
     { field: "partnerPreference", label: "Partner Preference", priority: "high", description: "Describe your ideal partner" },
     { field: "photos", label: "Photos", priority: "high", description: "Upload at least 3 photos for 5x more views" },
     { field: "height", label: "Height", priority: "medium", description: "Add your height for better matching" },

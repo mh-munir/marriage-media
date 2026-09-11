@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const conversationIds = userConversations.map((c) => c._id);
 
     // Build filter
-    const filter: Record<string, any> = {
+    const filter: Record<string, unknown> = {
       conversationId: { $in: conversationIds },
       isDeleted: false,
     };

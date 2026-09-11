@@ -25,7 +25,7 @@ export async function GET(
       isDeactivated: false,
     })
       .select(
-        "firstName lastName gender age height weight bloodGroup maritalStatus profileCreatedBy religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues fatherName fatherContactNumber fatherProfession motherName motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies aboutMe partnerPreference partnerPreferences photos isPremium isVerified profileViews showContactInfo createdAt"
+        "firstName lastName gender age height weight bloodGroup maritalStatus profileCreatedBy religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues fatherName fatherContactNumber fatherProfession motherName motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified profileViews showContactInfo createdAt"
       )
       .lean();
 

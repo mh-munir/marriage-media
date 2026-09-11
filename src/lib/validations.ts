@@ -6,7 +6,7 @@ export const registerSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^\+?[0-9]{10,15}$/, "Please provide a valid mobile number"),
+    .regex(/^01[3-9][0-9]{8}$/, "Mobile number must be exactly 11 digits"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -23,7 +23,7 @@ export const loginSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^\+?[0-9]{10,15}$/, "Please provide a valid mobile number"),
+    .regex(/^01[3-9][0-9]{8}$/, "Mobile number must be exactly 11 digits"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -111,7 +111,6 @@ export const profileLifestyleSchema = z.object({
 });
 
 export const profileAboutSchema = z.object({
-  aboutMe: z.string().max(1000).optional(),
   partnerPreference: z.string().max(1000).optional(),
 });
 
