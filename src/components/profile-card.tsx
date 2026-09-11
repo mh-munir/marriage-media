@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { CalendarDays, ChevronRight, Eye, GraduationCap, MessageCircle, Star, Target } from "lucide-react";
+import { BadgeCheck, CalendarDays, ChevronRight, Eye, GraduationCap, MessageCircle, Star, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -83,6 +83,7 @@ export function ProfileCard({
       <Card className="h-full overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_5px_18px_rgba(15,23,42,0.08)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] dark:border-border dark:bg-card">
         <div className="relative flex min-h-36 items-center gap-3 overflow-hidden p-3 sm:gap-5 sm:p-5">
           <div className="pointer-events-none absolute -left-10 -top-14 h-36 w-36 rounded-full bg-blue-100/60 blur-2xl dark:bg-blue-950/30" />
+          {profile.isPremium ? <Badge variant="premium" title="Paid subscriber" className="absolute right-3 top-2 z-20 gap-1 px-2 py-0.5 text-[10px] sm:right-5 sm:top-3 sm:text-xs"><BadgeCheck className="h-3.5 w-3.5" />Paid</Badge> : null}
           <div className="relative z-10 h-20 w-20 shrink-0 overflow-hidden rounded-full bg-linear-to-br from-blue-100 to-sky-100 ring-4 ring-blue-100 shadow-sm dark:from-blue-950/40 dark:to-sky-950/30 dark:ring-blue-950/60 sm:h-24 sm:w-24">
             {profile.imageUrl ? (
               <Image src={profile.imageUrl} alt={name} fill sizes="96px" className="object-cover" />
@@ -118,7 +119,7 @@ export function ProfileCard({
               </Button>
             </div>
           </div>
-          <div className="relative z-10 flex shrink-0 items-center gap-2 border-l border-slate-200 pl-3 dark:border-border sm:gap-4 sm:pl-5">
+          <div className="relative z-10 flex shrink-0 items-center gap-2 border-l border-slate-200 pl-3 pt-4 dark:border-border sm:gap-4 sm:pl-5 sm:pt-5">
             <div className="flex flex-col items-center rounded-xl bg-emerald-50 px-2.5 py-1.5 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 sm:rounded-2xl sm:px-4 sm:py-2">
               <div className="flex items-center gap-1 text-lg font-bold sm:text-2xl"><Target className="h-5 w-5 sm:h-6 sm:w-6" />{profile.matchPercentage}%</div>
               <div className="text-[10px] sm:text-xs">match</div>

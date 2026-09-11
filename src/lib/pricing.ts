@@ -10,6 +10,16 @@ export interface PricingPlan {
   icon: string;
 }
 
+export interface ManualPaymentNumbers {
+  bkash: string;
+  nagad: string;
+}
+
+export const defaultManualPaymentNumbers: ManualPaymentNumbers = {
+  bkash: "01811914795",
+  nagad: "01811914795",
+};
+
 export const defaultPricingPlans: PricingPlan[] = [
   {
     id: "basic",

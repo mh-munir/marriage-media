@@ -1,7 +1,7 @@
 import { Profile, Notification } from "@/models";
 import { createNotification } from "@/lib/notifications";
 
-type PartnerPreferences = {
+export type PartnerPreferences = {
   age?: string;
   height?: string;
   weight?: string;
@@ -20,7 +20,7 @@ type PartnerPreferences = {
   familyValues?: string;
 };
 
-type MatchableProfile = {
+export type MatchableProfile = {
   userId: { toString(): string };
   age?: number;
   height?: string;
@@ -118,6 +118,13 @@ export function calculatePartnerMatchScore(
   return Math.round((matchedFields / activeFields.length) * 100);
 }
 
+function hasPartnerPreferences(preferences?: PartnerPreferences): boolean {
+  return preferenceFields.some((field) => {
+    const value = preferences?.[field];
+    return typeof value === "string" && value.trim().length > 0;
+  });
+}
+
 type CompatibilityProfile = MatchableProfile & {
   caste?: string;
   motherTongue?: string;
@@ -210,6 +217,24 @@ export function calculateCompatibilityScore(
   if (profile.isVerified) score += 3;
 
   return maxScore > 0 ? Math.round((score / maxScore) * 100) : 50;
+}
+
+/**
+ * The single score shown to a member across search, favorites, recommendations,
+ * and the compatibility detail endpoint. A member's explicit partner preferences
+ * take precedence; general profile compatibility is used only when none exist.
+ */
+export function calculateMatchScore(
+  profile: CompatibilityProfile,
+  currentProfile?: (CompatibilityProfile & { partnerPreferences?: PartnerPreferences }) | null
+): number {
+  if (!currentProfile) return 0;
+
+  if (hasPartnerPreferences(currentProfile.partnerPreferences)) {
+    return calculatePartnerMatchScore(profile, currentProfile.partnerPreferences);
+  }
+
+  return calculateCompatibilityScore(profile, currentProfile);
 }
 
 export async function notifyProfileMatches(profileUserId: string): Promise<void> {

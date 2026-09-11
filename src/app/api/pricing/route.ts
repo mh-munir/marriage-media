@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Coupon from "@/models/Coupon";
 import { SitePage } from "@/models";
-import { defaultPricingPlans } from "@/lib/pricing";
+import { defaultManualPaymentNumbers, defaultPricingPlans } from "@/lib/pricing";
 
 export async function GET() {
   try {
@@ -12,11 +12,15 @@ export async function GET() {
 
     const [couponCount, pricingPage] = await Promise.all([
       Coupon.countDocuments({ isActive: true }),
-      SitePage.findOne({ slug: "pricing" }).select("pricingPlans").lean(),
+      SitePage.findOne({ slug: "pricing" }).select("pricingPlans paymentNumbers").lean(),
     ]);
 
     return NextResponse.json({
       plans: pricingPage?.pricingPlans?.length ? pricingPage.pricingPlans : defaultPricingPlans,
+      paymentNumbers: {
+        bkash: pricingPage?.paymentNumbers?.bkash || defaultManualPaymentNumbers.bkash,
+        nagad: pricingPage?.paymentNumbers?.nagad || defaultManualPaymentNumbers.nagad,
+      },
       testimonials: [
         {
           name: "Farhana & Imran",

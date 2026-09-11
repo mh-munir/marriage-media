@@ -203,7 +203,7 @@ export default function PricingPage() {
                       className="w-full mb-6"
                       asChild
                     >
-                      <Link href="/register">
+                      <Link href={`/payment?plan=${encodeURIComponent(plan.id)}`}>
                         {plan.popular ? "Start Premium" : plan.name === "Gold" ? "Go Gold" : "Get Started Free"}
                         <ArrowRight className="h-4 w-4" />
                       </Link>

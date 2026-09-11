@@ -12,8 +12,6 @@ import {
   Save,
   Loader2,
   CheckCircle,
-  Shield,
-  Eye,
   Heart,
   AlertCircle,
   Sparkles,
@@ -450,7 +448,6 @@ export default function DashboardProfilePage() {
     { id: "basic", label: "Basic Info", icon: User },
     { id: "photos", label: "Photos", icon: Sparkles },
     { id: "expected-partner", label: "Expected partner", icon: Heart },
-    { id: "settings", label: "Profile Settings", icon: Eye },
   ];
 
   const displayName = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Your Profile";
@@ -475,7 +472,7 @@ export default function DashboardProfilePage() {
             className="mb-8 max-w-2xl"
           >
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your profile workspace</p>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl">Profile Settings</h1>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl">Your Profile</h1>
             <p className="text-sm leading-6 text-muted-foreground sm:text-base">
               Manage your profile information and preferences.
             </p>
@@ -516,9 +513,11 @@ export default function DashboardProfilePage() {
                     <span className="text-xs font-semibold tabular-nums text-primary">{profileCompletion}%</span>
                   </div>
                 </div>
-                <Button variant="gradient" size="sm" asChild>
-                  <Link href="/pricing">Upgrade to Premium</Link>
-                </Button>
+                {!profile.isPremium ? (
+                  <Button variant="gradient" size="sm" asChild>
+                    <Link href="/pricing">Upgrade to Premium</Link>
+                  </Button>
+                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -1120,58 +1119,6 @@ export default function DashboardProfilePage() {
                       </CardContent>
                     </Card>
                     </div>
-                  )}
-
-                  {activeSection === "settings" && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Profile Settings</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between p-4 rounded-xl border border-border">
-                          <div className="flex items-center gap-3">
-                            <Eye className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <h3 className="font-medium text-sm">Public Profile</h3>
-                              <p className="text-xs text-muted-foreground">Make your profile visible to others</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setProfile({ ...profile, isVisible: !profile.isVisible })}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              profile.isVisible ? "bg-primary" : "bg-muted"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                profile.isVisible ? "translate-x-6" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between p-4 rounded-xl border border-border">
-                          <div className="flex items-center gap-3">
-                            <Shield className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <h3 className="font-medium text-sm">Show Contact Info</h3>
-                              <p className="text-xs text-muted-foreground">Allow others to see your contact details</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setProfile({ ...profile, showContactInfo: !profile.showContactInfo })}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              profile.showContactInfo ? "bg-primary" : "bg-muted"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                profile.showContactInfo ? "translate-x-6" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </CardContent>
-                    </Card>
                   )}
 
                   <div className="flex flex-wrap items-center gap-3 pt-1">

@@ -430,23 +430,25 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-amber-200 dark:border-amber-800 bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Crown className="h-5 w-5 text-amber-500" />
-                    <h3 className="font-semibold">Go Premium</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Unlock unlimited interests, chat, and AI matching to find your partner faster.
-                  </p>
-                  <Button variant="gradient" className="w-full" asChild>
-                    <Link href="/pricing">
-                      Upgrade Now
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              {!profile?.isPremium ? (
+                <Card className="border-amber-200 dark:border-amber-800 bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Crown className="h-5 w-5 text-amber-500" />
+                      <h3 className="font-semibold">Go Premium</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Unlock unlimited interests, chat, and AI matching to find your partner faster.
+                    </p>
+                    <Button variant="gradient" className="w-full" asChild>
+                      <Link href="/pricing">
+                        Upgrade Now
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
             </motion.div>
           </div>
         </div>

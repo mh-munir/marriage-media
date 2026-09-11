@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculateCompatibilityScore, calculatePartnerMatchScore } from "@/lib/profile-matching";
+import { calculateMatchScore } from "@/lib/profile-matching";
 import { ensurePublicIdForProfile } from "@/lib/public-id";
 
 export async function GET(request: NextRequest) {
@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
 
     // Score each profile based on compatibility with current user's profile
     const scoredProfiles = allProfiles.map((profile) => {
-      const partnerMatch = calculatePartnerMatchScore(profile, myProfile.partnerPreferences);
       let score = 0;
 
       // Religion match (high weight)
@@ -147,7 +146,7 @@ export async function GET(request: NextRequest) {
         ...profile,
         userId: profile.userId ? String(profile.userId) : "",
         isFavorite: favoriteIds.has(String(profile.userId)),
-        compatibility: partnerMatch || calculateCompatibilityScore(profile, myProfile),
+        compatibility: calculateMatchScore(profile, myProfile),
         score,
       };
     }).filter((profile) => profile.compatibility >= 50);

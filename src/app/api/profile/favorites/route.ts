@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
+import { calculateMatchScore, type MatchableProfile, type PartnerPreferences } from "@/lib/profile-matching";
 
 type FavoriteBody = {
   profileUserId?: string;
@@ -29,10 +30,14 @@ export async function GET(request: NextRequest) {
     }
 
     const profileIds = favorites.map((favorite) => favorite.profileId);
-    const profiles = await Profile.find({ userId: { $in: profileIds } })
-      .select("userId firstName lastName age height profession highestEducation photos isPremium isVerified district division religion")
+    const currentProfile = await Profile.findOne({ userId: user._id, isDeactivated: false })
+      .select("age height weight maritalStatus religion caste motherTongue highestEducation annualIncome country division district thana union area familyType familyStatus familyValues diet smoke hobbies isVerified partnerPreferences")
+      .lean<MatchableProfile & { partnerPreferences?: PartnerPreferences }>();
+    const profiles = await Profile.find({ userId: { $in: profileIds }, isVisible: true, isDeactivated: false })
+      .select("userId publicId firstName lastName age height weight maritalStatus profession highestEducation annualIncome country division district thana union area familyType familyStatus familyValues religion caste motherTongue diet smoke hobbies photos isPremium isVerified lastActiveAt profileViews createdAt")
       .lean<{
         userId: Types.ObjectId;
+        publicId?: string;
         firstName?: string;
         lastName?: string;
         age?: number;
@@ -41,10 +46,14 @@ export async function GET(request: NextRequest) {
         highestEducation?: string;
         district?: string;
         division?: string;
+        area?: string;
         religion?: string;
         photos?: Array<{ url?: string }>;
         isPremium?: boolean;
         isVerified?: boolean;
+        lastActiveAt?: Date;
+        profileViews?: number;
+        createdAt?: Date;
       }[]>()
       .exec();
 
@@ -52,9 +61,13 @@ export async function GET(request: NextRequest) {
 
     const mappedFavorites = favorites.map((favorite) => {
       const profile = profileMap.get(favorite.profileId.toString());
+      const matchPercentage = profile ? calculateMatchScore(profile, currentProfile) : 0;
       return {
         id: favorite._id.toString(),
         profileUserId: profile?.userId?.toString() || favorite.profileId.toString(),
+        userId: profile?.userId?.toString() || favorite.profileId.toString(),
+        firstName: profile?.firstName || "Saved",
+        lastName: profile?.lastName || "Profile",
         name: profile ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() : "Saved profile",
         age: profile?.age ?? null,
         height: profile?.height ?? "",
@@ -62,12 +75,24 @@ export async function GET(request: NextRequest) {
         religion: profile?.religion ?? "",
         profession: profile?.profession ?? "",
         education: profile?.highestEducation ?? "",
-        compatibility: profile?.isPremium ? 92 : 86,
+        compatibility: matchPercentage,
+        matchPercentage,
+        isFavorite: true,
+        publicId: profile?.publicId || "",
+        imageUrl: profile?.photos?.[0]?.url || null,
+        division: profile?.division || "",
+        district: profile?.district || "",
+        area: profile?.area || "",
+        profileViews: profile?.profileViews || 0,
+        createdAt: profile?.createdAt || null,
+        isOnline: Boolean(profile?.lastActiveAt && new Date(profile.lastActiveAt).getTime() > Date.now() - 15 * 60 * 1000),
         isPremium: Boolean(profile?.isPremium),
         isVerified: Boolean(profile?.isVerified),
         addedAt: favorite.createdAt ? new Date(favorite.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Recently saved",
       };
     });
+
+    mappedFavorites.sort((first, second) => second.matchPercentage - first.matchPercentage);
 
     return NextResponse.json({ favorites: mappedFavorites });
   } catch (error: unknown) {

@@ -5,7 +5,7 @@ import type { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculateCompatibilityScore, calculatePartnerMatchScore } from "@/lib/profile-matching";
+import { calculateMatchScore } from "@/lib/profile-matching";
 import { ensurePublicIdForProfile } from "@/lib/public-id";
 
 type ProfilePhoto = {
@@ -367,23 +367,26 @@ export async function GET(request: NextRequest) {
     const limit = parsePositiveInt(searchParams.get("limit"), 12, 50);
     const skip = (page - 1) * limit;
 
-    // Sort
-    const sort = getSort(searchParams.get("sortBy"));
+    const sortBy = searchParams.get("sortBy");
+    const isBestMatchSort = !sortBy || sortBy === "relevance";
+    const total = await Profile.countDocuments(databaseFilter);
+    const profiles = await Profile.find(databaseFilter)
+      .sort(isBestMatchSort ? { _id: 1 } : getSort(sortBy))
+      .select(PROFILE_SELECT)
+      .lean<SearchProfile[]>()
+      .exec();
 
-    const [profiles, total] = await Promise.all([
-      Profile.find(databaseFilter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .select(PROFILE_SELECT)
-        .lean<SearchProfile[]>()
-        .exec(),
-      Profile.countDocuments(databaseFilter),
-    ]);
+    const paginatedProfiles = isBestMatchSort
+      ? profiles
+          .sort((first, second) =>
+            calculateMatchScore(second, currentProfile) - calculateMatchScore(first, currentProfile)
+          )
+          .slice(skip, skip + limit)
+      : profiles.slice(skip, skip + limit);
 
     const now = new Date();
     const onlineSince = now.getTime() - 15 * 60 * 1000;
-    const profileUserIds = profiles.map((profile) => profile.userId);
+    const profileUserIds = paginatedProfiles.map((profile) => profile.userId);
     const favorites = profileUserIds.length
       ? await Favorite.find({
           userId: user._id,
@@ -395,7 +398,7 @@ export async function GET(request: NextRequest) {
       : [];
     const favoriteIds = new Set(favorites.map((favorite) => favorite.profileId.toString()));
 
-    const enrichedProfiles = await Promise.all(profiles.map(async (profile) => {
+    const enrichedProfiles = await Promise.all(paginatedProfiles.map(async (profile) => {
       const lastActiveAt = profile.lastActiveAt instanceof Date ? profile.lastActiveAt : null;
       const publicId = await ensurePublicIdForProfile(profile.userId, profile.publicId);
 
@@ -434,7 +437,7 @@ export async function GET(request: NextRequest) {
         maritalStatus: profile.maritalStatus || "",
         profileCreatedBy: profile.profileCreatedBy || "",
         createdAt: profile.createdAt?.toISOString() ?? null,
-        matchPercentage: calculatePartnerMatchScore(profile, currentProfile?.partnerPreferences) || calculateCompatibilityScore(profile, currentProfile as typeof profile),
+        matchPercentage: calculateMatchScore(profile, currentProfile),
       };
     }));
 

@@ -9,6 +9,7 @@ import {
   Bell,
   ChevronRight,
   FileCheck2,
+  CreditCard,
   ImageIcon,
   LayoutDashboard,
   LogOut,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users & Profiles", icon: Users },
   { href: "/admin/verification", label: "Verifications", icon: FileCheck2 },
+  { href: "/admin/payments", label: "Manual payments", icon: CreditCard },
   { href: "/admin/photos", label: "Photo moderation", icon: ImageIcon },
   { href: "/admin/security", label: "Security center", icon: ShieldCheck },
 ];

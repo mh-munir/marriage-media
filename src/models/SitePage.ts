@@ -1,5 +1,5 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
-import type { PricingPlan } from "@/lib/pricing";
+import type { ManualPaymentNumbers, PricingPlan } from "@/lib/pricing";
 
 export interface ISitePage extends Document {
   slug: string;
@@ -11,6 +11,7 @@ export interface ISitePage extends Document {
   isPublished: boolean;
   sections?: Array<Record<string, unknown>>;
   pricingPlans?: PricingPlan[];
+  paymentNumbers?: ManualPaymentNumbers;
   updatedAt: Date;
   createdAt: Date;
 }
@@ -26,6 +27,10 @@ const SitePageSchema = new Schema<ISitePage>(
     isPublished: { type: Boolean, default: true },
     sections: { type: [Schema.Types.Mixed], default: [] },
     pricingPlans: { type: [Schema.Types.Mixed], default: [] },
+    paymentNumbers: {
+      bkash: { type: String, default: "" },
+      nagad: { type: String, default: "" },
+    },
   },
   { timestamps: true }
 );

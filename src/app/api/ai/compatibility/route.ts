@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculateCompatibilityScore } from "@/lib/ai-match";
+import { calculateMatchScore } from "@/lib/profile-matching";
 
 // Calculate compatibility between current user and another profile
 export async function POST(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const score = calculateCompatibilityScore(userProfile as never, targetProfile as never);
+    const score = calculateMatchScore(targetProfile as never, userProfile as never);
 
     // Determine matching factors
     const factors: { name: string; match: boolean; weight: number }[] = [
