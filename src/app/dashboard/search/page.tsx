@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileCard } from "@/components/profile-card";
+import { useAuthStore } from "@/stores/auth-store";
 
 type BrowseProfile = {
   _id: string;
@@ -138,6 +139,7 @@ async function fetchJson(url: string, init?: RequestInit): Promise<ProfileRespon
 
 export default function DashboardSearchPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [view, setView] = React.useState<"browse" | "recent">("browse");
   const [sortBy, setSortBy] = React.useState("relevance");
   const [filters, setFilters] = React.useState<BasicSearchFilters>({
@@ -513,6 +515,7 @@ export default function DashboardSearchPage() {
             ) : currentProfiles.length > 0 ? (
               <ProfileGrid
                 profiles={currentProfiles}
+                currentUserIsPremium={Boolean(user?.isPremium)}
                 onFavorite={toggleFavorite}
                 onMessage={openProfileMessages}
                 onView={recordProfileView}
@@ -568,11 +571,13 @@ function ProfileGrid({
   onFavorite,
   onMessage,
   onView,
+  currentUserIsPremium = false,
 }: {
   profiles: BrowseProfile[];
   onFavorite: (profileUserId: string) => void;
   onMessage: (profileUserId: string) => void;
   onView: (profileUserId: string) => void;
+  currentUserIsPremium?: boolean;
 }) {
   return (
     <div className="grid gap-5 sm:grid-cols-2">
@@ -581,6 +586,7 @@ function ProfileGrid({
           key={profile.userId}
           profile={profile}
           index={index}
+          currentUserIsPremium={currentUserIsPremium}
           onFavorite={onFavorite}
           onMessage={onMessage}
           onView={onView}

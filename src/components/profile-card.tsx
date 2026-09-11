@@ -52,15 +52,17 @@ export function ProfileCard({
   onFavorite,
   onMessage,
   onView,
+  currentUserIsPremium = false,
 }: {
   profile: ProfileCardData;
   index?: number;
   onFavorite: (profileUserId: string) => void;
   onMessage?: (profileUserId: string) => void;
   onView: (profileUserId: string) => void;
+  currentUserIsPremium?: boolean;
 }) {
   const name = profileName(profile);
-  const displayName = profile.publicId || "ID pending";
+  const displayName = currentUserIsPremium ? profileName(profile) : (profile.publicId || "ID pending");
 
   return (
     <motion.div
@@ -85,7 +87,7 @@ export function ProfileCard({
           <div className="pointer-events-none absolute -left-10 -top-14 h-36 w-36 rounded-full bg-blue-100/60 blur-2xl dark:bg-blue-950/30" />
           {profile.isPremium ? <Badge variant="premium" title="Paid subscriber" className="absolute right-3 top-2 z-20 gap-1 px-2 py-0.5 text-[10px] sm:right-5 sm:top-3 sm:text-xs"><BadgeCheck className="h-3.5 w-3.5" />Paid</Badge> : null}
           <div className="relative z-10 h-20 w-20 shrink-0 overflow-hidden rounded-full bg-linear-to-br from-blue-100 to-sky-100 ring-4 ring-blue-100 shadow-sm dark:from-blue-950/40 dark:to-sky-950/30 dark:ring-blue-950/60 sm:h-24 sm:w-24">
-            {profile.imageUrl ? (
+            {currentUserIsPremium && profile.imageUrl ? (
               <Image src={profile.imageUrl} alt={name} fill sizes="96px" className="object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xl font-bold text-primary/40">

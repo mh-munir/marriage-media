@@ -380,6 +380,7 @@ export default function DashboardPage() {
                               matchPercentage: match.compatibility ?? 0,
                             }}
                             index={index}
+                            currentUserIsPremium={Boolean(user?.isPremium)}
                             onFavorite={(profileUserId) => void toggleRecommendationFavorite(profileUserId)}
                             onMessage={(profileUserId) => void openProfileMessages(profileUserId)}
                             onView={(profileUserId) => void viewRecommendation(profileUserId)}

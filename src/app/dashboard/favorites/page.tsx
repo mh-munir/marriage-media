@@ -12,6 +12,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProfileCard, type ProfileCardData } from "@/components/profile-card";
+import { useAuthStore } from "@/stores/auth-store";
 
 interface FavoriteProfile extends ProfileCardData {
   id: string;
@@ -25,6 +26,7 @@ interface FavoriteProfile extends ProfileCardData {
 
 export default function DashboardFavoritesPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [favorites, setFavorites] = React.useState<FavoriteProfile[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -105,7 +107,7 @@ export default function DashboardFavoritesPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {favorites.map((profile, index) => (
-                <ProfileCard key={profile.id} profile={profile} index={index} onFavorite={removeFavorite} onMessage={openMessages} onView={openProfile} />
+                <ProfileCard key={profile.id} profile={profile} index={index} currentUserIsPremium={Boolean(user?.isPremium)} onFavorite={removeFavorite} onMessage={openMessages} onView={openProfile} />
               ))}
             </div>
           )}
