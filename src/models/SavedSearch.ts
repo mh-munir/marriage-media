@@ -4,8 +4,7 @@ export interface ISavedSearch extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   searchQuery: string;
   resultCount: number;
   isAlertEnabled: boolean;

@@ -41,7 +41,6 @@ function resolveTheme(theme: Theme): "light" | "dark" {
 export function ThemeProvider({
   children,
   defaultTheme = "system",
-  disableTransitionOnChange = true,
 }: ThemeProviderProps) {
   const [theme, setThemeState] = React.useState<Theme>(defaultTheme);
   const [resolvedTheme, setResolvedTheme] = React.useState<"light" | "dark">(
@@ -53,11 +52,14 @@ export function ThemeProvider({
     // Read saved theme from localStorage
     const saved = localStorage.getItem("theme") as Theme | null;
     const initial = saved || defaultTheme;
-    setThemeState(initial);
-    setResolvedTheme(resolveTheme(initial));
-    applyTheme(resolveTheme(initial));
-    setMounted(true);
-  }, []);
+    // Use setTimeout to avoid synchronous state update in effect
+    setTimeout(() => {
+      setThemeState(initial);
+      setResolvedTheme(resolveTheme(initial));
+      applyTheme(resolveTheme(initial));
+      setMounted(true);
+    }, 0);
+  }, [defaultTheme]);
 
   React.useEffect(() => {
     if (!mounted) return;

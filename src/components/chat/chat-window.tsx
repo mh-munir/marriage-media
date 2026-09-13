@@ -23,6 +23,7 @@ import {
   FileText,
   Trash2,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -90,7 +91,8 @@ export function ChatWindow({
       }, 1000);
     } else {
       if (recordingInterval.current) clearInterval(recordingInterval.current);
-      setRecordingTime(0);
+      // Use a timeout to avoid synchronous state update in effect
+      setTimeout(() => setRecordingTime(0), 0);
     }
     return () => {
       if (recordingInterval.current) clearInterval(recordingInterval.current);
@@ -386,15 +388,17 @@ export function ChatWindow({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {conversationMessages.map((msg) => {
-          const isOwn = msg.senderId === user?.id;
-          return (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn("flex group", isOwn ? "justify-end" : "justify-start")}
-            >
+        <AnimatePresence mode="popLayout">
+          {conversationMessages.map((msg) => {
+            const isOwn = msg.senderId === user?.id;
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className={cn("flex group", isOwn ? "justify-end" : "justify-start")}
+              >
               <div className="relative max-w-[75%]">
                 {/* Reply preview in message */}
                 {msg.replyPreview && (
@@ -420,10 +424,12 @@ export function ChatWindow({
                   {/* Image message */}
                   {msg.type === "image" && msg.fileUrl && (
                     <div className="rounded-xl overflow-hidden mb-1">
-                      <img
+                      <Image
                         src={msg.fileUrl}
                         alt="Shared image"
+                        fill
                         className="max-w-full max-h-60 object-cover"
+                        sizes="100vw"
                       />
                     </div>
                   )}
@@ -560,6 +566,7 @@ export function ChatWindow({
             </motion.div>
           );
         })}
+        </AnimatePresence>
 
         {/* Typing Indicator */}
         <AnimatePresence>

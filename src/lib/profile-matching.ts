@@ -22,6 +22,7 @@ export type PartnerPreferences = {
 
 export type MatchableProfile = {
   userId: { toString(): string };
+  gender?: string;
   age?: number;
   height?: string;
   weight?: string;
@@ -240,22 +241,24 @@ export function calculateMatchScore(
 export async function notifyProfileMatches(profileUserId: string): Promise<void> {
   try {
     const sourceProfile = await Profile.findOne({ userId: profileUserId, isVisible: true, isDeactivated: false })
-      .select("userId firstName lastName age height weight maritalStatus religion highestEducation annualIncome country division district thana union area familyType familyStatus familyValues partnerPreferences")
+      .select("userId gender firstName lastName age height weight maritalStatus religion highestEducation annualIncome country division district thana union area familyType familyStatus familyValues partnerPreferences")
       .lean<MatchableProfile & { partnerPreferences?: PartnerPreferences }>();
 
-    if (!sourceProfile?.partnerPreferences) return;
+    if (!sourceProfile?.partnerPreferences || !sourceProfile.gender) return;
 
     const candidates = await Profile.find({
       userId: { $ne: sourceProfile.userId.toString() },
       isVisible: true,
       isDeactivated: false,
     })
-      .select("userId firstName lastName age height weight maritalStatus religion highestEducation annualIncome country division district thana union area familyType familyStatus familyValues partnerPreferences")
+      .select("userId gender firstName lastName age height weight maritalStatus religion highestEducation annualIncome country division district thana union area familyType familyStatus familyValues partnerPreferences")
       .lean();
 
     const candidateProfiles = candidates as unknown as Array<MatchableProfile & { partnerPreferences?: PartnerPreferences }>;
 
     for (const candidate of candidateProfiles) {
+      if (!candidate.gender || candidate.gender === sourceProfile.gender) continue;
+
       const sourceScore = calculatePartnerMatchScore(candidate, sourceProfile.partnerPreferences);
       const candidateScore = calculatePartnerMatchScore(sourceProfile, candidate.partnerPreferences);
 

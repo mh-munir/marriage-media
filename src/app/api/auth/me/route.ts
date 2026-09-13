@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
         premiumPlan: profile?.premiumPlan || "",
         isVerified: profile?.isVerified || false,
         profileCompleted: user.profileCompleted || 0,
+        gender: profile?.gender || user.gender || undefined,
+        onboardingCompleted: Boolean(
+          user.onboardingCompleted || (profile?.firstName && profile?.lastName && profile?.gender)
+        ),
       },
     });
   } catch {

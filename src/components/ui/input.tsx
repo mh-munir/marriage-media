@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/providers/language-provider";
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -13,6 +14,9 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, icon, rightIcon, id, ...props }, ref) => {
+    const { translateText } = useLanguage();
+    const localizedLabel = label ? translateText(label) : label;
+    const localizedPlaceholder = typeof props.placeholder === "string" ? translateText(props.placeholder) : props.placeholder;
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
@@ -22,7 +26,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             htmlFor={inputId}
             className="text-sm font-medium text-foreground"
           >
-            {label}
+            {localizedLabel}
           </label>
         )}
         <div className="relative">
@@ -34,6 +38,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             type={type}
             id={inputId}
+            dir="auto"
             className={cn(
               "flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm transition-all duration-200",
               "placeholder:text-muted-foreground",
@@ -47,6 +52,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
             ref={ref}
             {...props}
+            placeholder={localizedPlaceholder}
           />
           {rightIcon && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">

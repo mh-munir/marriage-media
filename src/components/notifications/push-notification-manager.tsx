@@ -15,14 +15,6 @@ export function PushNotificationManager() {
   const [permission, setPermission] = React.useState<NotificationPermission>("default");
   const [loading, setLoading] = React.useState(false);
 
-  React.useEffect(() => {
-    if ("Notification" in window && "serviceWorker" in navigator) {
-      setIsSupported(true);
-      setPermission(Notification.permission);
-      checkSubscription();
-    }
-  }, []);
-
   async function checkSubscription() {
     try {
       const registration = await navigator.serviceWorker.ready;
@@ -32,6 +24,17 @@ export function PushNotificationManager() {
       // Service worker not available
     }
   }
+
+  React.useEffect(() => {
+    if ("Notification" in window && "serviceWorker" in navigator) {
+      // Use setTimeout to avoid synchronous state update in effect
+      setTimeout(() => {
+        setIsSupported(true);
+        setPermission(Notification.permission);
+        checkSubscription();
+      }, 0);
+    }
+  }, []);
 
   async function subscribe() {
     setLoading(true);

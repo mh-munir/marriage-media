@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "A valid location level is required." }, { status: 400 });
     }
 
-    const response = await fetch(DATASET_URL, { next: { revalidate: 86400 } });
+    const response = await fetch(DATASET_URL, { cache: "no-store" });
     if (!response.ok) throw new Error("Location dataset unavailable.");
     const dataset = (await response.json()) as LocationDataset;
     const divisions = dataset.divisions || [];

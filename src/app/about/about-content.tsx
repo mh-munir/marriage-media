@@ -18,6 +18,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
 
@@ -252,7 +253,17 @@ export default function AboutPage() {
                 <Card className="text-center hover:shadow-lg transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="h-20 w-20 overflow-hidden rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl mx-auto mb-4">
-                      {member.imageUrl ? <img src={member.imageUrl} alt={member.imageAlt} className="h-full w-full object-cover" /> : member.name.split(" ").map((n) => n[0]).join("")}
+                      {member.imageUrl ? (
+                        <Image
+                          src={member.imageUrl}
+                          alt={member.imageAlt}
+                          fill
+                          className="object-cover"
+                          sizes="80px"
+                        />
+                      ) : (
+                        member.name.split(" ").map((n) => n[0]).join("")
+                      )}
                     </div>
                     <h3 className="font-semibold">{member.name}</h3>
                     <p className="text-sm text-primary mb-2">{member.role}</p>

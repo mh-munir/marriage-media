@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore, type AuthUser } from "@/stores/auth-store";
+import { useNotificationStore } from "@/stores/notification-store";
 import { apiClient } from "@/lib/api-client";
 
 interface AuthContextType {
@@ -29,9 +30,11 @@ const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const store = useAuthStore();
+  const resetNotifications = useNotificationStore((state) => state.reset);
   const { user, isAuthenticated, isLoading } = store;
   const pathname = usePathname();
   const hasCheckedSession = React.useRef(false);
+  const previousUserId = React.useRef<string | null>(null);
 
   const login = React.useCallback(
     async (phone: string, password: string, rememberMe = false) => {
@@ -41,9 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshToken: string;
       }>("/api/auth/login", { phone, password, rememberMe });
 
+      resetNotifications();
       store.login(result.user, result.accessToken, result.refreshToken);
     },
-    [store]
+    [resetNotifications, store]
   );
 
   const register = React.useCallback(
@@ -57,19 +61,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await apiClient.post("/api/auth/logout");
     } finally {
+      resetNotifications();
       store.logout();
       window.location.replace("/");
     }
-  }, [store]);
+  }, [resetNotifications, store]);
 
   const refreshUser = React.useCallback(async () => {
     try {
-      const result = await apiClient.get<{ user: AuthUser }>("/api/auth/me", { cache: "no-store" });
+      const response = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        resetNotifications();
+        store.logout();
+        return;
+      }
+      const result = (await response.json()) as { user: AuthUser };
       store.setUser(result.user);
     } catch {
+      resetNotifications();
       store.logout();
     }
-  }, [store]);
+  }, [resetNotifications, store]);
 
   React.useEffect(() => {
     if (hasCheckedSession.current) return;
@@ -77,6 +92,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hasCheckedSession.current = true;
     void refreshUser();
   }, [pathname, refreshUser]);
+
+  React.useEffect(() => {
+    if (!user?.id) {
+      previousUserId.current = null;
+      return;
+    }
+
+    if (previousUserId.current && previousUserId.current !== user.id) {
+      resetNotifications();
+    }
+
+    previousUserId.current = user.id;
+  }, [resetNotifications, user?.id]);
 
   return (
     <AuthContext.Provider

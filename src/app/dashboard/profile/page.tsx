@@ -36,6 +36,7 @@ import {
 } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/stores/auth-store";
+import { useLanguage } from "@/providers/language-provider";
 
 interface ProfileFormData {
   email: string;
@@ -206,6 +207,7 @@ export default function DashboardProfilePage() {
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
   const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const { updateUser } = useAuthStore();
+  const { translateText: text } = useLanguage();
 
   React.useEffect(() => {
     const activateSectionFromHash = () => {
@@ -269,7 +271,7 @@ export default function DashboardProfilePage() {
       try {
         setIsLoading(true);
         setError("");
-        const response = await apiClient.get<{ profile?: Partial<ProfileFormData>; mobileNumber?: string }>('/api/profile');
+        const response = await apiClient.get<{ profile?: Partial<ProfileFormData>; mobileNumber?: string; onboarding?: Partial<ProfileFormData> }>('/api/profile');
         const profileData = response.profile;
 
         if (profileData) {
@@ -288,6 +290,15 @@ export default function DashboardProfilePage() {
             avatar: profileData.photos?.find((photo) => photo.isPrimary)?.url || "",
           });
           setProfileExists(true);
+        } else {
+          setProfile((current) => ({
+            ...current,
+            firstName: response.onboarding?.firstName || current.firstName,
+            lastName: response.onboarding?.lastName || current.lastName,
+            gender: response.onboarding?.gender || current.gender,
+            mobileNumber: response.mobileNumber || current.mobileNumber,
+          }));
+          setProfileExists(false);
         }
       } catch (err) {
         if (err instanceof Error && (err.message.includes("404") || err.message.includes("Profile not found"))) {
@@ -559,8 +570,8 @@ export default function DashboardProfilePage() {
                   {activeSection === "photos" && (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Profile Photos</CardTitle>
-                        <p className="text-sm text-muted-foreground">Upload at least 2 and up to 5 images.</p>
+                        <CardTitle>{text("Profile Photos")}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{text("Upload at least 2 and up to 5 images.")}</p>
                       </CardHeader>
                       <CardContent className="space-y-5">
                         {!profileExists ? (
@@ -578,7 +589,7 @@ export default function DashboardProfilePage() {
                           {profile.photos.length < 5 ? (
                             <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary">
                               {isUploading ? <Loader2 className="mb-2 h-6 w-6 animate-spin" /> : <Sparkles className="mb-2 h-6 w-6" />}
-                              {isUploading ? "Uploading..." : "Add images"}
+                              {isUploading ? `${text("Uploading")}...` : text("Add images")}
                               <input type="file" accept="image/*" multiple className="sr-only" onChange={handleUpload} disabled={isUploading} />
                             </label>
                           ) : null}
@@ -593,11 +604,11 @@ export default function DashboardProfilePage() {
                   {activeSection === "basic" && (
                     <Card>
                       <CardHeader>
-                        <CardTitle>Complete Your Profile</CardTitle>
+                        <CardTitle>{text("Complete Your Profile")}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-8">
                         <section>
-                          <h2 className="mb-4 text-lg font-semibold">Basic Information</h2>
+                          <h2 className="mb-4 text-lg font-semibold">{text("Basic Information")}</h2>
                           <div className="space-y-4">
                         <div className="grid sm:grid-cols-2 gap-4">
                           <Input
@@ -629,18 +640,18 @@ export default function DashboardProfilePage() {
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Gender</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Gender")}</label>
                             <select
                               value={profile.gender}
                               onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
+                              <option value="Male">{text("Male")}</option>
+                              <option value="Female">{text("Female")}</option>
                             </select>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-foreground">Date of Birth</label>
+                            <label className="text-sm font-medium text-foreground">{text("Date of Birth")}</label>
                             <DatePicker
                               value={profile.dateOfBirth}
                               onChange={(dateOfBirth) => setProfile({ ...profile, dateOfBirth })}
@@ -650,53 +661,53 @@ export default function DashboardProfilePage() {
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Marital Status</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Marital Status")}</label>
                             <select
                               value={profile.maritalStatus}
                               onChange={(e) => setProfile({ ...profile, maritalStatus: e.target.value })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="Never Married">Never Married</option>
-                              <option value="Divorced">Divorced</option>
-                              <option value="Widowed">Widowed</option>
-                              <option value="Awaiting Divorce">Awaiting Divorce</option>
+                              <option value="Never Married">{text("Never Married")}</option>
+                              <option value="Divorced">{text("Divorced")}</option>
+                              <option value="Widowed">{text("Widowed")}</option>
+                              <option value="Awaiting Divorce">{text("Awaiting Divorce")}</option>
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Religion</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Religion")}</label>
                             <select
                               value={profile.religion}
                               onChange={(e) => setProfile({ ...profile, religion: e.target.value })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
                               {RELIGIONS.map((r) => (
-                                <option key={r} value={r}>{r}</option>
+                                <option key={r} value={r}>{text(r)}</option>
                               ))}
                             </select>
                           </div>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Height</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Height")}</label>
                             <select
                               value={profile.height}
                               onChange={(e) => setProfile({ ...profile, height: e.target.value })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
                               {HEIGHTS.map((h) => (
-                                <option key={h} value={h}>{h}</option>
+                                <option key={h} value={h}>{text(h)}</option>
                               ))}
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Weight</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Weight")}</label>
                             <select
                               value={profile.weight}
                               onChange={(e) => setProfile({ ...profile, weight: e.target.value })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
                               {WEIGHTS.map((w) => (
-                                <option key={w} value={w}>{w}</option>
+                                <option key={w} value={w}>{text(w)}</option>
                               ))}
                             </select>
                           </div>
@@ -705,7 +716,7 @@ export default function DashboardProfilePage() {
                         </section>
 
                         <section>
-                          <h2 className="mb-4 text-lg font-semibold">Family Information</h2>
+                          <h2 className="mb-4 text-lg font-semibold">{text("Family Information")}</h2>
                           <div className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                           <Input
@@ -731,47 +742,47 @@ export default function DashboardProfilePage() {
                         />
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Family Type</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Family Type")}</label>
                             <select
                               value={profile.familyType}
                               onChange={(e) => setProfile({ ...profile, familyType: e.target.value })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="Joint">Joint</option>
-                              <option value="Nuclear">Nuclear</option>
+                              <option value="Joint">{text("Joint")}</option>
+                              <option value="Nuclear">{text("Nuclear")}</option>
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Family Status</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Family Status")}</label>
                             <select
                               value={profile.familyStatus}
                               onChange={(e) => setProfile({ ...profile, familyStatus: e.target.value })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="Middle Class">Middle Class</option>
-                              <option value="Upper Middle Class">Upper Middle Class</option>
-                              <option value="Rich">Rich</option>
-                              <option value="Affluent">Affluent</option>
+                              <option value="Middle Class">{text("Middle Class")}</option>
+                              <option value="Upper Middle Class">{text("Upper Middle Class")}</option>
+                              <option value="Rich">{text("Rich")}</option>
+                              <option value="Affluent">{text("Affluent")}</option>
                             </select>
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">Family Values</label>
+                          <label className="block text-sm font-medium text-foreground mb-1.5">{text("Family Values")}</label>
                           <select
                             value={profile.familyValues}
                             onChange={(e) => setProfile({ ...profile, familyValues: e.target.value })}
                             className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                           >
-                            <option value="Orthodox">Orthodox</option>
-                            <option value="Traditional">Traditional</option>
-                            <option value="Moderate">Moderate</option>
-                            <option value="Liberal">Liberal</option>
-                            <option value="Secular">Secular</option>
+                            <option value="Orthodox">{text("Orthodox")}</option>
+                            <option value="Traditional">{text("Traditional")}</option>
+                            <option value="Moderate">{text("Moderate")}</option>
+                            <option value="Liberal">{text("Liberal")}</option>
+                            <option value="Secular">{text("Secular")}</option>
                           </select>
                         </div>
                         <div className="space-y-3">
                           <div className="flex items-center justify-between gap-3">
-                            <label className="text-sm font-medium text-foreground">Brothers and Sisters</label>
+                            <label className="text-sm font-medium text-foreground">{text("Brothers and Sisters")}</label>
                             <Button
                               type="button"
                               variant="outline"
@@ -797,7 +808,7 @@ export default function DashboardProfilePage() {
                                 })}
                               />
                               <div className="w-36 shrink-0">
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">Relation</label>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Relation")}</label>
                                 <select
                                   value={sibling.relation}
                                   onChange={(e) => setProfile({
@@ -810,8 +821,8 @@ export default function DashboardProfilePage() {
                                   })}
                                   className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                                 >
-                                  <option value="Brother">Brother</option>
-                                  <option value="Sister">Sister</option>
+                                  <option value="Brother">{text("Brother")}</option>
+                                  <option value="Sister">{text("Sister")}</option>
                                 </select>
                               </div>
                               <Button
@@ -829,14 +840,14 @@ export default function DashboardProfilePage() {
                             </div>
                           ))}
                           {!profile.siblings.length ? (
-                            <p className="text-sm text-muted-foreground">No brothers or sisters added.</p>
+                            <p className="text-sm text-muted-foreground">{text("No brothers or sisters added.")}</p>
                           ) : null}
                         </div>
                           </div>
                         </section>
 
                         <section>
-                          <h2 className="mb-4 text-lg font-semibold">Location Information</h2>
+                          <h2 className="mb-4 text-lg font-semibold">{text("Location Information")}</h2>
                           <div className="space-y-4">
                         <Input
                           label="Country"
@@ -845,27 +856,27 @@ export default function DashboardProfilePage() {
                         />
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Division</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Division")}</label>
                             <select
                               value={profile.division}
                               onChange={(e) => setProfile({ ...profile, division: e.target.value, district: "", thana: "", union: "" })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Select division</option>
+                              <option value="">{text("Select division")}</option>
                               {locationOptions.divisions.map((d) => (
                                 <option key={d} value={d}>{d}</option>
                               ))}
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">District</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("District")}</label>
                             <select
                               value={profile.district}
                               onChange={(e) => setProfile({ ...profile, district: e.target.value, thana: "", union: "" })}
                               disabled={!profile.division}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              <option value="">{profile.division ? "Select district" : "Select division first"}</option>
+                              <option value="">{text(profile.division ? "Select district" : "Select division first")}</option>
                               {locationOptions.districts.map((district) => (
                                 <option key={district} value={district}>{district}</option>
                               ))}
@@ -874,28 +885,28 @@ export default function DashboardProfilePage() {
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Thana</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Thana")}</label>
                             <select
                               value={profile.thana}
                               onChange={(e) => setProfile({ ...profile, thana: e.target.value, union: "" })}
                               disabled={!profile.district}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              <option value="">{profile.district ? "Select thana" : "Select district first"}</option>
+                              <option value="">{text(profile.district ? "Select thana" : "Select district first")}</option>
                               {locationOptions.thanas.map((thana) => (
                                 <option key={thana} value={thana}>{thana}</option>
                               ))}
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Union</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Union")}</label>
                             <select
                               value={profile.union}
                               onChange={(e) => setProfile({ ...profile, union: e.target.value })}
                               disabled={!profile.thana}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              <option value="">{profile.thana ? "Select union" : "Select thana first"}</option>
+                              <option value="">{text(profile.thana ? "Select union" : "Select thana first")}</option>
                               {locationOptions.unions.map((union) => (
                                 <option key={union} value={union}>{union}</option>
                               ))}
@@ -911,17 +922,17 @@ export default function DashboardProfilePage() {
                         </section>
 
                         <section>
-                          <h2 className="mb-4 text-lg font-semibold">Education &amp; Career</h2>
+                          <h2 className="mb-4 text-lg font-semibold">{text("Education & Career")}</h2>
                           <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">Highest Education</label>
+                          <label className="block text-sm font-medium text-foreground mb-1.5">{text("Highest Education")}</label>
                           <select
                             value={profile.highestEducation}
                             onChange={(e) => setProfile({ ...profile, highestEducation: e.target.value })}
                             className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                           >
                             {EDUCATION_LEVELS.map((e) => (
-                              <option key={e} value={e}>{e}</option>
+                              <option key={e} value={e}>{text(e)}</option>
                             ))}
                           </select>
                         </div>
@@ -931,14 +942,14 @@ export default function DashboardProfilePage() {
                           onChange={(e) => setProfile({ ...profile, institution: e.target.value })}
                         />
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">Profession</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Profession")}</label>
                           <select
                             value={profile.profession}
                             onChange={(e) => setProfile({ ...profile, profession: e.target.value })}
                             className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                           >
                             {PROFESSIONS.map((p) => (
-                              <option key={p} value={p}>{p}</option>
+                              <option key={p} value={p}>{text(p)}</option>
                             ))}
                           </select>
                         </div>
@@ -948,14 +959,14 @@ export default function DashboardProfilePage() {
                           onChange={(e) => setProfile({ ...profile, company: e.target.value })}
                         />
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">Annual Income</label>
+                          <label className="block text-sm font-medium text-foreground mb-1.5">{text("Annual Income")}</label>
                           <select
                             value={profile.annualIncome}
                             onChange={(e) => setProfile({ ...profile, annualIncome: e.target.value })}
                             className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                           >
                             {INCOME_RANGES.map((i) => (
-                              <option key={i} value={i}>{i}</option>
+                              <option key={i} value={i}>{text(i)}</option>
                             ))}
                           </select>
                         </div>
@@ -970,21 +981,21 @@ export default function DashboardProfilePage() {
                     <div id="expected-partner" className="scroll-mt-24">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Expected partner</CardTitle>
+                        <CardTitle>{text("Expected partner")}</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          Tell us about the partner you are looking for.
+                          {text("Tell us about the partner you are looking for.")}
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-5">
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Age</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Age")}</label>
                             <select
                               value={profile.partnerPreferences.age}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, age: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any age</option>
+                              <option value="">{text("Any age")}</option>
                               <option value="18-25">18-25</option>
                               <option value="26-30">26-30</option>
                               <option value="31-35">31-35</option>
@@ -994,35 +1005,35 @@ export default function DashboardProfilePage() {
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Height</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Height")}</label>
                             <select
                               value={profile.partnerPreferences.height}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, height: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any height</option>
+                              <option value="">{text("Any height")}</option>
                               {PARTNER_HEIGHT_RANGES.map((range) => <option key={range.value} value={range.value}>{range.label}</option>)}
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Weight</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Weight")}</label>
                             <select
                               value={profile.partnerPreferences.weight}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, weight: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any weight</option>
-                              {WEIGHTS.map((weight) => <option key={weight} value={weight}>{weight}</option>)}
+                              <option value="">{text("Any weight")}</option>
+                              {WEIGHTS.map((weight) => <option key={weight} value={weight}>{text(weight)}</option>)}
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Marital Status</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Marital Status")}</label>
                             <select
                               value={profile.partnerPreferences.maritalStatus}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, maritalStatus: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any status</option>
+                              <option value="">{text("Any status")}</option>
                               <option value="Never Married">Never Married</option>
                               <option value="Divorced">Divorced</option>
                               <option value="Widowed">Widowed</option>
@@ -1030,14 +1041,14 @@ export default function DashboardProfilePage() {
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Religion</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Religion")}</label>
                             <select
                               value={profile.partnerPreferences.religion}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, religion: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any religion</option>
-                              {RELIGIONS.map((religion) => <option key={religion} value={religion}>{religion}</option>)}
+                              <option value="">{text("Any religion")}</option>
+                              {RELIGIONS.map((religion) => <option key={religion} value={religion}>{text(religion)}</option>)}
                             </select>
                           </div>
                           <div>
@@ -1048,7 +1059,7 @@ export default function DashboardProfilePage() {
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
                               <option value="">Any education</option>
-                              {EDUCATION_LEVELS.map((education) => <option key={education} value={education}>{education}</option>)}
+                              {EDUCATION_LEVELS.map((education) => <option key={education} value={education}>{text(education)}</option>)}
                             </select>
                           </div>
                           <Input
@@ -1128,17 +1139,17 @@ export default function DashboardProfilePage() {
                       ) : saved ? (
                         <>
                           <CheckCircle className="h-5 w-5" />
-                          Saved!
+                          {text("Saved!")}
                         </>
                       ) : (
                         <>
                           <Save className="h-5 w-5" />
-                          Save Changes
+                          {text("Save Changes")}
                         </>
                       )}
                     </Button>
                     <Button variant="outline" size="lg" onClick={() => setProfile(createInitialProfile())}>
-                      Reset
+                      {text("Reset")}
                     </Button>
                   </div>
                 </div>

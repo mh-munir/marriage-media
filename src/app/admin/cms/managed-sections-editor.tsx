@@ -4,6 +4,7 @@ import * as React from "react";
 import { ImagePlus, Loader2, Save, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 import type { ManagedPageSection } from "@/components/seo/managed-page-content";
 import { adminFetch } from "@/lib/admin-fetch";
 
@@ -256,10 +257,12 @@ function ImageField({
     <div className="space-y-2">
       <p className="text-sm font-medium">{label}</p>
       {value ? (
-        <img
+        <Image
           src={value}
           alt="Selected preview"
+          fill
           className="h-28 w-48 rounded-xl object-cover"
+          sizes="192px"
         />
       ) : null}
       <label className="inline-flex cursor-pointer items-center rounded-lg border bg-white px-3 py-2 text-sm font-medium">

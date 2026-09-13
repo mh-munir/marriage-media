@@ -1,0 +1,381 @@
+"use client";
+
+import * as React from "react";
+
+export type Language = "bn" | "en";
+
+type TranslationKey =
+  | "home"
+  | "about"
+  | "pricing"
+  | "blog"
+  | "successStories"
+  | "contact"
+  | "dashboard"
+  | "search"
+  | "interests"
+  | "messages"
+  | "favorites"
+  | "login"
+  | "logout"
+  | "toggleLanguage"
+  | "registerFree"
+  | "goToDashboard"
+  | "seeSuccessStories"
+  | "profile"
+  | "whoViewedMe"
+  | "blockedUsers"
+  | "verification"
+  | "analytics"
+  | "notifications"
+  | "settings"
+  | "adminPanel"
+  | "toggleTheme"
+  | "openNotifications"
+  | "toggleMenu"
+  | "homeEyebrow"
+  | "homeTitle"
+  | "homeDescription"
+  | "verifiedProfiles"
+  | "activeMembers"
+  | "memberRating"
+  | "privacyFocused"
+  | "betterWay"
+  | "builtForReal"
+  | "noEndlessNoise"
+  | "trustFirst"
+  | "smarterRecommendations"
+  | "madeForCommitment"
+  | "meetCommunity"
+  | "peopleWorthKnowing"
+  | "communityDescription"
+  | "joinMarriageMedia"
+  | "howItWorks"
+  | "threeSteps"
+  | "tellStory"
+  | "discoverMatch"
+  | "startSomethingReal";
+
+const translations: Record<Language, Record<TranslationKey, string>> = {
+  bn: {
+    home: "হোম",
+    about: "আমাদের সম্পর্কে",
+    pricing: "মূল্য তালিকা",
+    blog: "ব্লগ",
+    successStories: "সফলতার গল্প",
+    contact: "যোগাযোগ",
+    dashboard: "ড্যাশবোর্ড",
+    search: "খুঁজুন",
+    interests: "আগ্রহ",
+    messages: "বার্তা",
+    favorites: "পছন্দের তালিকা",
+    login: "লগইন",
+    logout: "লগআউট",
+    toggleLanguage: "ভাষা পরিবর্তন করুন",
+    registerFree: "বিনামূল্যে নিবন্ধন",
+    goToDashboard: "ড্যাশবোর্ডে যান",
+    seeSuccessStories: "সফলতার গল্প দেখুন",
+    profile: "প্রোফাইল",
+    whoViewedMe: "কে আমাকে দেখেছে",
+    blockedUsers: "ব্লক করা ব্যবহারকারী",
+    verification: "যাচাইকরণ",
+    analytics: "বিশ্লেষণ",
+    notifications: "নোটিফিকেশন",
+    settings: "সেটিংস",
+    adminPanel: "অ্যাডমিন প্যানেল",
+    toggleTheme: "থিম পরিবর্তন করুন",
+    openNotifications: "নোটিফিকেশন খুলুন",
+    toggleMenu: "মেনু খুলুন বা বন্ধ করুন",
+    homeEyebrow: "অর্থপূর্ণ সম্পর্ক, আরও সহজভাবে",
+    homeTitle: "এমন একজনকে খুঁজুন, যার কাছে ঘরের মতো লাগে।",
+    homeDescription: "Marriage Media আপনাকে thoughtful matching, যাচাইকৃত প্রোফাইল এবং গুরুত্বপূর্ণ কথোপকথনের মাধ্যমে জীবনসঙ্গী খুঁজে পেতে সাহায্য করে।",
+    verifiedProfiles: "যাচাইকৃত প্রোফাইল",
+    activeMembers: "সক্রিয় সদস্য",
+    memberRating: "সদস্যদের রেটিং",
+    privacyFocused: "গোপনীয়তাকে অগ্রাধিকার",
+    betterWay: "পরিচিত হওয়ার আরও ভালো উপায়",
+    builtForReal: "বাস্তব সম্পর্কের জন্য তৈরি",
+    noEndlessNoise: "অযথা কোলাহল নয়। অর্থপূর্ণ সম্পর্কের জন্য প্রস্তুত মানুষদের একটি নিরাপদ জায়গা।",
+    trustFirst: "বিশ্বাস সবার আগে",
+    smarterRecommendations: "আরও বুদ্ধিমান সুপারিশ",
+    madeForCommitment: "প্রতিশ্রুতির জন্য তৈরি",
+    meetCommunity: "কমিউনিটির সঙ্গে পরিচিত হন",
+    peopleWorthKnowing: "যাদের জানার মতো গল্প আছে",
+    communityDescription: "প্রতিটি প্রোফাইল একজন মানুষ, যার নিজের গল্প, পরিবার এবং ভবিষ্যতের স্বপ্ন আছে। একটি শুভেচ্ছা দিয়ে শুরু করুন।",
+    joinMarriageMedia: "Marriage Media-তে যোগ দিন",
+    howItWorks: "এটি যেভাবে কাজ করে",
+    threeSteps: "আপনার নতুন অধ্যায়ের পথে তিনটি ধাপ",
+    tellStory: "আপনার গল্প বলুন",
+    discoverMatch: "আপনার মিল খুঁজে নিন",
+    startSomethingReal: "বাস্তব কিছু শুরু করুন",
+  },
+  en: {
+    home: "Home",
+    about: "About",
+    pricing: "Pricing",
+    blog: "Blog",
+    successStories: "Success Stories",
+    contact: "Contact",
+    dashboard: "Dashboard",
+    search: "Search",
+    interests: "Interests",
+    messages: "Messages",
+    favorites: "Favorites",
+    login: "Login",
+    logout: "Logout",
+    toggleLanguage: "Change language",
+    registerFree: "Register Free",
+    goToDashboard: "Go to Dashboard",
+    seeSuccessStories: "See success stories",
+    profile: "Profile",
+    whoViewedMe: "Who Viewed Me",
+    blockedUsers: "Blocked Users",
+    verification: "Verification",
+    analytics: "Analytics",
+    notifications: "Notifications",
+    settings: "Settings",
+    adminPanel: "Admin Panel",
+    toggleTheme: "Toggle theme",
+    openNotifications: "Open notifications",
+    toggleMenu: "Toggle navigation menu",
+    homeEyebrow: "Meaningful connections, made simpler",
+    homeTitle: "Meet someone who feels like home.",
+    homeDescription: "Marriage Media helps you find a genuine life partner through thoughtful matching, verified profiles, and conversations that matter.",
+    verifiedProfiles: "Verified profiles",
+    activeMembers: "active members",
+    memberRating: "member rating",
+    privacyFocused: "privacy focused",
+    betterWay: "A better way to meet",
+    builtForReal: "Built for something real.",
+    noEndlessNoise: "No endless noise. Just a warm, trusted space for people who are ready for a meaningful relationship.",
+    trustFirst: "Trust comes first",
+    smarterRecommendations: "Smarter recommendations",
+    madeForCommitment: "Made for commitment",
+    meetCommunity: "Meet the community",
+    peopleWorthKnowing: "People worth getting to know.",
+    communityDescription: "Every profile is a person with a story, a family, and hopes for the future. Start with a hello.",
+    joinMarriageMedia: "Join Marriage Media",
+    howItWorks: "How it works",
+    threeSteps: "Three steps to your next chapter.",
+    tellStory: "Tell us your story",
+    discoverMatch: "Discover your match",
+    startSomethingReal: "Start something real",
+  },
+};
+
+interface LanguageContextValue {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  toggleLanguage: () => void;
+  t: (key: TranslationKey) => string;
+  translateText: (text: string) => string;
+}
+
+const biodataText: Record<string, string> = {
+  "First Name": "নামের প্রথম অংশ",
+  "Last Name": "নামের শেষ অংশ",
+  "Email (Optional)": "ইমেইল (ঐচ্ছিক)",
+  "Mobile Number": "মোবাইল নম্বর",
+  "Father's Name": "বাবার নাম",
+  "Father's Contact Number": "বাবার মোবাইল নম্বর",
+  "Mother's Name": "মায়ের নাম",
+  "Family Type": "পরিবারের ধরন",
+  "Family Status": "পরিবারের অবস্থা",
+  "Family Values": "পারিবারিক মূল্যবোধ",
+  "Brothers and Sisters": "ভাই-বোন",
+  "Expected partner": "প্রত্যাশিত জীবনসঙ্গী",
+  "Basic Information": "মৌলিক তথ্য",
+  "Family Information": "পারিবারিক তথ্য",
+  "Location Information": "ঠিকানার তথ্য",
+  "Education & Career": "শিক্ষা ও পেশা",
+  "Complete Your Profile": "আপনার প্রোফাইল সম্পূর্ণ করুন",
+  "Save Changes": "পরিবর্তন সংরক্ষণ করুন",
+  "Reset": "রিসেট",
+  "Any age": "যেকোনো বয়স",
+  "Any height": "যেকোনো উচ্চতা",
+  "Any weight": "যেকোনো ওজন",
+  "Any status": "যেকোনো অবস্থা",
+  "Any religion": "যেকোনো ধর্ম",
+  "Any education": "যেকোনো শিক্ষা",
+  "Password": "পাসওয়ার্ড",
+  "Confirm Password": "পাসওয়ার্ড নিশ্চিত করুন",
+  "Remember me": "আমাকে মনে রাখুন",
+  "Forgot password?": "পাসওয়ার্ড ভুলে গেছেন?",
+  "Sign In": "লগইন করুন",
+  "Sign in": "লগইন",
+  "Register free": "বিনামূল্যে নিবন্ধন",
+  "Profile Photos": "প্রোফাইলের ছবি",
+  "Profile photo private": "প্রোফাইলের ছবি ব্যক্তিগত",
+  "Photos are hidden for privacy.": "গোপনীয়তার জন্য ছবি লুকানো আছে।",
+  "Photos are not shown on the public home page.": "ছবি পাবলিক হোম পেজে দেখানো হয় না।",
+  "ID pending": "আইডি অপেক্ষমাণ",
+  "Profile shared": "প্রোফাইল শেয়ারকৃত",
+  "Location not added": "লোকেশন যোগ করা হয়নি",
+  "Marriage Media Member": "Marriage Media সদস্য",
+  "yrs": "বছর",
+  "Verified": "যাচাইকৃত",
+  "Premium": "প্রিমিয়াম",
+  "New": "নতুন",
+  "View profile": "প্রোফাইল দেখুন",
+  "views": "ভিউ",
+  "User Profile": "ব্যবহারকারীর প্রোফাইল",
+  "Profile Gallery": "প্রোফাইল গ্যালারি",
+  "Photos are hidden": "ছবি লুকানো আছে",
+  "Subscribe to Premium to view photos": "ছবি দেখতে প্রিমিয়াম সাবস্ক্রাইব করুন",
+  "Subscribe to Premium to view full profile images.": "সম্পূর্ণ প্রোফাইল ছবি দেখতে প্রিমিয়াম সাবস্ক্রাইব করুন।",
+  "Upgrade Now": "এখনই আপগ্রেড করুন",
+  "Premium Feature": "প্রিমিয়াম ফিচার",
+  "No uploaded photos": "কোনও আপলোড করা ছবি নেই",
+  "No member profiles are available right now.": "এখন কোনও সদস্যের প্রোফাইল উপলব্ধ নেই।",
+  "photo": "ছবি",
+  "photos": "ছবি",
+  "Back to search": "খুঁজতে ফিরে যান",
+  "BIODATA": "বায়োডাটা",
+  "Personal Details": "ব্যক্তিগত তথ্য",
+  "Contact Details": "যোগাযোগের তথ্য",
+  "Family Details": "পরিবারের তথ্য",
+  "Name": "নাম",
+  "Age": "বয়স",
+  "Gender": "লিঙ্গ",
+  "Marital Status": "বৈবাহিক অবস্থা",
+  "Profile Created By": "প্রোফাইল তৈরি করেছেন",
+  "Religion": "ধর্ম",
+  "Caste": "জাতি/কাস্ট",
+  "Sub-caste": "উপ-জাতি",
+  "Mother Tongue": "মাতৃভাষা",
+  "Languages": "ভাষা",
+  "Nationality": "জাতীয়তা",
+  "Blood Group": "রক্তের গ্রুপ",
+  "Email": "ইমেইল",
+  "Contact Number": "কন্টাক্ট নম্বর",
+  "Working With": "যে প্রতিষ্ঠানে কাজ করছেন",
+  "Father's Contact": "বাবার কন্টাক্ট",
+  "Father's Profession": "বাবার পেশা",
+  "Mother's Profession": "মায়ের পেশা",
+  "Siblings": "ভাই-বোন",
+  "Upload at least 2 and up to 5 images.": "কমপক্ষে ২টি এবং সর্বোচ্চ ৫টি ছবি আপলোড করুন।",
+  "Add images": "ছবি যোগ করুন",
+  "Uploading": "আপলোড হচ্ছে",
+  "Relation": "সম্পর্ক",
+  "No brothers or sisters added.": "কোনো ভাই বা বোন যোগ করা হয়নি।",
+  "Tell us about the partner you are looking for.": "আপনি কেমন জীবনসঙ্গী খুঁজছেন তা জানান।",
+  "Complete your profile to get better matches.": "ভালো মিল পেতে আপনার প্রোফাইল সম্পূর্ণ করুন।",
+  "Welcome Back": "আবারও স্বাগতম",
+  "Sign in to continue your journey": "আপনার যাত্রা চালিয়ে যেতে লগইন করুন",
+  "Enter your password": "আপনার পাসওয়ার্ড লিখুন",
+  "Don't have an account?": "অ্যাকাউন্ট নেই?",
+  "Account created successfully! Please sign in.": "অ্যাকাউন্ট তৈরি হয়েছে! অনুগ্রহ করে লগইন করুন।",
+  "Islam": "ইসলাম",
+  "Hinduism": "হিন্দুধর্ম",
+  "Buddhism": "বৌদ্ধধর্ম",
+  "Christianity": "খ্রিস্টধর্ম",
+  "Sikhism": "শিখধর্ম",
+  "Other": "অন্যান্য",
+  "Primary": "প্রাথমিক",
+  "Secondary": "মাধ্যমিক",
+  "Higher Secondary": "উচ্চ মাধ্যমিক",
+  "Diploma": "ডিপ্লোমা",
+  "Bachelor's Degree": "স্নাতক ডিগ্রি",
+  "Master's Degree": "স্নাতকোত্তর ডিগ্রি",
+  "PhD": "পিএইচডি",
+  "Professional Degree": "পেশাগত ডিগ্রি",
+  "Student": "শিক্ষার্থী",
+  "Teacher": "শিক্ষক",
+  "Engineer": "প্রকৌশলী",
+  "Doctor": "চিকিৎসক",
+  "Business": "ব্যবসা",
+  "Government Service": "সরকারি চাকরি",
+  "Private Service": "বেসরকারি চাকরি",
+  "Lawyer": "আইনজীবী",
+  "Accountant": "হিসাবরক্ষক",
+  "IT Professional": "আইটি পেশাজীবী",
+  "Freelancer": "ফ্রিল্যান্সার",
+  "Homemaker": "গৃহিণী/গৃহকর্তা",
+  "Prefer not to say": "জানাতে অনিচ্ছুক",
+  "Any family type": "যেকোনো পরিবারের ধরন",
+  "Any family status": "যেকোনো পারিবারিক অবস্থা",
+  "Any family values": "যেকোনো পারিবারিক মূল্যবোধ",
+  "Saved!": "সংরক্ষিত হয়েছে!",
+  "Add sibling": "ভাই/বোন যোগ করুন",
+  "Remove": "বাদ দিন",
+  "Date of Birth": "জন্ম তারিখ",
+  "Height": "উচ্চতা",
+  "Weight": "ওজন",
+  "Male": "পুরুষ",
+  "Female": "নারী",
+  "Never Married": "অবিবাহিত",
+  "Divorced": "তালাকপ্রাপ্ত",
+  "Widowed": "বিধবা/বিপত্নীক",
+  "Awaiting Divorce": "তালাকের অপেক্ষায়",
+  "Joint": "যৌথ পরিবার",
+  "Nuclear": "একক পরিবার",
+  "Middle Class": "মধ্যবিত্ত",
+  "Upper Middle Class": "উচ্চ মধ্যবিত্ত",
+  "Rich": "সম্পদশালী",
+  "Affluent": "অত্যন্ত স্বচ্ছল",
+  "Orthodox": "রক্ষণশীল",
+  "Traditional": "ঐতিহ্যবাহী",
+  "Moderate": "মধ্যপন্থী",
+  "Liberal": "উদারপন্থী",
+  "Secular": "ধর্মনিরপেক্ষ",
+  "Brother": "ভাই",
+  "Sister": "বোন",
+  "Select division": "বিভাগ নির্বাচন করুন",
+  "Select district": "জেলা নির্বাচন করুন",
+  "Select thana": "থানা নির্বাচন করুন",
+  "Select union": "ইউনিয়ন নির্বাচন করুন",
+  "Select division first": "আগে বিভাগ নির্বাচন করুন",
+  "Select district first": "আগে জেলা নির্বাচন করুন",
+  "Select thana first": "আগে থানা নির্বাচন করুন",
+};
+
+const LanguageContext = React.createContext<LanguageContextValue | undefined>(undefined);
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  // Keep the first client render identical to the server render. Reading
+  // localStorage during state initialization caused the header language to
+  // differ while React was hydrating.
+  const [language, setLanguageState] = React.useState<Language>("bn");
+  const [hasHydrated, setHasHydrated] = React.useState(false);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("marriage-media-language");
+    queueMicrotask(() => {
+      if (saved === "en") setLanguageState("en");
+      setHasHydrated(true);
+    });
+  }, []);
+
+  React.useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem("marriage-media-language", language);
+    document.documentElement.lang = language;
+  }, [hasHydrated, language]);
+
+  const setLanguage = React.useCallback((nextLanguage: Language) => {
+    setLanguageState(nextLanguage);
+  }, []);
+
+  const toggleLanguage = React.useCallback(() => {
+    setLanguageState((current) => (current === "bn" ? "en" : "bn"));
+  }, []);
+
+  const value = React.useMemo(
+    () => ({
+      language,
+      setLanguage,
+      toggleLanguage,
+      t: (key: TranslationKey) => translations[language][key],
+      translateText: (text: string) => language === "bn" ? biodataText[text] || text : text,
+    }),
+    [language, setLanguage, toggleLanguage]
+  );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function useLanguage() {
+  const context = React.useContext(LanguageContext);
+  if (!context) throw new Error("useLanguage must be used within LanguageProvider");
+  return context;
+}

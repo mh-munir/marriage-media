@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { registerSchema } from "@/lib/validations";
-import { cn, sanitizePhoneNumberInput } from "@/lib/utils";
+import { sanitizePhoneNumberInput } from "@/lib/utils";
 import type { z } from "zod";
 
 type RegisterForm = z.infer<typeof registerSchema>;

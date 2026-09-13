@@ -4,6 +4,7 @@ import * as React from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { SocketProvider } from "@/providers/socket-provider";
+import { LanguageProvider } from "@/providers/language-provider";
 import { Toaster } from "sonner";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -14,20 +15,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <AuthProvider>
-        <SocketProvider>
-          {children}
-          <Toaster
-            position="top-right"
-            richColors
-            closeButton
-            toastOptions={{
-              className: "font-sans",
-              duration: 4000,
-            }}
-          />
-        </SocketProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <SocketProvider>
+            {children}
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              toastOptions={{
+                className: "font-sans",
+                duration: 4000,
+              }}
+            />
+          </SocketProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

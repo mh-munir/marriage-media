@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
     const statusFilter = validStatuses.includes(statusParam as (typeof validStatuses)[number])
       ? (statusParam as (typeof validStatuses)[number])
       : "pending";
-    const typeFilter = searchParams.get("type") || undefined;
+    const typeFilter = searchParams.get("type") || "profile";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
 
-    const filter: Record<string, unknown> = { status: statusFilter };
-    if (typeFilter) {
+    const filter: Record<string, unknown> = { status: statusFilter, type: "profile" };
+    if (typeFilter !== "profile") {
       filter.type = typeFilter;
     }
 
@@ -106,13 +106,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    if (verification.type !== "profile") {
+      return NextResponse.json(
+        { error: "This admin review flow is only for public profile approvals." },
+        { status: 400 }
+      );
+    }
+
     // Build timeline note
     let timelineNote = "";
     if (status === "approved") {
       timelineNote = "Verified by admin";
-      if (verification.type === "face" && verification.faceMatchScore) {
-        timelineNote += ` (Face match: ${verification.faceMatchScore}%)`;
-      }
     } else if (status === "rejected") {
       timelineNote = rejectionReason || "Verification rejected by admin";
     } else if (status === "under_review") {

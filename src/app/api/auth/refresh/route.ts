@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       message: "Tokens refreshed",
       accessToken: newTokens.accessToken,
+      refreshToken: newTokens.refreshToken,
       accessTokenExpiresAt: newTokens.accessTokenExpiresAt,
+      refreshTokenExpiresAt: newTokens.refreshTokenExpiresAt,
     });
 
     // Update access token cookie

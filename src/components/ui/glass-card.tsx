@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, type MotionProps } from "framer-motion";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface GlassCardProps extends MotionProps {
@@ -137,10 +138,12 @@ export function ProfileCard({
       {/* Photo */}
       <div className="relative h-48 -mx-6 -mt-6 mb-4 overflow-hidden">
         {imageUrl ? (
-          <img
+          <Image
             src={imageUrl}
             alt={name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            sizes="100vw"
           />
         ) : (
 <div className="h-full w-full bg-linear-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
+import { useLanguage } from "@/providers/language-provider";
 
 export function HomeDashboardAction() {
   const { isAuthenticated } = useAuthStore();
+  const { t } = useLanguage();
 
   if (!isAuthenticated) {
     return (
@@ -13,7 +15,7 @@ export function HomeDashboardAction() {
         href="/register"
         className="inline-flex items-center gap-3 rounded-xl bg-[#e8897f] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#e8897f]/25 transition-transform hover:-translate-y-0.5"
       >
-        Register Free
+        {t("registerFree")}
         <ArrowRight className="h-4 w-4" />
       </Link>
     );
@@ -25,7 +27,7 @@ export function HomeDashboardAction() {
       className="inline-flex items-center gap-2 rounded-xl border border-[#9fcfc7] bg-background/80 px-5 py-3 text-sm font-semibold text-[#486866] shadow-sm transition hover:-translate-y-0.5 hover:bg-background"
     >
       <LayoutDashboard className="h-4 w-4" />
-      Go to Dashboard
+      {t("goToDashboard")}
       <ArrowRight className="h-4 w-4" />
     </Link>
   );

@@ -70,12 +70,8 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
 }
 
 async function submitProfileReview(userId: string) {
-  const existingReview = await Verification.findOne({
-    userId,
-    type: "profile",
-    status: { $in: ["pending", "under_review", "approved"] },
-  });
-  if (existingReview) return;
+  const latestReview = await Verification.findOne({ userId, type: "profile" }).sort({ createdAt: -1 });
+  if (latestReview?.status === "pending" || latestReview?.status === "under_review" || latestReview?.status === "rejected") return;
 
   await Verification.create({
     userId,
@@ -106,7 +102,15 @@ export async function GET(request: NextRequest) {
 
     const profile = await Profile.findOne({ userId: user._id });
     if (!profile) {
-      return NextResponse.json({ profile: null, mobileNumber: user.phone || "" });
+      return NextResponse.json({
+        profile: null,
+        mobileNumber: user.phone || "",
+        onboarding: {
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          gender: user.gender || "",
+        },
+      });
     }
 
     return NextResponse.json({ profile, mobileNumber: user.phone || "" });
@@ -158,14 +162,14 @@ export async function POST(request: NextRequest) {
       publicId,
       ...body,
       age,
-      isVisible: false,
+      isVisible: true,
     });
 
     const completionPercentage = calculateProfileCompletion(body);
 
     // Update user profile completion
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
-    await Profile.findByIdAndUpdate(profile._id, { isVisible: false });
+    await Profile.findByIdAndUpdate(profile._id, { isVisible: true });
     if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 
@@ -215,7 +219,7 @@ export async function PUT(request: NextRequest) {
 
     const completionPercentage = calculateProfileCompletion(body);
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
-    await Profile.findByIdAndUpdate(profile._id, { isVisible: false });
+    await Profile.findByIdAndUpdate(profile._id, { isVisible: true });
     if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 

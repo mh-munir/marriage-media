@@ -5,7 +5,7 @@
  */
 
 import connectToDatabase from "./mongodb";
-import { EmailTemplate, User } from "@/models";
+import { EmailTemplate } from "@/models";
 
 interface SendEmailParams {
   to: string;
@@ -51,11 +51,10 @@ export async function sendTemplatedEmail(
     });
 
     let subject: string;
-    let htmlContent: string;
 
     if (template) {
       subject = renderTemplate(template.subject, params.variables);
-      htmlContent = renderTemplate(template.htmlContent, params.variables);
+      renderTemplate(template.htmlContent, params.variables);
 
       // Update usage stats
       await EmailTemplate.findByIdAndUpdate(template._id, {
@@ -64,7 +63,7 @@ export async function sendTemplatedEmail(
       });
     } else if (params.fallbackSubject && params.fallbackHtml) {
       subject = renderTemplate(params.fallbackSubject, params.variables);
-      htmlContent = renderTemplate(params.fallbackHtml, params.variables);
+      renderTemplate(params.fallbackHtml, params.variables);
     } else {
       return { success: false, error: "Template not found and no fallback provided" };
     }
@@ -91,7 +90,8 @@ export async function sendTemplatedEmail(
 export async function sendEmail(
   to: string,
   subject: string,
-  htmlContent: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _htmlContent: string
 ): Promise<EmailResult> {
   try {
     console.log(`[Email] Sent to ${to}: ${subject}`);

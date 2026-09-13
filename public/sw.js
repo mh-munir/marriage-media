@@ -1,7 +1,5 @@
 /* Marriage Media Service Worker */
- 
 
-const CACHE_NAME = "marriage-media-v1";
 const STATIC_CACHE = "marriage-media-static-v1";
 const DYNAMIC_CACHE = "marriage-media-dynamic-v1";
 
@@ -114,6 +112,6 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 // Notification close event (for analytics)
-self.addEventListener("notificationclose", (event) => {
+self.addEventListener("notificationclose", () => {
   // Track notification dismissal if needed
 });

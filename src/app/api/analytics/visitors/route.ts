@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { ProfileView, Profile } from "@/models";
+import { ProfileView } from "@/models";
 import { requireAuth } from "@/lib/auth";
 
 // Get visitor analytics for current user's profile

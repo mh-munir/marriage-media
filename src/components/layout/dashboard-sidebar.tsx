@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Search,
@@ -31,6 +30,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from "@/providers/auth-provider";
 import { useNotificationStore } from "@/stores/notification-store";
 import { getInitials } from "@/lib/utils";
+import { useLanguage } from "@/providers/language-provider";
 
 interface SidebarLink {
   href: string;
@@ -61,12 +61,33 @@ const adminLink: SidebarLink = {
   icon: Shield,
 };
 
+const sidebarTranslationKeys = {
+  Dashboard: "dashboard",
+  Search: "search",
+  Interests: "interests",
+  Messages: "messages",
+  Favorites: "favorites",
+  Profile: "profile",
+  "Who Viewed Me": "whoViewedMe",
+  "Blocked Users": "blockedUsers",
+  Verification: "verification",
+  Analytics: "analytics",
+  Notifications: "notifications",
+  Settings: "settings",
+  "Admin Panel": "adminPanel",
+} as const;
+
 export function DashboardSidebar() {
   const [collapsed, setCollapsed] = React.useState(false);
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { logout } = useAuth();
   const { unreadCount } = useNotificationStore();
+  const { t } = useLanguage();
+  const labelFor = (label: string) => {
+    const key = sidebarTranslationKeys[label as keyof typeof sidebarTranslationKeys];
+    return key ? t(key) : label;
+  };
 
   return (
     <>
@@ -116,12 +137,12 @@ collapsed ? "w-18" : "w-65"
                     ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/80"
                 )}
-                title={collapsed ? link.label : undefined}
+                title={collapsed ? labelFor(link.label) : undefined}
               >
                 <link.icon className="h-5 w-5 shrink-0" />
                 {!collapsed && (
                   <>
-                    <span className="flex-1">{link.label}</span>
+                    <span className="flex-1">{labelFor(link.label)}</span>
                     {link.badge && link.badge > 0 && (
                       <Badge className="h-5 min-w-5 text-[10px] px-1">{link.badge}</Badge>
                     )}
@@ -150,10 +171,10 @@ collapsed ? "w-18" : "w-65"
                     ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/80"
                 )}
-                title={collapsed ? adminLink.label : undefined}
+                title={collapsed ? labelFor(adminLink.label) : undefined}
               >
                 <Shield className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{adminLink.label}</span>}
+                {!collapsed && <span>{labelFor(adminLink.label)}</span>}
               </Link>
             </>
           )}
@@ -167,7 +188,7 @@ collapsed ? "w-18" : "w-65"
             onClick={() => logout()}
           >
             <LogOut className="h-5 w-5" />
-            {!collapsed && <span className="ml-3">Logout</span>}
+            {!collapsed && <span className="ml-3">{t("logout")}</span>}
           </Button>
 
           <Button
@@ -198,7 +219,7 @@ collapsed ? "w-18" : "w-65"
                 )}
               >
                 <link.icon className="h-5 w-5" />
-                <span>{link.label}</span>
+                <span>{labelFor(link.label)}</span>
               </Link>
             );
           })}

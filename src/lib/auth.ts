@@ -5,7 +5,6 @@ import connectToDatabase from "./mongodb";
 import { User, type IUser } from "@/models";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
-const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET!;
 
 export interface JWTPayload {
   userId: string;
@@ -57,7 +56,7 @@ export function verifyPasswordResetToken(token: string): { email: string } | nul
   }
 }
 
-export async function getCurrentUser(request?: NextRequest): Promise<(IUser & { _id: any }) | null> {
+export async function getCurrentUser(request?: NextRequest): Promise<IUser | null> {
   try {
     await connectToDatabase();
 
@@ -87,13 +86,13 @@ export async function getCurrentUser(request?: NextRequest): Promise<(IUser & { 
     const user = await User.findById(payload.userId).select("-password");
     if (!user || !user.isActive || user.isBlocked) return null;
 
-    return user as IUser & { _id: any };
+    return user;
   } catch {
     return null;
   }
 }
 
-export async function requireAuth(request?: NextRequest): Promise<IUser & { _id: any }> {
+export async function requireAuth(request?: NextRequest): Promise<IUser> {
   const user = await getCurrentUser(request);
   if (!user) {
     throw new Error("Unauthorized");
@@ -101,7 +100,7 @@ export async function requireAuth(request?: NextRequest): Promise<IUser & { _id:
   return user;
 }
 
-export async function requireAdmin(request?: NextRequest): Promise<IUser & { _id: any }> {
+export async function requireAdmin(request?: NextRequest): Promise<IUser> {
   const user = await requireAuth(request);
   if (user.role !== "admin" && user.role !== "superadmin") {
     throw new Error("Forbidden");
@@ -109,7 +108,7 @@ export async function requireAdmin(request?: NextRequest): Promise<IUser & { _id
   return user;
 }
 
-export async function requirePremium(request?: NextRequest): Promise<IUser & { _id: any }> {
+export async function requirePremium(request?: NextRequest): Promise<IUser> {
   const user = await requireAuth(request);
   const { Profile } = await import("@/models");
   const profile = await Profile.findOne({ userId: user._id });

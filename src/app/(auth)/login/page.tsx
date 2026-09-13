@@ -17,6 +17,7 @@ import { loginSchema } from "@/lib/validations";
 import { sanitizePhoneNumberInput } from "@/lib/utils";
 import { useAuthStore, type AuthUser } from "@/stores/auth-store";
 import type { z } from "zod";
+import { useLanguage } from "@/providers/language-provider";
 
 type LoginForm = z.infer<typeof loginSchema>;
 
@@ -24,6 +25,7 @@ function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setUser, setTokens } = useAuthStore();
+  const { translateText: text } = useLanguage();
   const registered = searchParams.get("registered");
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -60,7 +62,7 @@ function LoginFormInner() {
       }
       const { user } = (await userResponse.json()) as { user: AuthUser };
       setUser(user);
-      router.push("/dashboard");
+      router.push(user.onboardingCompleted ? "/dashboard" : "/onboarding");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -91,16 +93,16 @@ function LoginFormInner() {
 
         <Card className="border-white/40 bg-background/90 shadow-2xl backdrop-blur-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl">{text("Welcome Back")}</CardTitle>
             <CardDescription>
-              Sign in to continue your journey
+              {text("Sign in to continue your journey")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {registered && (
               <div className="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
-                Account created successfully! Please sign in.
+                {text("Account created successfully! Please sign in.")}
               </div>
             )}
 
@@ -127,7 +129,7 @@ function LoginFormInner() {
                 <Input
                   label="Password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder={text("Enter your password")}
                   error={errors.password?.message}
                   {...register("password")}
                 />
@@ -143,10 +145,10 @@ function LoginFormInner() {
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" className="rounded border-gray-300" />
-                  Remember me
+                  {text("Remember me")}
                 </label>
                 <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
+                  {text("Forgot password?")}
                 </Link>
               </div>
 
@@ -155,7 +157,7 @@ function LoginFormInner() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <>
-                    Sign In
+                    {text("Sign In")}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -163,9 +165,9 @@ function LoginFormInner() {
             </form>
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">Don&apos;t have an account? </span>
+              <span className="text-muted-foreground">{text("Don't have an account?")} </span>
               <Link href="/register" className="text-primary hover:underline font-medium">
-                Register free
+                 {text("Register free")}
               </Link>
             </div>
           </CardContent>

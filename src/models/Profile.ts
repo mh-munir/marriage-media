@@ -298,7 +298,7 @@ const ProfileSchema = new Schema<IProfile>(
     isVerified: { type: Boolean, default: false },
     verifiedAt: { type: Date },
 
-    isVisible: { type: Boolean, default: false },
+    isVisible: { type: Boolean, default: true },
     isDeactivated: { type: Boolean, default: false },
     lastActiveAt: { type: Date, default: Date.now },
   },

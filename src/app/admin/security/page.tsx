@@ -15,10 +15,8 @@ import {
   CheckCircle,
   Clock,
   Laptop,
-  RefreshCw,
   Activity,
   UserX,
-  Search,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -102,17 +100,7 @@ export default function SecurityDashboardPage() {
   const [activeTab, setActiveTab] = React.useState("overview");
   const limit = 20;
 
-  React.useEffect(() => {
-    fetchOverview();
-  }, []);
-
-  React.useEffect(() => {
-    if (activeTab === "login-history") fetchLoginHistory();
-    if (activeTab === "audit-logs") fetchAuditLogs();
-    if (activeTab === "active-sessions") fetchActiveSessions();
-  }, [activeTab, page]);
-
-  async function fetchOverview() {
+  const fetchOverview = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/security?section=overview");
@@ -125,9 +113,9 @@ export default function SecurityDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function fetchLoginHistory() {
+  const fetchLoginHistory = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/security?section=login-history&limit=${limit}&skip=${page * limit}`);
@@ -141,9 +129,9 @@ export default function SecurityDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page]);
 
-  async function fetchAuditLogs() {
+  const fetchAuditLogs = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/security?section=audit-logs&limit=${limit}&skip=${page * limit}`);
@@ -157,9 +145,9 @@ export default function SecurityDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page]);
 
-  async function fetchActiveSessions() {
+  const fetchActiveSessions = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/security?section=active-sessions");
@@ -171,7 +159,19 @@ export default function SecurityDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  React.useEffect(() => {
+    setTimeout(() => fetchOverview(), 0);
+  }, [fetchOverview]);
+
+  React.useEffect(() => {
+    setTimeout(() => {
+      if (activeTab === "login-history") fetchLoginHistory();
+      if (activeTab === "audit-logs") fetchAuditLogs();
+      if (activeTab === "active-sessions") fetchActiveSessions();
+    }, 0);
+  }, [activeTab, page, fetchLoginHistory, fetchAuditLogs, fetchActiveSessions]);
 
   async function handleIPAction(action: string) {
     if (!ipInput) return;

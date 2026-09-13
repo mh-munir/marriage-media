@@ -12,8 +12,6 @@ import {
   Monitor,
   Maximize2,
   Minimize2,
-  MessageCircle,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,7 +19,6 @@ import { cn, getInitials } from "@/lib/utils";
 
 interface VideoCallProps {
   participantName: string;
-  participantAvatar?: string;
   isIncoming?: boolean;
   onAccept?: () => void;
   onDecline?: () => void;
@@ -30,7 +27,6 @@ interface VideoCallProps {
 
 export function VideoCall({
   participantName,
-  participantAvatar,
   isIncoming = false,
   onAccept,
   onDecline,

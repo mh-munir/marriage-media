@@ -5,10 +5,6 @@ import { Profile } from "@/models";
 
 export const dynamic = "force-dynamic";
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
-}
-
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();

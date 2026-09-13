@@ -1,5 +1,5 @@
 import connectToDatabase from "./mongodb";
-import { FraudLog, LoginHistory, Profile, User } from "@/models";
+import { FraudLog, LoginHistory, Profile } from "@/models";
 
 interface FraudCheckResult {
   isFraud: boolean;

@@ -38,6 +38,10 @@ export interface IUser extends Document {
   // WhatsApp
   whatsappNumber?: string;
   whatsappOptIn: boolean;
+  firstName?: string;
+  lastName?: string;
+  gender?: "Male" | "Female";
+  onboardingCompleted: boolean;
   // Account lockout fields
   failedLoginAttempts: number;
   lockedUntil?: Date;
@@ -142,6 +146,26 @@ const UserSchema = new Schema<IUser>(
       default: "",
     },
     whatsappOptIn: {
+      type: Boolean,
+      default: false,
+    },
+    firstName: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 50,
+    },
+    lastName: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 50,
+    },
+    gender: {
+      type: String,
+      enum: ["Male", "Female"],
+    },
+    onboardingCompleted: {
       type: Boolean,
       default: false,
     },

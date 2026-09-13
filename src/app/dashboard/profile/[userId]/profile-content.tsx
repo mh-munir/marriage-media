@@ -3,10 +3,13 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/providers/language-provider";
+import { useAuthStore } from "@/stores/auth-store";
 
 type PublicPhoto = { url: string; isPrimary: boolean };
 type PublicProfile = {
@@ -78,12 +81,14 @@ type PublicProfile = {
 };
 
 function Detail({ label, value, isPremiumField = false, currentUserIsPremium = true }: { label: string; value?: string | number; isPremiumField?: boolean; currentUserIsPremium?: boolean }) {
+  const { translateText } = useLanguage();
+
   if (value === undefined || value === "" || value === 0) return null;
   if (isPremiumField && !currentUserIsPremium) return null;
 
   return (
     <div className="grid grid-cols-[minmax(112px,34%)_1fr] gap-2 border-b border-[#d9a0a6]/45 py-1.5 text-xs leading-5 sm:text-sm">
-      <dt className="font-semibold text-[#8d3d49]">{label}</dt>
+      <dt className="font-semibold text-[#8d3d49]">{translateText(label)}</dt>
       <dd className="min-w-0 text-[#4c3d40]">{value}</dd>
     </div>
   );
@@ -99,6 +104,9 @@ function DetailsCard({ title, children }: { title: string; children: React.React
 }
 
 export function PublicProfileContent({ params }: { params: Promise<{ userId: string }> }) {
+  const router = useRouter();
+  const userId = useAuthStore((state) => state.user?.id);
+  const { translateText } = useLanguage();
   const [profile, setProfile] = React.useState<PublicProfile | null>(null);
   const [hasFullProfileAccess, setHasFullProfileAccess] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -108,8 +116,12 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
     let active = true;
     const loadProfile = async () => {
       try {
-        const { userId } = await params;
-        const response = await fetch(`/api/profile/${userId}`, { cache: "no-store" });
+        const { userId: profileUserId } = await params;
+        if (profileUserId === userId) {
+          router.replace("/dashboard/profile");
+          return;
+        }
+        const response = await fetch(`/api/profile/${profileUserId}`, { cache: "no-store" });
         const result = (await response.json()) as { profile?: PublicProfile; access?: { fullAccess?: boolean }; error?: string };
         if (!response.ok) throw new Error(result.error || "Unable to load profile.");
         if (active) {
@@ -122,7 +134,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
     };
     void loadProfile();
     return () => { active = false; };
-  }, [params]);
+  }, [params, router, userId]);
 
   const handlePhotoClick = () => {
     if (!currentUserIsPremium) {
@@ -155,10 +167,11 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
     return <><Header /><main className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></main></>;
   }
 
-  const name = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Marriage Media Member";
-  const displayName = currentUserIsPremium ? name : "User Profile";
+  const name = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || translateText("Marriage Media Member");
+  const displayName = currentUserIsPremium ? name : translateText("User Profile");
   const photos = profile.photos.length ? profile.photos : [{ url: "", isPrimary: true }];
   const activePhoto = photos.find((photo) => photo.isPrimary) || photos[0];
+  const photoCountLabel = `${currentUserIsPremium ? profile.photos.length : "?"} ${profile.photos.length === 1 ? translateText("photo") : translateText("photos")}`;
 
   return (
     <div className="min-h-screen bg-linear-to-b from-rose-50/60 via-background to-background dark:from-rose-950/10">
@@ -172,7 +185,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
           <span className="pointer-events-none absolute bottom-2 right-2 h-12 w-12 border-b-2 border-r-2 border-[#a83f50] sm:bottom-4 sm:right-4" />
           <div className="mx-auto max-w-3xl">
             <header className="relative min-h-36 pb-4 text-center sm:min-h-40">
-              <h1 className="mt-1 font-serif text-2xl font-bold tracking-[0.18em] text-[#7b2938] sm:text-3xl">BIODATA</h1>
+              <h1 className="mt-1 font-serif text-2xl font-bold tracking-[0.18em] text-[#7b2938] sm:text-3xl">{translateText("BIODATA")}</h1>
               <p className="mt-1 text-sm font-semibold text-[#9c4a55]">{displayName}</p>
               <div onClick={handlePhotoClick} className={`absolute right-0 top-6 h-28 w-24 overflow-hidden rounded-sm border border-[#c99aa1] bg-[#ead8da] sm:h-32 sm:w-28 ${!currentUserIsPremium ? "cursor-pointer opacity-50 hover:opacity-75" : ""}`}>
                 {currentUserIsPremium && activePhoto.url ? (
@@ -184,8 +197,8 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
             </header>
             <section className="mt-5 py-4">
               <div className="mb-3 flex items-center justify-between border-b-2 border-[#9b3f4c] pb-1">
-                <h2 className="text-sm font-bold text-[#7b2938]">Profile Gallery</h2>
-                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9c4a55]">{currentUserIsPremium ? profile.photos.length : "?"} {profile.photos.length === 1 ? "photo" : "photos"}</span>
+                <h2 className="text-sm font-bold text-[#7b2938]">{translateText("Profile Gallery")}</h2>
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#9c4a55]">{photoCountLabel}</span>
               </div>
               {currentUserIsPremium && profile.photos.length ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -197,15 +210,15 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 </div>
               ) : !currentUserIsPremium ? (
                 <div onClick={handlePhotoClick} className="cursor-pointer py-8 text-center text-sm text-[#8d6b70] hover:bg-[#f0d4d8] rounded-md">
-                  <p className="font-semibold">🔒 Photos are hidden</p>
-                  <p>Subscribe to Premium to view photos</p>
+                  <p className="font-semibold">🔒 {translateText("Photos are hidden")}</p>
+                  <p>{translateText("Subscribe to Premium to view photos")}</p>
                 </div>
               ) : (
-                <p className="py-3 text-center text-sm text-[#8d6b70]">No uploaded photos</p>
+                <p className="py-3 text-center text-sm text-[#8d6b70]">{translateText("No uploaded photos")}</p>
               )}
             </section>
             <div className="mt-5 space-y-5">
-              <DetailsCard title="Personal Details">
+              <DetailsCard title={translateText("Personal Details")}>
                 <Detail label="Name" value={currentUserIsPremium ? name : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Age" value={profile.age} />
                 <Detail label="Gender" value={profile.gender} />
@@ -221,7 +234,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Weight" value={profile.weight} />
                 <Detail label="Blood Group" value={profile.bloodGroup} />
               </DetailsCard>
-              <DetailsCard title="Contact Details">
+              <DetailsCard title={translateText("Contact Details")}>
                 <Detail label="Email" value={currentUserIsPremium ? profile.email : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Contact Number" value={currentUserIsPremium ? profile.contactNumber : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Country" value={profile.country} />
@@ -231,7 +244,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Union" value={profile.union} />
                 <Detail label="Area" value={currentUserIsPremium ? profile.area : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
               </DetailsCard>
-              <DetailsCard title="Education & Career">
+              <DetailsCard title={translateText("Education & Career")}>
                 <Detail label="Highest Education" value={profile.highestEducation} />
                 <Detail label="Institution" value={profile.institution} />
                 <Detail label="Profession" value={profile.profession} />
@@ -239,7 +252,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Company" value={profile.company} />
                 <Detail label="Annual Income" value={profile.annualIncome} />
               </DetailsCard>
-              <DetailsCard title="Family Details">
+              <DetailsCard title={translateText("Family Details")}>
                 <Detail label="Family Type" value={profile.familyType} />
                 <Detail label="Family Status" value={profile.familyStatus} />
                 <Detail label="Family Values" value={profile.familyValues} />

@@ -197,7 +197,7 @@ export async function sendPushToUser(
     try {
       if (sub.type === "fcm" && sub.token) {
         const ok = await sendPushNotification(sub.token, title, body, data);
-        ok ? sent++ : failed++;
+        if (ok) sent++; else failed++;
       } else if (sub.type === "webpush" && sub.endpoint && sub.keys) {
         const ok = await sendWebPushNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
@@ -205,7 +205,7 @@ export async function sendPushToUser(
           body,
           data
         );
-        ok ? sent++ : failed++;
+        if (ok) sent++; else failed++;
       }
     } catch {
       failed++;

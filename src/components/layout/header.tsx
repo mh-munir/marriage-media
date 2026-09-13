@@ -15,6 +15,7 @@ import {
   LogOut,
   Search,
   MessageCircle,
+  Languages,
   type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
@@ -24,6 +25,7 @@ import { useNotificationStore } from "@/stores/notification-store";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/providers/language-provider";
 
 interface NavLink {
   href: string;
@@ -53,6 +55,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { language, toggleLanguage, t } = useLanguage();
   const { user: authUser, isAuthenticated } = useAuthStore();
   const { logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -71,6 +74,24 @@ export function Header() {
   const isDashboard = pathname.startsWith("/dashboard");
   const isAdmin = pathname.startsWith("/admin");
   const links = isDashboard || isAdmin ? dashboardLinks : publicLinks;
+
+  const translatedLabel = (href: string, fallback: string) => {
+    const keyByHref = {
+      "/": "home",
+      "/about": "about",
+      "/pricing": "pricing",
+      "/blog": "blog",
+      "/success-stories": "successStories",
+      "/contact": "contact",
+      "/dashboard": "dashboard",
+      "/dashboard/search": "search",
+      "/dashboard/interests": "interests",
+      "/dashboard/messages": "messages",
+      "/dashboard/favorites": "favorites",
+    } as const;
+    const key = keyByHref[href as keyof typeof keyByHref];
+    return key ? t(key) : fallback;
+  };
 
   return (
     <header
@@ -109,7 +130,7 @@ export function Header() {
                     : "text-muted-foreground hover:bg-background hover:text-foreground"
                 )}
               >
-                {link.label}
+                {translatedLabel(link.href, link.label)}
               </Link>
             ))}
           </nav>
@@ -122,7 +143,7 @@ export function Header() {
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="rounded-full text-muted-foreground hover:bg-background hover:text-primary"
-              aria-label="Toggle theme"
+              aria-label={t("toggleTheme")}
             >
               <motion.div
                 initial={false}
@@ -137,6 +158,18 @@ export function Header() {
               </motion.div>
             </Button>
 
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleLanguage}
+              className="rounded-full text-muted-foreground hover:bg-background hover:text-primary"
+              aria-label={t("toggleLanguage")}
+              title={t("toggleLanguage")}
+            >
+              <Languages className="h-5 w-5" />
+              <span className="sr-only">{language === "bn" ? "English" : "বাংলা"}</span>
+            </Button>
+
             {isAuthenticated && authUser ? (
               <>
                 {/* Notifications */}
@@ -144,7 +177,7 @@ export function Header() {
                   variant="ghost"
                   size="icon"
                   className="relative rounded-full text-muted-foreground hover:bg-background hover:text-primary"
-                  aria-label="Open notifications"
+                  aria-label={t("openNotifications")}
                   onClick={() => setNotificationsOpen(true)}
                 >
                   <Bell className="h-5 w-5" />
@@ -157,16 +190,13 @@ export function Header() {
                   onClick={() => void logout()}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Logout
+                  {t("logout")}
                 </Button>
               </>
             ) : (
               <div className="hidden md:flex items-center gap-2">
-                <Button variant="ghost" asChild className="rounded-full text-muted-foreground">
-                  <Link href="/login">Login</Link>
-                </Button>
                 <Button variant="gradient" asChild className="rounded-full px-5 shadow-md shadow-primary/20">
-                  <Link href="/register">Register Free</Link>
+                  <Link href="/login">{t("login")}</Link>
                 </Button>
               </div>
             )}
@@ -177,7 +207,7 @@ export function Header() {
               size="icon"
               className="rounded-full md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle navigation menu"
+              aria-label={t("toggleMenu")}
               aria-expanded={mobileOpen}
               aria-controls="mobile-navigation"
             >
@@ -216,19 +246,14 @@ export function Header() {
                   )}
                 >
                   {link.icon && <link.icon className="h-4 w-4" />}
-                  {link.label}
+                    {translatedLabel(link.href, link.label)}
                 </Link>
               ))}
               {!isAuthenticated && (
                 <div className="pt-4 space-y-2">
-                  <Button variant="outline" asChild className="w-full rounded-xl">
-                    <Link href="/login" onClick={() => setMobileOpen(false)}>
-                      Login
-                    </Link>
-                  </Button>
                   <Button variant="gradient" asChild className="w-full rounded-xl">
-                    <Link href="/register" onClick={() => setMobileOpen(false)}>
-                      Register Free
+                      <Link href="/login" onClick={() => setMobileOpen(false)}>
+                        {t("login")}
                     </Link>
                   </Button>
                 </div>
@@ -244,7 +269,7 @@ export function Header() {
                     }}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    Logout
+                    {t("logout")}
                   </Button>
                 </div>
               )}

@@ -3,6 +3,7 @@ import Verification, {
   type VerificationType,
   type VerificationStatus,
   type IVerificationBadge,
+  type IVerification,
 } from "@/models/Verification";
 import { Profile } from "@/models";
 import { sendEmail } from "./email";
@@ -151,7 +152,7 @@ export async function sendPhoneOTP(
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
   // Upsert verification record
-  const verification = await Verification.findOneAndUpdate(
+  await Verification.findOneAndUpdate(
     { userId, type: "phone", status: "pending" },
     {
       userId,
@@ -391,7 +392,7 @@ export async function submitNIDVerification(
   documentUrl: string,
   documentNumber: string,
   documentPublicId?: string
-): Promise<{ verification: any; error?: string }> {
+): Promise<{ verification: IVerification | null; error?: string }> {
   await connectToDatabase();
 
   // Check for existing approved NID
@@ -446,7 +447,7 @@ export async function submitPassportVerification(
   documentUrl: string,
   documentNumber: string,
   documentPublicId?: string
-): Promise<{ verification: any; error?: string }> {
+): Promise<{ verification: IVerification | null; error?: string }> {
   await connectToDatabase();
 
   const existing = await Verification.findOne({
@@ -498,7 +499,7 @@ export async function submitFaceVerification(
   userId: string,
   selfieUrl: string,
   selfiePublicId?: string
-): Promise<{ verification: any; error?: string }> {
+): Promise<{ verification: IVerification | null; error?: string }> {
   await connectToDatabase();
 
   const existing = await Verification.findOne({
@@ -557,7 +558,7 @@ export async function submitSelfieVerification(
   userId: string,
   selfieUrl: string,
   selfiePublicId?: string
-): Promise<{ verification: any; error?: string }> {
+): Promise<{ verification: IVerification | null; error?: string }> {
   await connectToDatabase();
 
   const existing = await Verification.findOne({
@@ -596,7 +597,7 @@ export async function submitSelfieVerification(
  */
 export async function getVerificationStatus(userId: string): Promise<{
   badge: IVerificationBadge;
-  verifications: any[];
+  verifications: IVerification[];
   completedSteps: string[];
   totalSteps: number;
 }> {

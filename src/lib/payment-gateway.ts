@@ -582,7 +582,6 @@ async function initNagadPayment(
     // Nagad integration placeholder - requires Nagad merchant credentials
     const merchantId = process.env.NAGAD_MERCHANT_ID;
     const publicKey = process.env.NAGAD_PUBLIC_KEY;
-    const privateKey = process.env.NAGAD_PRIVATE_KEY;
 
     if (!merchantId || !publicKey) {
       return { success: false, transactionId, invoiceNumber, error: "Nagad not configured" };

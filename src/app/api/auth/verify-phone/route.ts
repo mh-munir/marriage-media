@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth(request);
     const body = await request.json();
-    const { phone, action } = body;
+    const { phone } = body;
 
     if (!phone) {
       return NextResponse.json(

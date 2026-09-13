@@ -4,15 +4,20 @@ import * as React from "react";
 import { ImagePlus, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 import { HomeSection } from "@/components/seo/home-page-override";
 import { adminFetch } from "@/lib/admin-fetch";
 
 export function HomeSectionsEditor({ sections, onSave }: { sections: HomeSection[]; onSave: (sections: HomeSection[]) => Promise<void> }) {
-  const [draft, setDraft] = React.useState(sections);
+  const [draft, setDraft] = React.useState<HomeSection[]>(sections);
   const [uploading, setUploading] = React.useState("");
   const [error, setError] = React.useState("");
 
-  React.useEffect(() => setDraft(sections), [sections]);
+  // Sync draft with sections prop when it changes
+  React.useEffect(() => {
+    // Use setTimeout to avoid synchronous state update in effect
+    setTimeout(() => setDraft(sections), 0);
+  }, [sections]);
 
   function update(index: number, patch: Partial<HomeSection>) {
     setDraft((current) => current.map((section, itemIndex) => itemIndex === index ? { ...section, ...patch } : section));
@@ -66,5 +71,5 @@ export function HomeSectionsEditor({ sections, onSave }: { sections: HomeSection
 }
 
 function ImageUpload({ label, value, uploading, onChange }: { label: string; value: string; uploading: boolean; onChange: (file: File) => void }) {
-  return <div className="space-y-2"><p className="text-sm font-medium">{label}</p>{value ? <img src={value} alt="Selected upload preview" className="h-32 w-full rounded-xl object-cover" /> : <div className="flex h-24 items-center justify-center rounded-xl border border-dashed text-sm text-slate-500">No image selected</div>}<label className="inline-flex cursor-pointer items-center rounded-lg border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50">{uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}{uploading ? "Uploading..." : "Choose image"}<input type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) onChange(file); event.currentTarget.value = ""; }} /></label></div>;
+  return <div className="space-y-2"><p className="text-sm font-medium">{label}</p>{value ? <Image src={value} alt="Selected upload preview" fill className="h-32 w-full rounded-xl object-cover" sizes="100vw" /> : <div className="flex h-24 items-center justify-center rounded-xl border border-dashed text-sm text-slate-500">No image selected</div>}<label className="inline-flex cursor-pointer items-center rounded-lg border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50">{uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}{uploading ? "Uploading..." : "Choose image"}<input type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) onChange(file); event.currentTarget.value = ""; }} /></label></div>;
 }

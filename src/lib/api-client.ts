@@ -36,7 +36,7 @@ class ApiClient {
       const refreshed = await this.refreshToken();
       if (!refreshed) {
         useAuthStore.getState().logout();
-        window.location.href = "/login";
+        window.location.href = "/";
         throw new Error("Session expired");
       }
       throw new Error("RETRY_REQUEST");

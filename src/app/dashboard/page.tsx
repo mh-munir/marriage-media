@@ -350,7 +350,7 @@ export default function DashboardPage() {
                       Add your Expected partner preferences to see profiles with more than 50% matches.
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                       {recommendations.map((match, index) => {
                         const matchIdentifier = normalizeProfileId(match.userId) || normalizeProfileId(match._id);
                         if (!matchIdentifier) return null;

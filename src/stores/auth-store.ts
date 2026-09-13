@@ -12,6 +12,8 @@ export interface AuthUser {
   premiumPlan?: string;
   isVerified: boolean;
   profileCompleted: number;
+  gender?: "Male" | "Female";
+  onboardingCompleted: boolean;
 }
 
 interface AuthState {

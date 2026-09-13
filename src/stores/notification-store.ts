@@ -74,6 +74,7 @@ interface NotificationState {
   fetchPreferences: () => Promise<void>;
   setNotifications: (notifications: AppNotification[]) => void;
   addNotification: (notification: AppNotification) => void;
+  reset: () => void;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
@@ -200,6 +201,16 @@ export const useNotificationStore = create<NotificationState>()(
           notifications: [notification, ...state.notifications].slice(0, 100),
           unreadCount: state.unreadCount + (notification.isRead ? 0 : 1),
         })),
+
+      reset: () =>
+        set({
+          notifications: [],
+          unreadCount: 0,
+          isLoading: false,
+          page: 1,
+          hasMore: true,
+          preferences: defaultPreferences,
+        }),
 
       markAsRead: async (id) => {
         // Optimistic update

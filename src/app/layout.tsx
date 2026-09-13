@@ -14,8 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className="font-sans">
+    <html lang="bn" data-languages="bn,en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body>
         <Providers>{children}</Providers>
       </body>
     </html>

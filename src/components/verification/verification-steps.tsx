@@ -28,9 +28,14 @@ interface VerificationStep {
   trustWeight: number;
 }
 
+interface VerificationRecord {
+  type: string;
+  status: string;
+  createdAt?: string | Date;
+}
+
 interface VerificationStepsProps {
-  completedSteps: string[];
-  verifications: any[];
+  verifications: VerificationRecord[];
   onStepAction: (type: VerificationStepType) => void;
   className?: string;
 }
@@ -82,15 +87,16 @@ const STEPS_CONFIG: Omit<VerificationStep, "status">[] = [
 
 function getStepStatus(
   type: VerificationStepType,
-  verifications: any[]
+  verifications: VerificationRecord[]
 ): VerificationStep["status"] {
   // Find the latest verification for this type
   const relevant = verifications
     .filter((v) => v.type === type)
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    .sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
 
   if (relevant.length === 0) return "not_started";
 
@@ -161,7 +167,6 @@ const statusDisplay: Record<
 };
 
 export function VerificationSteps({
-  completedSteps,
   verifications,
   onStepAction,
   className,

@@ -525,7 +525,7 @@ export default function DashboardSearchPage() {
             )}
 
             {isAppending ? (
-              <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <ProfileSkeleton />
                 <ProfileSkeleton />
                 <ProfileSkeleton />
@@ -580,7 +580,7 @@ function ProfileGrid({
   currentUserIsPremium?: boolean;
 }) {
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {profiles.map((profile, index) => (
         <ProfileCard
           key={profile.userId}
@@ -650,7 +650,7 @@ function EmptyState({ title, description }: { title: string; description: string
 
 function ProfileGridSkeleton() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 6 }).map((_, index) => (
         <ProfileSkeleton key={index} />
       ))}

@@ -1,16 +1,11 @@
 import { cache } from "react";
 import type { Types } from "mongoose";
-
-type HomePhoto = {
-  url: string;
-  isPrimary?: boolean;
-  isApproved?: boolean;
-};
+import { ensurePublicIdForProfile } from "@/lib/public-id";
 
 type RawHomeProfile = {
   _id: Types.ObjectId;
-  firstName?: string;
-  lastName?: string;
+  userId?: Types.ObjectId;
+  publicId?: string;
   age?: number;
   gender?: "Male" | "Female";
   district?: string;
@@ -26,7 +21,6 @@ type RawHomeProfile = {
   profileViews?: number;
   lastActiveAt?: Date;
   createdAt?: Date;
-  photos?: HomePhoto[];
 };
 
 type RawSuccessStory = {
@@ -43,8 +37,10 @@ type RawSuccessStory = {
 
 export type HomeProfile = {
   id: string;
+  publicId: string;
   name: string;
   age: number | null;
+  gender?: "Male" | "Female";
   location: string;
   profession: string;
   education: string;
@@ -87,43 +83,38 @@ export type HomeData = {
 };
 
 const PROFILE_SELECT =
-  "firstName lastName age gender district division country highestEducation profession religion maritalStatus photos isPremium isVerified isProfileBoosted profileViews lastActiveAt createdAt";
+  "userId publicId age gender district division country highestEducation profession religion maritalStatus isPremium isVerified isProfileBoosted profileViews lastActiveAt createdAt";
 
-const visibleProfileFilter = {
-  isVisible: true,
+const publicProfileFilter = {
   isDeactivated: false,
 };
-
-function getPrimaryPhoto(photos: HomePhoto[] | undefined): string | null {
-  const approvedPhotos = photos?.filter((photo) => photo.isApproved && photo.url) ?? [];
-  return (
-    approvedPhotos.find((photo) => photo.isPrimary)?.url ??
-    approvedPhotos[0]?.url ??
-    null
-  );
-}
 
 function toIsoString(value: Date | undefined): string | null {
   return value instanceof Date ? value.toISOString() : null;
 }
 
-function mapProfile(profile: RawHomeProfile): HomeProfile {
-  const firstName = profile.firstName?.trim() || "Member";
-  const lastName = profile.lastName?.trim() || "";
+async function mapProfile(profile: RawHomeProfile): Promise<HomeProfile> {
   const location = [profile.district, profile.division, profile.country]
     .filter(Boolean)
     .join(", ");
+  const publicId = profile.userId
+    ? await ensurePublicIdForProfile(profile.userId, profile.publicId)
+    : profile.publicId?.trim() || `IMD-${profile._id.toString().slice(-6).toUpperCase()}`;
 
   return {
-    id: profile._id.toString(),
-    name: [firstName, lastName].filter(Boolean).join(" "),
+    id: profile.userId?.toString() || profile._id.toString(),
+    publicId,
+    // Kept as a non-identifying fallback for the legacy CMS renderer.
+    name: "Member",
     age: typeof profile.age === "number" ? profile.age : null,
+    gender: profile.gender,
     location: location || "Bangladesh",
     profession: profile.profession || "Profession not added",
     education: profile.highestEducation || "Education not added",
     religion: profile.religion || "Religion not added",
     maritalStatus: profile.maritalStatus || "Marital status not added",
-    imageUrl: getPrimaryPhoto(profile.photos),
+    // Home cards deliberately never receive members' photo URLs.
+    imageUrl: null,
     isPremium: Boolean(profile.isPremium),
     isVerified: Boolean(profile.isVerified),
     isProfileBoosted: Boolean(profile.isProfileBoosted),
@@ -166,7 +157,7 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
     ]);
 
   const activePremiumFilter = {
-    ...visibleProfileFilter,
+    ...publicProfileFilter,
     isPremium: true,
     premiumExpiry: { $gt: now },
   };
@@ -177,9 +168,7 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
   };
 
   const [
-    featuredProfiles,
     premiumMembers,
-    recentMembers,
     successStories,
     activeProfiles,
     acceptedMatches,
@@ -188,22 +177,10 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
     successStoriesCount,
     recentMembersCount,
   ] = await Promise.all([
-    Profile.find({ ...visibleProfileFilter, isProfileBoosted: true })
-      .select(PROFILE_SELECT)
-      .sort({ boostedAt: -1, profileViews: -1, lastActiveAt: -1 })
-      .limit(6)
-      .lean<RawHomeProfile[]>()
-      .exec(),
     Profile.find(activePremiumFilter)
       .select(PROFILE_SELECT)
       .sort({ premiumExpiry: -1, lastActiveAt: -1 })
-      .limit(6)
-      .lean<RawHomeProfile[]>()
-      .exec(),
-    Profile.find(visibleProfileFilter)
-      .select(PROFILE_SELECT)
-      .sort({ createdAt: -1 })
-      .limit(6)
+      .limit(12)
       .lean<RawHomeProfile[]>()
       .exec(),
     Blog.find(successStoryFilter)
@@ -212,21 +189,21 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
       .limit(3)
       .lean<RawSuccessStory[]>()
       .exec(),
-    Profile.countDocuments(visibleProfileFilter),
+    Profile.countDocuments(publicProfileFilter),
     Interest.countDocuments({ status: "accepted" }),
-    Profile.countDocuments({ ...visibleProfileFilter, isVerified: true }),
+    Profile.countDocuments({ ...publicProfileFilter, isVerified: true }),
     Profile.countDocuments(activePremiumFilter),
     Blog.countDocuments(successStoryFilter),
     Profile.countDocuments({
-      ...visibleProfileFilter,
+      ...publicProfileFilter,
       createdAt: { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) },
     }),
   ]);
 
   return {
-    featuredProfiles: featuredProfiles.map(mapProfile),
-    premiumMembers: premiumMembers.map(mapProfile),
-    recentMembers: recentMembers.map(mapProfile),
+    featuredProfiles: [],
+    premiumMembers: await Promise.all(premiumMembers.map(mapProfile)),
+    recentMembers: [],
     successStories: successStories.map(mapSuccessStory),
     stats: {
       activeProfiles,

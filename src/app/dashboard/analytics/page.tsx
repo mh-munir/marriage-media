@@ -48,7 +48,8 @@ export default function AnalyticsPage() {
   }, [period]);
 
   React.useEffect(() => {
-    void fetchAnalytics();
+    // Use setTimeout to avoid synchronous state update in effect
+    setTimeout(() => fetchAnalytics(), 0);
   }, [fetchAnalytics]);
 
   if (loading) {

@@ -4,7 +4,6 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import type { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
   icon: React.ComponentType<{ className?: string }>;

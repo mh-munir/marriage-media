@@ -83,13 +83,11 @@ export default function PricingPage() {
   const { page, loading } = useSitePage("pricing");
   const { sections, loading: managedLoading } = useManagedPage("pricing");
   const [pricingData, setPricingData] = React.useState<PricingData | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     let isMounted = true;
 
     async function loadPricingData() {
-      setIsLoading(true);
       try {
         const response = await fetch("/api/pricing");
         const data = (await response.json()) as PricingData;
@@ -100,14 +98,10 @@ export default function PricingPage() {
         if (isMounted) {
           setPricingData(null);
         }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
       }
     }
 
-    void loadPricingData();
+    loadPricingData();
 
     return () => {
       isMounted = false;

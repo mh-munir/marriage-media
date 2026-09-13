@@ -1,19 +1,6 @@
 import connectToDatabase from "./mongodb";
 import { Profile } from "@/models";
 
-interface MatchCriteria {
-  userId: string;
-  gender: string;
-  ageMin?: number;
-  ageMax?: number;
-  religion?: string;
-  height?: string;
-  education?: string;
-  profession?: string;
-  country?: string;
-  division?: string;
-}
-
 interface ProfileData {
   _id: { toString(): string };
   userId: { toString(): string };

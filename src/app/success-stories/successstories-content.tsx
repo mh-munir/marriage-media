@@ -21,6 +21,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
 
@@ -128,7 +129,7 @@ export default function SuccessStoriesPage() {
             {gallery.items.filter((item) => item.imageUrl).map((item, index) => (
               <motion.figure key={`${item.imageUrl}-${index}`} initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className={`group relative overflow-hidden rounded-2xl ${index === 0 ? "col-span-2 row-span-2" : index === 3 ? "col-span-2" : ""}`}>
                 <button type="button" className="absolute inset-0 z-10 cursor-zoom-in" aria-label={`Open ${item.title || "success story image"} fullscreen`} onClick={() => setSelectedImage({ url: item.imageUrl || "", alt: item.imageAlt || item.title || "Success story", title: item.title, text: item.text })} />
-                <img src={item.imageUrl} alt={item.imageAlt || item.title || "Success story"} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+                <Image src={item.imageUrl || ""} alt={item.imageAlt || item.title || "Success story"} fill className="object-cover transition duration-700 group-hover:scale-105" sizes="100vw" />
                 {item.title || item.text ? <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-5 pb-5 pt-12 text-white"><p className="font-semibold">{item.title}</p><p className="mt-1 text-sm text-white/80">{item.text}</p></figcaption> : null}
               </motion.figure>
             ))}
@@ -139,7 +140,7 @@ export default function SuccessStoriesPage() {
       {selectedImage ? <div role="dialog" aria-modal="true" aria-label="Fullscreen success story image" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" onClick={() => setSelectedImage(null)}>
         <button type="button" aria-label="Close fullscreen image" className="absolute right-5 top-5 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" onClick={() => setSelectedImage(null)}><X className="h-6 w-6" /></button>
         <div className="relative max-h-[90vh] max-w-6xl" onClick={(event) => event.stopPropagation()}>
-          <img src={selectedImage.url} alt={selectedImage.alt} className="max-h-[82vh] max-w-full rounded-xl object-contain" />
+          <Image src={selectedImage.url} alt={selectedImage.alt} fill className="max-h-[82vh] max-w-full rounded-xl object-contain" sizes="100vw" />
           {selectedImage.title || selectedImage.text ? <div className="mt-3 text-center text-white"><p className="font-semibold">{selectedImage.title}</p><p className="text-sm text-white/70">{selectedImage.text}</p></div> : null}
         </div>
       </div> : null}

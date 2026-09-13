@@ -79,7 +79,6 @@ type ActiveModal =
 
 export default function VerificationPage() {
   const [data, setData] = React.useState<VerificationData | null>(null);
-  const [loading, setLoading] = React.useState(true);
   const [activeModal, setActiveModal] = React.useState<ActiveModal>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [selectedVerification, setSelectedVerification] = React.useState<Verification | null>(null);
@@ -115,8 +114,6 @@ export default function VerificationPage() {
       }
     } catch {
       console.error("Failed to fetch verification data");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -469,7 +466,6 @@ export default function VerificationPage() {
               </CardHeader>
               <CardContent>
                 <VerificationSteps
-                  completedSteps={completedSteps}
                   verifications={verifications}
                   onStepAction={handleStepAction}
                 />
