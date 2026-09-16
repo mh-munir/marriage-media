@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Verify user cleanup",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"-e",
+				"const { loadEnvConfig } = require('@next/env'); loadEnvConfig(process.cwd()); const { MongoClient } = require('mongodb'); (async()=>{ const client=new MongoClient(process.env.MONGODB_URI); await client.connect(); const db=client.db(); const users=db.collection('users'); const ordinaryUsers=await users.countDocuments({role:'user'}); const adminAccounts=(await users.countDocuments({role:'admin'}))+(await users.countDocuments({role:'superadmin'})); console.log(JSON.stringify({ordinaryUsers,adminAccounts})); await client.close(); })().catch(error=>{console.error(error.message); process.exit(1);});"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

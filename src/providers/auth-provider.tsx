@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuthStore, type AuthUser } from "@/stores/auth-store";
 import { useNotificationStore } from "@/stores/notification-store";
 import { apiClient } from "@/lib/api-client";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetNotifications = useNotificationStore((state) => state.reset);
   const { user, isAuthenticated, isLoading } = store;
   const pathname = usePathname();
+  const router = useRouter();
   const hasCheckedSession = React.useRef(false);
   const previousUserId = React.useRef<string | null>(null);
 
@@ -69,22 +71,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = React.useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/me", {
+      const result = await apiClient.get<{ user: AuthUser }>("/api/auth/me", {
         cache: "no-store",
         credentials: "include",
       });
-      if (!response.ok) {
+      store.setUser(result.user);
+    } catch (error) {
+      // Do not destroy a persisted session on a transient network/server error.
+      if (error instanceof Error && error.message === "SESSION_EXPIRED") {
         resetNotifications();
         store.logout();
-        return;
+        if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+          router.replace("/login");
+        }
       }
-      const result = (await response.json()) as { user: AuthUser };
-      store.setUser(result.user);
-    } catch {
-      resetNotifications();
-      store.logout();
     }
-  }, [resetNotifications, store]);
+  }, [pathname, resetNotifications, router, store]);
 
   React.useEffect(() => {
     if (hasCheckedSession.current) return;

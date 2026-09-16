@@ -7,7 +7,7 @@ export async function allocatePublicId(): Promise<string> {
   const counter = await Counter.findOneAndUpdate(
     { key: "user-public-id" },
     { $inc: { sequence: 1 } },
-    { new: true, upsert: true, setDefaultsOnInsert: true }
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
   ).lean();
 
   return `IMD-${String(counter?.sequence ?? 1).padStart(2, "0")}`;
@@ -38,7 +38,7 @@ export async function ensurePublicIdForProfile(
       $or: [{ publicId: { $exists: false } }, { publicId: "" }],
     },
     { $set: { publicId: generatedId } },
-    { new: true }
+    { returnDocument: "after" }
   ).select("publicId").lean<{ publicId?: string }>();
 
   const publicId = user?.publicId;

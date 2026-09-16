@@ -665,6 +665,7 @@ export default function VerificationPage() {
                             placeholder="01XXXXXXXXX"
                             inputMode="numeric"
                             pattern="[0-9]*"
+                            maxLength={11}
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(sanitizePhoneNumberInput(e.target.value))}
                           />

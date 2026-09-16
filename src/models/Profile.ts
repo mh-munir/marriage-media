@@ -14,7 +14,7 @@ export interface IProfile extends Document {
   height: string;
   weight: string;
   bloodGroup?: string;
-  maritalStatus: "Never Married" | "Divorced" | "Widowed" | "Awaiting Divorce";
+  maritalStatus: "Never Married" | "Married" | "Divorced" | "Widowed" | "Awaiting Divorce";
   profileCreatedBy: "Self" | "Parent" | "Sibling" | "Relative" | "Friend";
 
   // Religion & Culture
@@ -46,9 +46,20 @@ export interface IProfile extends Document {
   familyStatus: "Middle Class" | "Upper Middle Class" | "Rich" | "Affluent";
   familyValues: "Orthodox" | "Traditional" | "Moderate" | "Liberal" | "Secular";
   fatherName?: string;
-  fatherContactNumber?: string;
+  guardianRelation?: "Father" | "Mother" | "Brother" | "Sister";
+  guardianName?: string;
+  guardianMobileNumber?: string;
   fatherProfession?: string;
   motherName?: string;
+  permanentAddress?: string;
+  presentAddress?: string;
+  permanentLocation?: { country: string; division: string; district: string; thana: string; union: string; area: string };
+  educationDetails?: { level: "SSC" | "HSC" | "Graduation" | "Other"; instituteName: string; year: string }[];
+  aboutYourself?: string;
+  familyAwareOfBiodata?: "Yes" | "No";
+  informationAccurate?: "Yes" | "No";
+  truthDeclaration?: "Yes" | "No";
+  acceptsFalseInformationLiability?: boolean;
   motherProfession?: string;
   numberOfSiblings?: number;
   siblingDetails?: string;
@@ -178,7 +189,7 @@ const ProfileSchema = new Schema<IProfile>(
     },
     maritalStatus: {
       type: String,
-      enum: ["Never Married", "Divorced", "Widowed", "Awaiting Divorce"],
+      enum: ["Never Married", "Married", "Divorced", "Widowed", "Awaiting Divorce"],
       required: [true, "Marital status is required"],
     },
     profileCreatedBy: {
@@ -233,9 +244,20 @@ const ProfileSchema = new Schema<IProfile>(
       default: "Moderate",
     },
     fatherName: { type: String, default: "" },
-    fatherContactNumber: { type: String, default: "" },
+    guardianRelation: { type: String, enum: ["Father", "Mother", "Brother", "Sister"], default: undefined },
+    guardianName: { type: String, default: "" },
+    guardianMobileNumber: { type: String, default: "", match: [/^01[3-9][0-9]{8}$/, "Guardian mobile number must be exactly 11 digits"] },
     fatherProfession: { type: String, default: "" },
     motherName: { type: String, default: "" },
+    permanentAddress: { type: String, default: "" },
+    presentAddress: { type: String, default: "" },
+    permanentLocation: { country: { type: String, default: "Bangladesh" }, division: { type: String, default: "" }, district: { type: String, default: "" }, thana: { type: String, default: "" }, union: { type: String, default: "" }, area: { type: String, default: "" } },
+    educationDetails: [{ level: { type: String, enum: ["SSC", "HSC", "Graduation", "Other"] }, instituteName: { type: String, default: "" }, year: { type: String, default: "" } }],
+    aboutYourself: { type: String, default: "", maxlength: 3000 },
+    familyAwareOfBiodata: { type: String, enum: ["Yes", "No"], default: undefined },
+    informationAccurate: { type: String, enum: ["Yes", "No"], default: undefined },
+    truthDeclaration: { type: String, enum: ["Yes", "No"], default: undefined },
+    acceptsFalseInformationLiability: { type: Boolean, default: false },
     motherProfession: { type: String, default: "" },
     numberOfSiblings: { type: Number, default: 0 },
     siblingDetails: { type: String, default: "" },

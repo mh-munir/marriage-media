@@ -59,7 +59,7 @@ export async function PUT(request: NextRequest) {
     const page = await SitePage.findOneAndUpdate(
       { slug: "pricing" },
       { $set: { pricingPlans: plans, paymentNumbers } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
     ).select("pricingPlans paymentNumbers").lean();
     return NextResponse.json({ plans: page?.pricingPlans || plans, paymentNumbers: page?.paymentNumbers || paymentNumbers });
   } catch (error) {

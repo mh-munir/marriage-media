@@ -9,6 +9,7 @@ import {
   SUBSCRIPTION_PLANS,
   type PaymentProvider,
 } from "@/lib/payment-gateway";
+import { validatePhoneNumber } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +46,9 @@ export async function POST(request: NextRequest) {
         { error: "Billing name and email are required" },
         { status: 400 }
       );
+    }
+    if (billingInfo.phone && !validatePhoneNumber(String(billingInfo.phone).replace(/\D/g, ""))) {
+      return NextResponse.json({ error: "Enter a valid 11-digit billing mobile number" }, { status: 400 });
     }
 
     // Get profile

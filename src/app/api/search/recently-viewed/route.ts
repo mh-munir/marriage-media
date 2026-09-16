@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile, ProfileView } from "@/models";
 import { requireAuth } from "@/lib/auth";
+import { getActiveSubscription } from "@/lib/profile-access";
 
 type ViewRecord = {
   viewedId: Types.ObjectId;
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    const canViewProfileImages = Boolean(await getActiveSubscription(user._id));
 
     const { searchParams } = new URL(request.url);
     const page = parsePositiveInt(searchParams.get("page"), 1, 10_000);
@@ -135,7 +137,7 @@ export async function GET(request: NextRequest) {
         area: profile.area || "",
         highestEducation: profile.highestEducation || "",
         profession: profile.profession || "",
-        imageUrl: getPrimaryPhoto(profile.photos),
+        imageUrl: canViewProfileImages ? getPrimaryPhoto(profile.photos) : null,
         isPremium: Boolean(
           profile.isPremium &&
             profile.premiumExpiry instanceof Date &&

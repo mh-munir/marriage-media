@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         role: user.role,
         firstName: profile?.firstName || "",
         lastName: profile?.lastName || "",
-        avatar: profile?.photos?.find((p: { isPrimary: boolean }) => p.isPrimary)?.url || "",
+        avatar: user.avatarUrl || profile?.photos?.find((p: { isPrimary: boolean }) => p.isPrimary)?.url || "",
         isPremium: profile?.isPremium || false,
         premiumPlan: profile?.premiumPlan || "",
         isVerified: profile?.isVerified || false,

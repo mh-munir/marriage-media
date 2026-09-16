@@ -86,6 +86,7 @@ const PROFILE_SELECT =
   "userId publicId age gender district division country highestEducation profession religion maritalStatus isPremium isVerified isProfileBoosted profileViews lastActiveAt createdAt";
 
 const publicProfileFilter = {
+  isVisible: true,
   isDeactivated: false,
 };
 

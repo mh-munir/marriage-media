@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeInit } from "@/components/theme-init";
 import { Providers } from "@/providers/providers";
 
 export const metadata: Metadata = {
@@ -16,6 +17,7 @@ export default function RootLayout({
   return (
     <html lang="bn" data-languages="bn,en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
+        <ThemeInit />
         <Providers>{children}</Providers>
       </body>
     </html>

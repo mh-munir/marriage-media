@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const [verifications, total] = await Promise.all([
       Verification.find(filter)
-        .populate("userId", "email")
+        .populate("userId", "email phone firstName lastName onboardingData onboardingStep onboardingCompleted isActive isBlocked createdAt")
         .populate("reviewedBy", "email")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const profileUserIds = verifications.filter((item) => item.type === "profile").map((item) => typeof item.userId === "object" ? item.userId._id : item.userId).filter(Boolean);
-    const profiles = profileUserIds.length ? await Profile.find({ userId: { $in: profileUserIds } }).select("userId firstName lastName photos profileCompleted").lean() : [];
+    const profiles = profileUserIds.length ? await Profile.find({ userId: { $in: profileUserIds } }).lean() : [];
     const profileByUserId = new Map(profiles.map((profile) => [profile.userId.toString(), profile]));
     const reviewItems = verifications.map((item) => {
       const reviewUserId = typeof item.userId === "object" && item.userId ? item.userId._id : item.userId;
@@ -143,7 +143,7 @@ export async function PUT(request: NextRequest) {
           },
         },
       },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!updated) {

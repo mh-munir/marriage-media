@@ -10,6 +10,7 @@ interface RequestOptions extends RequestInit {
 
 class ApiClient {
   private baseUrl: string;
+  private refreshPromise: Promise<boolean> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -31,13 +32,14 @@ class ApiClient {
     return headers;
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
+  private async handleResponse<T>(response: Response, allowRefresh = true): Promise<T> {
     if (response.status === 401) {
+      if (!allowRefresh) {
+        throw new Error("SESSION_EXPIRED");
+      }
       const refreshed = await this.refreshToken();
       if (!refreshed) {
-        useAuthStore.getState().logout();
-        window.location.href = "/";
-        throw new Error("Session expired");
+        throw new Error("SESSION_EXPIRED");
       }
       throw new Error("RETRY_REQUEST");
     }
@@ -51,25 +53,32 @@ class ApiClient {
   }
 
   private async refreshToken(): Promise<boolean> {
-    try {
-      const { refreshToken } = useAuthStore.getState();
-      if (!refreshToken) return false;
+    if (this.refreshPromise) return this.refreshPromise;
+    this.refreshPromise = (async () => {
+      try {
+        const { refreshToken } = useAuthStore.getState();
+        if (!refreshToken) return false;
 
-      const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
+        const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ refreshToken }),
+        });
 
-      if (!response.ok) return false;
+        if (!response.ok) return false;
 
-      const data = await response.json();
-      if (!data.accessToken || !data.refreshToken) return false;
-      useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
-      return true;
-    } catch {
-      return false;
-    }
+        const data = await response.json();
+        if (!data.accessToken || !data.refreshToken) return false;
+        useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+    return this.refreshPromise;
   }
 
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
@@ -90,7 +99,7 @@ class ApiClient {
           ...options,
           headers: newHeaders,
         });
-        return await this.handleResponse<T>(response);
+        return await this.handleResponse<T>(response, false);
       }
       throw error;
     }

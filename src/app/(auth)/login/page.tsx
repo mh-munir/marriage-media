@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Heart, Eye, EyeOff, Loader2, ArrowRight, CheckCircle } from "lucide-react";
@@ -29,7 +30,6 @@ function LoginFormInner() {
   const registered = searchParams.get("registered");
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
 
   const {
     register,
@@ -41,7 +41,6 @@ function LoginFormInner() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
-    setError("");
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -64,7 +63,8 @@ function LoginFormInner() {
       setUser(user);
       router.push(user.onboardingCompleted ? "/dashboard" : "/onboarding");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -72,10 +72,8 @@ function LoginFormInner() {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-12"
-      style={{ backgroundImage: "url('/images/home/hero-bg2.png')" }}
+      className="auth-page-shell relative flex min-h-screen items-center justify-center px-4 py-12"
     >
-      <div className="absolute inset-0 bg-black/35" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -83,15 +81,15 @@ function LoginFormInner() {
       >
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl `bg-gradient-to-br` from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
+          <div className="auth-brand-mark flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-orange-400">
             <Heart className="h-5 w-5 text-white" fill="white" />
           </div>
-          <span className="text-2xl font-bold tracking-tight">
+          <span suppressHydrationWarning className="text-2xl font-bold tracking-tight">
             Marriage<span className="text-primary">Media</span>
           </span>
         </Link>
 
-        <Card className="border-white/40 bg-background/90 shadow-2xl backdrop-blur-xl">
+        <Card className="auth-card">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">{text("Welcome Back")}</CardTitle>
             <CardDescription>
@@ -107,17 +105,13 @@ function LoginFormInner() {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                  {error}
-                </div>
-              )}
-
               <Input
                 label="Mobile Number"
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                icon={<span className="text-sm font-semibold">+88</span>}
+                placeholder="018XXXXXXXX"
                 error={errors.phone?.message}
                 {...register("phone")}
                 onInput={(event) => {
@@ -180,8 +174,7 @@ function LoginFormInner() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-cover bg-center" style={{ backgroundImage: "url('/images/home/hero-bg2.png')" }}>
-        <div className="absolute inset-0 bg-black/35" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>

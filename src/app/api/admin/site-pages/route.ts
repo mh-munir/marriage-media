@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest) {
     const page = await SitePage.findOneAndUpdate(
       { slug: body.slug },
       { $set: { title: body.title.trim(), description: body.description || "", content: body.content || "", seoTitle: body.seoTitle || "", seoDescription: body.seoDescription || "", isPublished: body.isPublished !== false, ...(Array.isArray(body.sections) ? { sections: body.sections } : {}) } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
     ).lean();
     return NextResponse.json({ page });
   } catch (error) {

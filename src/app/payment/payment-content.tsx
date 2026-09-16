@@ -133,7 +133,8 @@ export function PaymentContent() {
                 inputMode="numeric"
                 placeholder="01XXXXXXXXX"
                 value={senderMobileNumber}
-                onChange={(event) => setSenderMobileNumber(event.target.value)}
+                onChange={(event) => setSenderMobileNumber(event.target.value.replace(/\D/g, "").slice(0, 11))}
+                pattern="01[3-9][0-9]{8}"
                 maxLength={11}
                 required
               />

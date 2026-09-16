@@ -27,12 +27,18 @@ export async function POST(request: NextRequest) {
       user = await User.create({
         email,
         password: await bcrypt.hash(password, 12),
-        role: "admin",
+        role: "superadmin",
         isActive: true,
         isBlocked: false,
         isEmailVerified: true,
         isPhoneVerified: false,
       });
+    }
+
+    // Keep the local development bootstrap account as the control-room owner.
+    if (user && process.env.NODE_ENV !== "production" && email === (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL) && password === (process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD) && user.role === "admin") {
+      user.role = "superadmin";
+      await user.save();
     }
 
     if (!user || !user.isActive || user.isBlocked || (user.role !== "admin" && user.role !== "superadmin")) {
@@ -58,6 +64,7 @@ export async function POST(request: NextRequest) {
         id: user._id.toString(),
         email: user.email,
         role: user.role,
+        avatar: user.avatarUrl || "",
         isPremium: false,
         isVerified: user.isEmailVerified,
         profileCompleted: user.profileCompleted || 0,

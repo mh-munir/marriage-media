@@ -144,13 +144,13 @@ function StandardSection({ section }: { section: HomeSection }) {
                 <p className="mt-5 max-w-xl text-base leading-7 text-[#78908c]">{section.description}</p>
                 {section.buttonText ? <Link href={section.buttonLink || "/register"} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#294845] px-5 py-3 text-sm font-semibold text-white">{section.buttonText}<ArrowRight className="h-4 w-4" /></Link> : null}
               </div>
-              {section.imageUrl ? <Image src={section.imageUrl} alt={section.imageAlt || section.title} fill className="max-h-105 w-full rounded-4xl object-cover shadow-lg" sizes="100vw" /> : null}
+              {section.imageUrl ? <div className="relative h-80 overflow-hidden rounded-4xl shadow-lg sm:h-105"><Image src={section.imageUrl} alt={section.imageAlt || section.title} fill className="object-cover" sizes="100vw" /></div> : null}
             </div>
             {section.items.length ? (
               <div className="mt-12 grid gap-5 md:grid-cols-3">
                 {section.items.map((item, index) => (
                   <article key={`${section.id}-${index}`} className="border-t-2 border-[#f1b3ac] px-1 pt-5">
-                    {item.imageUrl ? <Image src={item.imageUrl} alt={item.imageAlt || item.title} fill className="mb-4 h-36 w-full rounded-2xl object-cover" sizes="100vw" /> : <Sparkles className="h-6 w-6 text-[#e8897f]" />}
+                    {item.imageUrl ? <div className="relative mb-4 h-36 overflow-hidden rounded-2xl"><Image src={item.imageUrl} alt={item.imageAlt || item.title} fill className="object-cover" sizes="100vw" /></div> : <Sparkles className="h-6 w-6 text-[#e8897f]" />}
                     <h3 className="mt-4 font-serif text-2xl text-[#355350]">{item.title}</h3>
                     <p className="mt-3 text-sm leading-6 text-[#78908c]">{item.text}</p>
                   </article>

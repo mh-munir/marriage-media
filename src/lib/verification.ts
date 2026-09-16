@@ -171,7 +171,7 @@ export async function sendPhoneOTP(
         },
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   );
 
   // In production, send via SMS provider (Twilio, etc.)
@@ -255,7 +255,7 @@ export async function verifyPhoneOTP(
 export async function sendEmailVerification(
   userId: string,
   email: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; otp?: string }> {
   await connectToDatabase();
 
   // Rate limit: max 5 per hour
@@ -295,7 +295,7 @@ export async function sendEmailVerification(
         },
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   );
 
   // Send email with code
@@ -315,7 +315,7 @@ export async function sendEmailVerification(
     `
   );
 
-  return { success: true };
+  return { success: true, ...(process.env.NODE_ENV === "development" ? { otp: code } : {}) };
 }
 
 /**

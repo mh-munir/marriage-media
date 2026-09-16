@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
           reviewedAt: new Date(),
         },
       },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!log) {

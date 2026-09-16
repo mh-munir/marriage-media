@@ -71,7 +71,16 @@ async function sendViaTwilio(params: SendSMSParams): Promise<SMSResult> {
     }),
   });
 
-  const data = await response.json();
+  const responseText = await response.text();
+  let data: { sid?: string; message?: string } = {};
+  try {
+    data = JSON.parse(responseText) as { sid?: string; message?: string };
+  } catch {
+    return {
+      success: false,
+      error: `Twilio returned a non-JSON response (${response.status}).`,
+    };
+  }
 
   if (response.ok && data.sid) {
     return { success: true, messageId: data.sid };
@@ -95,27 +104,46 @@ async function sendViaHttpProvider(params: SendSMSParams): Promise<SMSResult> {
     return { success: false, error: "SMS provider not configured" };
   }
 
-  const response = await fetch(apiUrl, {
+  const isSmsNetBd = apiUrl.includes("api.sms.net.bd");
+  const requestUrl = apiUrl;
+  const smsNetBody = new FormData();
+  if (isSmsNetBd) {
+    smsNetBody.append("api_key", apiKey || "");
+    smsNetBody.append("msg", params.message);
+    // SMS.NET.BD accepts Bangladesh MSISDN digits (8801XXXXXXXXX), not E.164's leading `+`.
+    // Other providers retain the E.164 number passed to this function.
+    smsNetBody.append("to", params.to.replace(/\D/g, ""));
+  }
+  const response = await fetch(requestUrl, isSmsNetBd ? {
+    method: "POST",
+    body: smsNetBody,
+  } : {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
     },
-    body: JSON.stringify({
-      to: params.to,
-      message: params.message,
-    }),
+    body: JSON.stringify({ to: params.to, message: params.message }),
   });
 
-  const data = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let data: { messageId?: string; error?: number | string; msg?: string; data?: { request_id?: number } } = {};
+  try {
+    data = JSON.parse(responseText) as { messageId?: string; error?: string };
+  } catch {
+    return {
+      success: false,
+      error: `SMS provider returned a non-JSON response (${response.status}). Check SMS_API_URL.`,
+    };
+  }
 
-  if (response.ok) {
-    return { success: true, messageId: data.messageId || `sms_${Date.now()}` };
+  if (response.ok && (isSmsNetBd ? data.error === 0 : true)) {
+    return { success: true, messageId: data.messageId || String(data.data?.request_id || `sms_${Date.now()}`) };
   }
 
   return {
     success: false,
-    error: data.error || "SMS provider request failed",
+    error: `SMS.NET.BD (${response.status}): ${data.msg || String(data.error || "SMS provider request failed")}`,
   };
 }
 
@@ -128,7 +156,9 @@ export function formatPhoneE164(phone: string, countryCode: string = "+880"): st
     return `+${cleaned}`;
   }
   if (cleaned.startsWith("0")) {
-    return `${countryCode}${cleaned}`;
+    // Bangladesh local numbers start with 0 (e.g. 018...). E.164 replaces it
+    // with the country code: +88018..., never +880018....
+    return `${countryCode}${cleaned.slice(1)}`;
   }
   return `${countryCode}${cleaned}`;
 }

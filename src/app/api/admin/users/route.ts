@@ -1,9 +1,12 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
-import { User, Profile, Payment } from "@/models";
+import { User, Profile, Payment, Verification } from "@/models";
 import { requireAdmin } from "@/lib/auth";
+import { sendEmailVerification, sendPhoneOTP, verifyEmailCode, verifyPhoneOTP } from "@/lib/verification";
+import { validatePhoneNumber } from "@/lib/utils";
 
 // Get all users with admin filters
 export async function GET(request: NextRequest) {
@@ -17,6 +20,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const role = searchParams.get("role") || "user";
+    const segment = searchParams.get("segment") || "";
     const skip = (page - 1) * limit;
 
     const filter: Record<string, unknown> =
@@ -24,8 +28,21 @@ export async function GET(request: NextRequest) {
         ? { role: { $in: ["admin", "superadmin"] } }
         : { role: "user" };
 
+    if (role === "user" && (segment === "free" || segment === "subscribed")) {
+      const subscribedUserIds = await Payment.distinct("userId", {
+        status: "completed",
+        expiryDate: { $gt: new Date() },
+      });
+      filter._id = segment === "subscribed" ? { $in: subscribedUserIds } : { $nin: subscribedUserIds };
+    }
+
     if (search) {
-      filter.$or = [{ email: { $regex: search, $options: "i" } }];
+      filter.$or = [
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+      ];
     }
 
     if (status === "active") filter.isActive = true;
@@ -45,11 +62,7 @@ export async function GET(request: NextRequest) {
     // Attach profile data
     const userIds = users.map((u) => u._id);
     const [profiles, payments] = await Promise.all([
-      Profile.find({ userId: { $in: userIds } })
-      .select(
-        "userId firstName lastName gender age isPremium isVerified isDeactivated",
-      )
-      .lean(),
+      Profile.find({ userId: { $in: userIds } }).lean(),
       Payment.find({ userId: { $in: userIds }, status: "completed" })
         .sort({ expiryDate: -1 })
         .select("userId expiryDate metadata plan")
@@ -96,7 +109,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
-    await requireAdmin(request);
+    const actor = await requireAdmin(request);
 
     const body = await request.json();
     const { userId, ...updates } = body;
@@ -108,20 +121,49 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const target = await User.findOne({ _id: userId, role: "user" })
-      .select("_id")
-      .lean();
+    const target = await User.findById(userId).select("_id role isEmailVerified isPhoneVerified").lean();
     if (!target) {
       return NextResponse.json(
-        { error: "Website member not found" },
+        { error: "User not found" },
         { status: 404 },
       );
     }
 
+    if (target.role === "superadmin") {
+      if (actor.role !== "superadmin" || actor._id.toString() !== userId) {
+        return NextResponse.json({ error: "Only the superadmin can edit this account" }, { status: 403 });
+      }
+      if (!target.isEmailVerified) {
+        return NextResponse.json({ error: "Verify the superadmin email before editing details" }, { status: 403 });
+      }
+    } else if (target.role === "admin") {
+      if (actor.role !== "superadmin") {
+        return NextResponse.json({ error: "Only the superadmin can edit admin accounts" }, { status: 403 });
+      }
+    } else {
+      return NextResponse.json({ error: "This account cannot be edited here" }, { status: 403 });
+    }
+
+    const password = typeof updates.password === "string" ? updates.password : "";
+    if (password && (actor.role !== "superadmin" || password.length < 8)) {
+      return NextResponse.json({ error: "Only the superadmin can set a password of at least 8 characters" }, { status: 400 });
+    }
+
+    const allowedUpdates = {
+      firstName: updates.firstName,
+      lastName: updates.lastName,
+      email: updates.email,
+      phone: updates.phone,
+      isActive: actor.role === "superadmin" ? updates.isActive : undefined,
+      isBlocked: actor.role === "superadmin" ? updates.isBlocked : undefined,
+      ...(password ? { password: await bcrypt.hash(password, 12) } : {}),
+    };
+    const cleanUpdates = Object.fromEntries(Object.entries(allowedUpdates).filter(([, value]) => value !== undefined));
+
     const user = await User.findByIdAndUpdate(
       userId,
-      { $set: updates },
-      { new: true },
+      { $set: cleanUpdates },
+      { returnDocument: "after" },
     ).select("-password");
 
     if (!user) {
@@ -134,6 +176,98 @@ export async function PUT(request: NextRequest) {
       error instanceof Error ? error.message : "Internal server error";
     const status =
       message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await connectToDatabase();
+    const actor = await requireAdmin(request);
+    if (actor.role !== "superadmin") {
+      return NextResponse.json({ error: "Only the superadmin can create admin accounts" }, { status: 403 });
+    }
+
+    const body = await request.json() as { email?: string; phone?: string; password?: string; firstName?: string; lastName?: string };
+    const email = String(body.email || "").trim().toLowerCase();
+    const phone = String(body.phone || "").replace(/\s/g, "");
+    const password = String(body.password || "");
+    if (!/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
+    if (!validatePhoneNumber(phone)) return NextResponse.json({ error: "A valid 11-digit mobile number is required" }, { status: 400 });
+    if (password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+
+    const existing = await User.findOne({ $or: [{ email }, { phone }] }).select("email phone").lean();
+    if (existing) return NextResponse.json({ error: "An account already uses this email or mobile number" }, { status: 409 });
+
+    const user = await User.create({
+      email,
+      phone,
+      password: await bcrypt.hash(password, 12),
+      role: "admin",
+      firstName: String(body.firstName || "").trim(),
+      lastName: String(body.lastName || "").trim(),
+      isActive: true,
+      isBlocked: false,
+      isEmailVerified: false,
+      isPhoneVerified: false,
+    });
+
+    return NextResponse.json({ user: { id: user._id.toString(), email: user.email, phone: user.phone, role: user.role } }, { status: 201 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    await connectToDatabase();
+    const actor = await requireAdmin(request);
+    if (actor.role !== "superadmin") return NextResponse.json({ error: "Only the superadmin can verify these details" }, { status: 403 });
+
+    const body = await request.json() as { action?: string; email?: string; phone?: string; code?: string };
+    const action = body.action;
+    if (action === "send-email") {
+      const email = String(body.email || "").trim().toLowerCase();
+      if (!/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
+      const existing = await User.findOne({ email, _id: { $ne: actor._id } }).select("_id").lean();
+      if (existing) return NextResponse.json({ error: "This email is already in use" }, { status: 409 });
+      const result = await sendEmailVerification(actor._id.toString(), email);
+      return result.success ? NextResponse.json({ message: "Email verification code sent", ...(result.otp ? { otp: result.otp } : {}) }) : NextResponse.json({ error: result.error }, { status: 429 });
+    }
+    if (action === "send-phone") {
+      const phone = String(body.phone || "").replace(/\s/g, "");
+      if (!validatePhoneNumber(phone)) return NextResponse.json({ error: "A valid 11-digit mobile number is required" }, { status: 400 });
+      const existing = await User.findOne({ phone, _id: { $ne: actor._id } }).select("_id").lean();
+      if (existing) return NextResponse.json({ error: "This mobile number is already in use" }, { status: 409 });
+      const result = await sendPhoneOTP(actor._id.toString(), phone);
+      return result.success ? NextResponse.json({ message: "Mobile verification code sent", ...(result.otp ? { otp: result.otp } : {}) }) : NextResponse.json({ error: result.error }, { status: 429 });
+    }
+    if (action === "verify-email" || action === "verify-phone") {
+      const code = String(body.code || "");
+      if (!/^\d{6}$/.test(code)) return NextResponse.json({ error: "Enter the 6-digit verification code" }, { status: 400 });
+      if (action === "verify-email") {
+        const email = String(body.email || "").trim().toLowerCase();
+        const pending = await Verification.findOne({ userId: actor._id, type: "email", status: "pending", value: email }).select("_id").lean();
+        if (!pending) return NextResponse.json({ error: "Request a verification code for this email first" }, { status: 400 });
+        const result = await verifyEmailCode(actor._id.toString(), code);
+        if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
+        await User.findByIdAndUpdate(actor._id, { $set: { email, isEmailVerified: true } });
+      } else {
+        const phone = String(body.phone || "").replace(/\s/g, "");
+        const pending = await Verification.findOne({ userId: actor._id, type: "phone", status: "pending", value: phone }).select("_id").lean();
+        if (!pending) return NextResponse.json({ error: "Request a verification code for this mobile number first" }, { status: 400 });
+        const result = await verifyPhoneOTP(actor._id.toString(), code);
+        if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
+        await User.findByIdAndUpdate(actor._id, { $set: { phone, isPhoneVerified: true } });
+      }
+      return NextResponse.json({ message: "Verification completed" });
+    }
+    return NextResponse.json({ error: "Unsupported verification action" }, { status: 400 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

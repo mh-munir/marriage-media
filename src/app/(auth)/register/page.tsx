@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Heart, Eye, EyeOff, Loader2, CheckCircle, ArrowRight } from "lucide-react";
+import { Heart, Eye, EyeOff, Loader2, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,6 +24,9 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [pendingUserId, setPendingUserId] = React.useState("");
+  const [otp, setOtp] = React.useState("");
+  const [otpLoading, setOtpLoading] = React.useState(false);
 
   const {
     register,
@@ -49,7 +52,7 @@ export default function RegisterPage() {
         throw new Error(result.error || "Registration failed");
       }
 
-      router.push("/login?registered=true");
+      setPendingUserId(result.userId);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -57,12 +60,26 @@ export default function RegisterPage() {
     }
   };
 
+  const verifyOtp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setOtpLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/register/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: pendingUserId, code: otp }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Verification failed");
+      router.replace("/onboarding");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-12"
-      style={{ backgroundImage: "url('/images/home/hero-bg2.png')" }}
+      className="auth-page-shell relative flex min-h-screen items-center justify-center px-4 py-12"
     >
-      <div className="absolute inset-0 bg-black/35" />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -70,15 +87,15 @@ export default function RegisterPage() {
       >
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
+          <div className="auth-brand-mark flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-orange-400">
             <Heart className="h-5 w-5 text-white" fill="white" />
           </div>
-          <span className="text-2xl font-bold tracking-tight">
+          <span suppressHydrationWarning className="text-2xl font-bold tracking-tight">
             Marriage<span className="text-primary">Media</span>
           </span>
         </Link>
 
-        <Card className="border-white/40 bg-background/90 shadow-2xl backdrop-blur-xl">
+        <Card className="auth-card">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Create Your Account</CardTitle>
             <CardDescription>
@@ -86,7 +103,12 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {pendingUserId ? <form onSubmit={verifyOtp} className="space-y-4">
+              {error && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>}
+              <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">A verification code was sent to your mobile number.</div>
+              <Input label="Mobile verification code" inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))} required />
+              <Button type="submit" variant="gradient" className="w-full" size="lg" disabled={otpLoading}>{otpLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ShieldCheck className="h-4 w-4" /> Verify and continue</>}</Button>
+            </form> : <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {error && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
                   {error}
@@ -98,6 +120,8 @@ export default function RegisterPage() {
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                icon={<span className="text-sm font-semibold">+88</span>}
+                placeholder="018XXXXXXXX"
                 error={errors.phone?.message}
                 {...register("phone")}
                 onInput={(event) => {
@@ -149,7 +173,7 @@ export default function RegisterPage() {
                   </>
                 )}
               </Button>
-            </form>
+            </form>}
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>

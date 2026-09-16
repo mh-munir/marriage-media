@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         "photos.publicId": publicId,
       },
       { $set: { "photos.$.isApproved": true } },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!updatedProfile) {

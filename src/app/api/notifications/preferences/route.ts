@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest) {
     const preferences = await NotificationPreference.findOneAndUpdate(
       { userId: user._id },
       { $set: body },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     );
 
     return NextResponse.json({ preferences });

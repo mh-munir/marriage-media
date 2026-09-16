@@ -28,7 +28,7 @@ export const loginSchema = z.object({
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email("Please provide a valid email address"),
+  phone: z.string().trim().regex(/^01[3-9][0-9]{8}$/, "Mobile number must be exactly 11 digits"),
 });
 
 export const resetPasswordSchema = z.object({

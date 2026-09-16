@@ -75,7 +75,7 @@ export async function PUT(request: NextRequest) {
     const coupon = await Coupon.findByIdAndUpdate(
       couponId,
       { $set: updates },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     return NextResponse.json({ coupon });

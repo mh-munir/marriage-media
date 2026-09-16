@@ -4,10 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { Profile, User, Verification } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculateAge } from "@/lib/utils";
+import { calculateAge, validatePhoneNumber } from "@/lib/utils";
 import { notifyProfileMatches } from "@/lib/profile-matching";
 import { allocatePublicId } from "@/lib/public-id";
 import { createNotification } from "@/lib/notifications";
+import { normalizeProfileDistricts } from "@/lib/location-normalization";
 
 let aboutMeMigrationComplete = false;
 
@@ -59,13 +60,18 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
   const missingFields: string[] = requiredFields
     .filter(([field]) => !String(body[field] || "").trim())
     .map(([, label]) => label);
-  if (body.fatherContactNumber && !/^\d{11}$/.test(String(body.fatherContactNumber))) {
-    missingFields.push("Father's Contact Number must be exactly 11 digits");
+  if (!String(body.fatherName || "").trim()) missingFields.push("Father's Name");
+  if (!String(body.motherName || "").trim()) missingFields.push("Mother's Name");
+  if (!String(body.division || "").trim() || !String(body.district || "").trim()) missingFields.push("Present Address location");
+  if (!body.permanentLocation || typeof body.permanentLocation !== "object" || !String((body.permanentLocation as Record<string, unknown>).division || "").trim() || !String((body.permanentLocation as Record<string, unknown>).district || "").trim()) missingFields.push("Permanent Address location");
+  if (!body.guardianRelation || !String(body.guardianName || "").trim() || !validatePhoneNumber(String(body.guardianMobileNumber || ""))) {
+    missingFields.push("Guardian details (with a valid 11 digit mobile number)");
   }
   const partnerPreferences = body.partnerPreferences;
   if (!partnerPreferences || typeof partnerPreferences !== "object" || !Object.values(partnerPreferences).some(Boolean)) {
     missingFields.push("At least one Expected Partner preference");
   }
+  if (!["Yes", "No"].includes(String(body.familyAwareOfBiodata)) || !["Yes", "No"].includes(String(body.informationAccurate)) || !["Yes", "No"].includes(String(body.truthDeclaration)) || body.acceptsFalseInformationLiability !== true) missingFields.push("All declarations");
   return missingFields;
 }
 
@@ -129,10 +135,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     delete body.aboutMe;
+    Object.assign(body, normalizeProfileDistricts(body));
 
     const missingFields = getMissingRequiredFields(body);
-    if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 2) {
-      if (!Array.isArray(body.photos) || body.photos.length < 2) missingFields.push("At least 2 profile photos");
+    if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 1 || body.photos.length > 4) {
+      if (!Array.isArray(body.photos) || body.photos.length < 1 || body.photos.length > 4) missingFields.push("1 to 4 profile photos");
       return NextResponse.json(
         { error: `Please complete these fields before saving: ${missingFields.join(", ")}.` },
         { status: 400 }
@@ -162,14 +169,13 @@ export async function POST(request: NextRequest) {
       publicId,
       ...body,
       age,
-      isVisible: true,
+      isVisible: false,
     });
 
     const completionPercentage = calculateProfileCompletion(body);
 
     // Update user profile completion
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
-    await Profile.findByIdAndUpdate(profile._id, { isVisible: true });
     if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 
@@ -189,10 +195,11 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     delete body.aboutMe;
+    Object.assign(body, normalizeProfileDistricts(body));
 
     const missingFields = getMissingRequiredFields(body);
-    if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 2) {
-      if (!Array.isArray(body.photos) || body.photos.length < 2) missingFields.push("At least 2 profile photos");
+    if (missingFields.length || !Array.isArray(body.photos) || body.photos.length < 1 || body.photos.length > 4) {
+      if (!Array.isArray(body.photos) || body.photos.length < 1 || body.photos.length > 4) missingFields.push("1 to 4 profile photos");
       return NextResponse.json(
         { error: `Please complete these fields before saving: ${missingFields.join(", ")}.` },
         { status: 400 }
@@ -207,7 +214,7 @@ export async function PUT(request: NextRequest) {
     const profile = await Profile.findOneAndUpdate(
       { userId: user._id },
       { $set: body, $unset: { aboutMe: 1 } },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
 
     if (!profile) {
@@ -219,7 +226,6 @@ export async function PUT(request: NextRequest) {
 
     const completionPercentage = calculateProfileCompletion(body);
     await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
-    await Profile.findByIdAndUpdate(profile._id, { isVisible: true });
     if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 

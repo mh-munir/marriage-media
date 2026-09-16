@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       const blog = await Blog.findByIdAndUpdate(
         blogId,
         { $set: { title, content, excerpt, category, tags, isPublished, metaTitle, metaDescription, featuredImage, likes: likeCount, publishedAt: isPublished ? new Date() : undefined } },
-        { new: true }
+        { returnDocument: "after" }
       );
       return NextResponse.json({ blog });
     }
@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest) {
     const template = await EmailTemplate.findByIdAndUpdate(
       templateId,
       { $set: updates },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     return NextResponse.json({ template });

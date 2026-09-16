@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
         ...(resultCount !== undefined && { resultCount }),
         ...(isAlertEnabled !== undefined && { isAlertEnabled }),
       },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!savedSearch) {

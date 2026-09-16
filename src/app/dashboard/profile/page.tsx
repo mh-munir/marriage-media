@@ -15,6 +15,7 @@ import {
   Heart,
   AlertCircle,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -65,8 +66,20 @@ interface ProfileFormData {
   familyStatus: string;
   familyValues: string;
   fatherName: string;
-  fatherContactNumber: string;
+  guardianRelation: string;
+  guardianName: string;
+  guardianMobileNumber: string;
   motherName: string;
+  permanentAddress: string;
+  presentAddress: string;
+  bloodGroup: string;
+  permanentLocation: { country: string; division: string; district: string; thana: string; union: string; area: string };
+  aboutYourself: string;
+  educationDetails: Array<{ level: "SSC" | "HSC" | "Graduation" | "Other"; instituteName: string; year: string }>;
+  familyAwareOfBiodata: string;
+  informationAccurate: string;
+  truthDeclaration: string;
+  acceptsFalseInformationLiability: boolean;
   siblings: Array<{ name: string; relation: "Brother" | "Sister" }>;
   partnerPreference: string;
   partnerPreferences: {
@@ -121,8 +134,20 @@ const createInitialProfile = (): ProfileFormData => ({
   familyStatus: "Middle Class",
   familyValues: "Moderate",
   fatherName: "",
-  fatherContactNumber: "",
+  guardianRelation: "",
+  guardianName: "",
+  guardianMobileNumber: "",
   motherName: "",
+  permanentAddress: "",
+  presentAddress: "",
+  bloodGroup: "",
+  permanentLocation: { country: "Bangladesh", division: "", district: "", thana: "", union: "", area: "" },
+  aboutYourself: "",
+  educationDetails: ["SSC", "HSC", "Graduation", "Other"].map((level) => ({ level: level as "SSC" | "HSC" | "Graduation" | "Other", instituteName: "", year: "" })),
+  familyAwareOfBiodata: "",
+  informationAccurate: "",
+  truthDeclaration: "",
+  acceptsFalseInformationLiability: false,
   siblings: [],
   partnerPreference: "",
   partnerPreferences: {
@@ -204,6 +229,7 @@ export default function DashboardProfilePage() {
   const [error, setError] = React.useState("");
   const [profileExists, setProfileExists] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
+  const [deletingPhotoId, setDeletingPhotoId] = React.useState<string | null>(null);
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
   const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const { updateUser } = useAuthStore();
@@ -455,6 +481,58 @@ export default function DashboardProfilePage() {
     }
   };
 
+  const handleDeletePhoto = async (publicId: string) => {
+    if (deletingPhotoId) return;
+
+    const photoToDelete = profile.photos.find((photo) => photo.publicId === publicId);
+
+    if (!photoToDelete) {
+      setError("Selected photo could not be found.");
+      return;
+    }
+
+    setDeletingPhotoId(publicId);
+    setError("");
+
+    try {
+      const response = await fetch("/api/profile/photos", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${useAuthStore.getState().token || ""}`,
+        },
+        body: JSON.stringify({ publicId }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to delete photo.");
+
+      const updatedPhotos = profile.photos.filter((photo) => photo.publicId !== publicId);
+
+      if (photoToDelete.isPrimary && updatedPhotos.length > 0) {
+        updatedPhotos[0] = {
+          ...updatedPhotos[0],
+          isPrimary: true,
+        };
+      }
+
+      setProfile((current) => ({
+        ...current,
+        photos: updatedPhotos,
+      }));
+
+      if (photoToDelete.isPrimary) {
+        updateUser({
+          avatar: updatedPhotos[0]?.url || "",
+        });
+      }
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete photo.");
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
+
   const sections = [
     { id: "basic", label: "Basic Info", icon: User },
     { id: "photos", label: "Photos", icon: Sparkles },
@@ -574,25 +652,48 @@ export default function DashboardProfilePage() {
                         <p className="text-sm text-muted-foreground">{text("Upload at least 2 and up to 5 images.")}</p>
                       </CardHeader>
                       <CardContent className="space-y-5">
-                        {!profileExists ? (
-                          <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-                            You can upload photos now. They will be saved with your profile.
-                          </p>
-                        ) : null}
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                          {profile.photos.map((photo) => (
-                            <div key={photo.publicId} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted">
-                              <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 33vw, 50vw" className="object-cover" />
-                              {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
-                            </div>
-                          ))}
-                          {profile.photos.length < 5 ? (
-                            <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary">
-                              {isUploading ? <Loader2 className="mb-2 h-6 w-6 animate-spin" /> : <Sparkles className="mb-2 h-6 w-6" />}
-                              {isUploading ? `${text("Uploading")}...` : text("Add images")}
-                              <input type="file" accept="image/*" multiple className="sr-only" onChange={handleUpload} disabled={isUploading} />
-                            </label>
-                          ) : null}
+                        <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5">
+                          {Array.from({ length: 5 }).map((_, index) => {
+                            const photo = profile.photos[index];
+
+                            if (photo) {
+                              return (
+                                <div
+                                  key={photo.publicId}
+                                  className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted shadow-sm"
+                                >
+                                  <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 16vw, 50vw" className="object-cover" />
+                                  {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleDeletePhoto(photo.publicId)}
+                                    disabled={deletingPhotoId === photo.publicId}
+                                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-all duration-200 hover:bg-red-600 group-hover:opacity-100 disabled:cursor-not-allowed disabled:bg-red-600/80"
+                                    aria-label="Delete image"
+                                  >
+                                    {deletingPhotoId === photo.publicId ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <label
+                                key={`empty-slot-${index}`}
+                                className="group flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 text-center transition-colors hover:border-primary/60 hover:bg-muted/70"
+                              >
+                                <input type="file" accept="image/*" className="sr-only" onChange={handleUpload} disabled={isUploading} />
+                                <div className="flex flex-col items-center justify-center gap-1.5 px-2 text-[10px] font-medium text-muted-foreground group-hover:text-primary">
+                                  {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                                  <span>{isUploading ? `${text("Uploading")}...` : `Upload Photo ${index + 1}`}</span>
+                                </div>
+                              </label>
+                            );
+                          })}
                         </div>
                         <p className={`text-sm ${profile.photos.length < 2 ? "text-destructive" : "text-emerald-600"}`}>
                           {profile.photos.length}/5 images uploaded {profile.photos.length < 2 ? "(minimum 2 required)" : ""}
@@ -607,6 +708,58 @@ export default function DashboardProfilePage() {
                         <CardTitle>{text("Complete Your Profile")}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-8">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <h2 className="text-lg font-semibold">{text("Basic Information")}</h2>
+                            <p className={`text-sm ${profile.photos.length < 2 ? "text-destructive" : "text-emerald-600"}`}>
+                              {profile.photos.length}/5 photos
+                            </p>
+                          </div>
+                          <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5">
+                            {Array.from({ length: 5 }).map((_, index) => {
+                              const photo = profile.photos[index];
+
+                              if (photo) {
+                                return (
+                                  <div
+                                    key={photo.publicId}
+                                    className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted shadow-sm"
+                                  >
+                                    <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 16vw, 50vw" className="object-cover" />
+                                    {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleDeletePhoto(photo.publicId)}
+                                      disabled={deletingPhotoId === photo.publicId}
+                                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-all duration-200 hover:bg-red-600 group-hover:opacity-100 disabled:cursor-not-allowed disabled:bg-red-600/80"
+                                      aria-label="Delete image"
+                                    >
+                                      {deletingPhotoId === photo.publicId ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <label
+                                  key={`empty-slot-${index}`}
+                                  className="group flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 text-center transition-colors hover:border-primary/60 hover:bg-muted/70"
+                                >
+                                  <input type="file" accept="image/*" className="sr-only" onChange={handleUpload} disabled={isUploading} />
+                                  <div className="flex flex-col items-center justify-center gap-1.5 px-2 text-[10px] font-medium text-muted-foreground group-hover:text-primary">
+                                    {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                                    <span>{isUploading ? `${text("Uploading")}...` : `Upload Photo ${index + 1}`}</span>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         <section>
                           <h2 className="mb-4 text-lg font-semibold">{text("Basic Information")}</h2>
                           <div className="space-y-4">
@@ -633,12 +786,21 @@ export default function DashboardProfilePage() {
                           <Input
                             label="Mobile Number"
                             type="tel"
+                            inputMode="numeric"
+                            pattern="01[3-9][0-9]{8}"
+                            maxLength={11}
                             value={profile.mobileNumber}
                             readOnly
                             placeholder="Registered mobile number"
                           />
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">Blood Group</label>
+                            <select value={profile.bloodGroup} onChange={(e) => setProfile({ ...profile, bloodGroup: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm">
+                              <option value="">Select blood group</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group} value={group}>{group}</option>)}
+                            </select>
+                          </div>
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1.5">{text("Gender")}</label>
                             <select
@@ -719,24 +881,22 @@ export default function DashboardProfilePage() {
                           <h2 className="mb-4 text-lg font-semibold">{text("Family Information")}</h2>
                           <div className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Guardian")}</label>
+                            <select value={profile.guardianRelation} onChange={(e) => setProfile({ ...profile, guardianRelation: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm">
+                              <option value="">{text("Select")}</option><option value="Father">{text("Father")}</option><option value="Mother">{text("Mother")}</option><option value="Brother">{text("Brother")}</option><option value="Sister">{text("Sister")}</option>
+                            </select>
+                          </div>
+                          <Input label={text("Guardian Name")} value={profile.guardianName} onChange={(e) => setProfile({ ...profile, guardianName: e.target.value })} />
+                          <Input label={text("Guardian Mobile Number")} type="tel" inputMode="numeric" pattern="01[3-9][0-9]{8}" maxLength={11} value={profile.guardianMobileNumber} onChange={(e) => setProfile({ ...profile, guardianMobileNumber: sanitizePhoneNumberInput(e.target.value).slice(0, 11) })} />
                           <Input
-                            label="Father's Name"
+                            label={text("Father's Name")}
                             value={profile.fatherName}
                             onChange={(e) => setProfile({ ...profile, fatherName: e.target.value })}
                           />
-                          <Input
-                            label="Father's Contact Number"
-                            type="tel"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={11}
-                            minLength={11}
-                            value={profile.fatherContactNumber}
-                            onChange={(e) => setProfile({ ...profile, fatherContactNumber: sanitizePhoneNumberInput(e.target.value).slice(0, 11) })}
-                          />
                         </div>
                         <Input
-                          label="Mother's Name"
+                          label={text("Mother's Name")}
                           value={profile.motherName}
                           onChange={(e) => setProfile({ ...profile, motherName: e.target.value })}
                         />
@@ -849,6 +1009,11 @@ export default function DashboardProfilePage() {
                         <section>
                           <h2 className="mb-4 text-lg font-semibold">{text("Location Information")}</h2>
                           <div className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Input label="Permanent Address" placeholder="বাড়ি/গ্রাম/রোডসহ স্থায়ী ঠিকানা" value={profile.permanentAddress} onChange={(e) => setProfile({ ...profile, permanentAddress: e.target.value })} />
+                          <Input label="Present Address" placeholder="বাড়ি/গ্রাম/রোডসহ বর্তমান ঠিকানা" value={profile.presentAddress} onChange={(e) => setProfile({ ...profile, presentAddress: e.target.value })} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">{text("Present location: select Division, District, Thana and Union below.")}</p>
                         <Input
                           label="Country"
                           value={profile.country}
@@ -969,6 +1134,20 @@ export default function DashboardProfilePage() {
                               <option key={i} value={i}>{text(i)}</option>
                             ))}
                           </select>
+                        </div>
+                        <div className="space-y-3 sm:col-span-2">
+                          <label className="block text-sm font-medium text-foreground">Education Details</label>
+                          {profile.educationDetails.map((education, index) => (
+                            <div className="grid gap-3 sm:grid-cols-3" key={education.level}>
+                              <p className="self-center text-sm font-medium">{education.level}</p>
+                              <Input label="Institute Name" value={education.instituteName} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, instituteName: e.target.value } : item) })} />
+                              <Input label="Year" value={education.year} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, year: e.target.value } : item) })} />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="mb-1.5 block text-sm font-medium text-foreground">About Me</label>
+                          <textarea className="min-h-28 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" value={profile.aboutYourself} onChange={(e) => setProfile({ ...profile, aboutYourself: e.target.value })} />
                         </div>
                           </div>
                         </section>
@@ -1132,6 +1311,11 @@ export default function DashboardProfilePage() {
                     </div>
                   )}
 
+                  <section className="rounded-xl border p-4 space-y-3">
+                    <h2 className="text-lg font-semibold">{text("Declarations")}</h2>
+                    {[["familyAwareOfBiodata", "My family knows that I am submitting this biodata."], ["informationAccurate", "I confirm before Allah that all information is accurate."], ["truthDeclaration", "I declare before Allah that all information is accurate."]].map(([key, label]) => <div key={key}><p className="text-sm font-medium">{text(label)}</p><label className="mr-4 text-sm"><input className="mr-1" type="radio" checked={profile[key as keyof ProfileFormData] === "Yes"} onChange={() => setProfile({ ...profile, [key]: "Yes" })} />{text("Yes")}</label><label className="text-sm"><input className="mr-1" type="radio" checked={profile[key as keyof ProfileFormData] === "No"} onChange={() => setProfile({ ...profile, [key]: "No" })} />{text("No")}</label></div>)}
+                    <label className="flex gap-2 text-sm"><input type="checkbox" checked={profile.acceptsFalseInformationLiability} onChange={(e) => setProfile({ ...profile, acceptsFalseInformationLiability: e.target.checked })} />{text("I accept legal and religious responsibility for false information.")}</label>
+                  </section>
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     <Button variant="gradient" size="lg" onClick={handleSave} disabled={isSaving}>
                       {isSaving ? (

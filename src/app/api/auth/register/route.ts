@@ -7,6 +7,8 @@ import { User } from "@/models";
 import { registerSchema } from "@/lib/validations";
 import { allocatePublicId } from "@/lib/public-id";
 import { createNotification } from "@/lib/notifications";
+import { sendVerificationCodeSMS } from "@/lib/sms";
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,14 +51,25 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const user = await User.create({
       publicId: await allocatePublicId(),
       phone: normalizedPhone,
       password: hashedPassword,
       role: "user",
       isEmailVerified: false,
+      isPhoneVerified: false,
       isActive: true,
+      registrationOtpHash: crypto.createHash("sha256").update(otp).digest("hex"),
+      registrationOtpExpiry: new Date(Date.now() + 10 * 60 * 1000),
+      registrationOtpAttempts: 0,
     });
+
+    const smsResult = await sendVerificationCodeSMS(normalizedPhone, otp);
+    if (!smsResult.success) {
+      await User.findByIdAndDelete(user._id);
+      return NextResponse.json({ error: smsResult.error || "Unable to send verification code." }, { status: 503 });
+    }
 
     try {
       const admins = await User.find({ role: { $in: ["admin", "superadmin"] }, isActive: true }).select("_id").lean();
@@ -74,14 +87,15 @@ export async function POST(request: NextRequest) {
       console.error("Admin registration notification failed:", notificationError);
     }
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
-        message: "Account created successfully",
+        message: "Account created. Verify your mobile number to continue.",
         userId: user._id,
         publicId: user.publicId,
       },
       { status: 201 }
     );
+    return response;
   } catch (error: unknown) {
     const databaseError = error as {
       code?: number;

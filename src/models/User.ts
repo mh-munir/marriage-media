@@ -23,6 +23,10 @@ export interface IUser extends Document {
   emailVerificationExpiry?: Date;
   resetPasswordToken?: string;
   resetPasswordExpiry?: Date;
+  resetPasswordAttempts: number;
+  registrationOtpHash?: string;
+  registrationOtpExpiry?: Date;
+  registrationOtpAttempts: number;
   isActive: boolean;
   isBlocked: boolean;
   blockedUsers: mongoose.Types.ObjectId[];
@@ -40,8 +44,12 @@ export interface IUser extends Document {
   whatsappOptIn: boolean;
   firstName?: string;
   lastName?: string;
+  avatarUrl?: string;
+  avatarPublicId?: string;
   gender?: "Male" | "Female";
   onboardingCompleted: boolean;
+  onboardingStep: number;
+  onboardingData?: Record<string, unknown>;
   // Account lockout fields
   failedLoginAttempts: number;
   lockedUntil?: Date;
@@ -97,6 +105,24 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       select: false,
     },
+    resetPasswordAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    registrationOtpHash: {
+      type: String,
+      select: false,
+    },
+    registrationOtpExpiry: {
+      type: Date,
+      select: false,
+    },
+    registrationOtpAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -116,6 +142,7 @@ const UserSchema = new Schema<IUser>(
       unique: true,
       sparse: true,
       trim: true,
+      match: [/^01[3-9][0-9]{8}$/, "Mobile number must be exactly 11 digits"],
     },
     phoneCountryCode: {
       type: String,
@@ -161,6 +188,8 @@ const UserSchema = new Schema<IUser>(
       trim: true,
       maxlength: 50,
     },
+    avatarUrl: { type: String, default: "" },
+    avatarPublicId: { type: String, default: "" },
     gender: {
       type: String,
       enum: ["Male", "Female"],
@@ -169,6 +198,9 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    onboardingStep: { type: Number, default: 1, min: 1, max: 8 },
+    // Keeps each onboarding step safely persisted until the full Profile is created.
+    onboardingData: { type: Schema.Types.Mixed, default: {} },
     profileCompleted: {
       type: Number,
       default: 0,

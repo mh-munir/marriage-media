@@ -51,10 +51,11 @@ export async function sendTemplatedEmail(
     });
 
     let subject: string;
+    let htmlContent: string;
 
     if (template) {
       subject = renderTemplate(template.subject, params.variables);
-      renderTemplate(template.htmlContent, params.variables);
+      htmlContent = renderTemplate(template.htmlContent, params.variables);
 
       // Update usage stats
       await EmailTemplate.findByIdAndUpdate(template._id, {
@@ -63,14 +64,33 @@ export async function sendTemplatedEmail(
       });
     } else if (params.fallbackSubject && params.fallbackHtml) {
       subject = renderTemplate(params.fallbackSubject, params.variables);
-      renderTemplate(params.fallbackHtml, params.variables);
+      htmlContent = renderTemplate(params.fallbackHtml, params.variables);
     } else {
       return { success: false, error: "Template not found and no fallback provided" };
     }
 
-    // In production, integrate with email service here:
-    // await sendViaSendGrid(params.to, subject, htmlContent);
-    // await sendViaSES(params.to, subject, htmlContent);
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFrom = process.env.RESEND_FROM_EMAIL;
+    if (resendApiKey && resendFrom) {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ from: resendFrom, to: [params.to], subject, html: htmlContent }),
+      });
+      if (!response.ok) {
+        const details = await response.text();
+        return { success: false, error: `Email provider rejected the message: ${details}` };
+      }
+      const result = (await response.json()) as { id?: string };
+      return { success: true, messageId: result.id || `msg_${Date.now()}` };
+    }
+
+    if (process.env.NODE_ENV === "production") {
+      return { success: false, error: "Email provider is not configured." };
+    }
 
     console.log(`[Email] Sent to ${params.to}: ${subject}`);
 

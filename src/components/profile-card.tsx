@@ -51,7 +51,7 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
   const isPremiumUser = Boolean(user?.isPremium);
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || translateText("Marriage Media Member");
   const displayName = currentUserIsPremium ? name : (profile.publicId || translateText("ID pending"));
-  const shouldShowProfileImage = Boolean(profile.imageUrl) && currentUserIsPremium;
+  const shouldShowProfileImage = Boolean(profile.imageUrl);
   const translatedProfession = profile.profession ? translateText(profile.profession) : translateText("Profile shared");
   const translatedLocation = formatLocation(profile, translateText);
 

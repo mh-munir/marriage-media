@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       const updated = await Profile.findOneAndUpdate(
         { userId: user._id },
         { $push: { photos: newPhoto } },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!updated) return jsonError("Failed to update profile.", 500);
     }

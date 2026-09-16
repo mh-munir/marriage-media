@@ -7,6 +7,7 @@ import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { calculateMatchScore } from "@/lib/profile-matching";
 import { ensurePublicIdForProfile } from "@/lib/public-id";
+import { getActiveSubscription } from "@/lib/profile-access";
 
 type ProfilePhoto = {
   url?: string;
@@ -95,6 +96,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    const canViewProfileImages = Boolean(await getActiveSubscription(user._id));
 
     const { searchParams } = new URL(request.url);
 
@@ -422,7 +424,7 @@ export async function GET(request: NextRequest) {
         profession: profile.profession || "",
         workingWith: profile.workingWith || "",
         familyStatus: profile.familyStatus || "",
-        imageUrl: getPrimaryPhoto(profile.photos),
+        imageUrl: canViewProfileImages ? getPrimaryPhoto(profile.photos) : null,
         isPremium: Boolean(
           profile.isPremium &&
             profile.premiumExpiry instanceof Date &&

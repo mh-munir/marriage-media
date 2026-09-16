@@ -6,6 +6,7 @@ import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { calculateMatchScore, type MatchableProfile, type PartnerPreferences } from "@/lib/profile-matching";
+import { getActiveSubscription } from "@/lib/profile-access";
 
 type FavoriteBody = {
   profileUserId?: string;
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    const canViewProfileImages = Boolean(await getActiveSubscription(user._id));
 
     const favorites = await Favorite.find({ userId: user._id })
       .sort({ createdAt: -1 })
@@ -79,7 +81,7 @@ export async function GET(request: NextRequest) {
         matchPercentage,
         isFavorite: true,
         publicId: profile?.publicId || "",
-        imageUrl: profile?.photos?.[0]?.url || null,
+        imageUrl: canViewProfileImages ? profile?.photos?.[0]?.url || null : null,
         division: profile?.division || "",
         district: profile?.district || "",
         area: profile?.area || "",

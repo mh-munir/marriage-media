@@ -21,6 +21,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
 import { HomeHeroStats } from "@/app/home-hero-stats";
+import { useTheme } from "@/components/theme-provider";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { useLanguage } from "@/providers/language-provider";
 import type { HomeProfile } from "@/lib/home-data";
@@ -39,6 +40,7 @@ const image = {
 export default function HomePage() {
   const { page, loading } = useSitePage("home");
   const { t, translateText } = useLanguage();
+  const { resolvedTheme } = useTheme();
 
   const steps = [
     { icon: Search, number: "01", title: t("tellStory"), text: t("homeDescription") },
@@ -112,10 +114,17 @@ export default function HomePage() {
     <div className="home-page min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">
       <Header />
       <main>
-        <section className="relative isolate overflow-hidden bg-[#fff9f7] px-5 pb-14 pt-24 sm:px-8 lg:pb-16 lg:pt-32">
+        <section className="home-hero relative isolate overflow-hidden bg-[#fff9f7] px-5 pb-14 pt-24 sm:px-8 lg:pb-16 lg:pt-32">
           <div className="absolute -left-24 top-12 h-56 w-72 -rotate-12 rounded-[45%] bg-[#fce2df]/70 blur-2xl" />
           <div className="absolute -right-20 top-8 h-52 w-80 rotate-12 rounded-[45%] bg-[#fbe6e1]/65 blur-2xl" />
-          <div className="absolute inset-x-0 bottom-0 h-44 bg-linear-to-t from-[#fffdfc] to-transparent" />
+          <div
+            className="absolute inset-x-0 bottom-0 h-44"
+            style={{
+              backgroundImage: resolvedTheme === "dark"
+                ? "linear-gradient(to top, #171412 0%, rgb(23 20 18 / 0.82) 46%, transparent 100%)"
+                : "linear-gradient(to top, #fffdfc 0%, transparent 100%)",
+            }}
+          />
           <div className="relative mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.96fr_1.04fr] lg:gap-14">
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative z-10 max-w-xl">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#efc5bf] bg-white/70 px-4 py-2 text-xs font-semibold text-[#b96862]">
@@ -128,15 +137,10 @@ export default function HomePage() {
                 <Link href="/success-stories" className="inline-flex items-center gap-2 px-2 py-3 text-sm font-semibold text-[#486866]">{t("seeSuccessStories")} <ArrowRight className="h-4 w-4" /></Link>
               </div>
               <HomeHeroStats />
-              <div className="mt-9 flex flex-wrap gap-6 text-sm text-[#607572]">
-                <span><strong className="text-lg text-[#263b3a]">25k+</strong><br />{t("activeMembers")}</span>
-                <span><strong className="text-lg text-[#263b3a]">4.9/5</strong><br />{t("memberRating")}</span>
-                <span><strong className="text-lg text-[#263b3a]">100%</strong><br />{t("privacyFocused")}</span>
-              </div>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="relative mx-auto h-105 w-full max-w-xl sm:h-125">
               <div className="absolute right-[7%] top-0 h-[88%] w-[73%] overflow-hidden rounded-[46%_46%_20%_20%] border-7 border-white bg-white shadow-[0_24px_55px_rgba(128,88,72,.18)]"><Image src={image.couple} alt="Couple walking together" fill priority sizes="(min-width: 1024px) 38vw, 78vw" className="object-cover" /></div>
-              <div className="absolute bottom-2 left-0 h-38 w-34 overflow-hidden rounded-3xl border-5 border-[#fff9f7] bg-white shadow-xl sm:h-48 sm:w-44"><Image src={image.celebration} alt="Wedding celebration" fill sizes="176px" className="object-cover" /></div>
+              <div className="absolute bottom-2 left-0 h-38 w-34 overflow-hidden rounded-3xl border-5 border-[#fff9f7] bg-white shadow-xl sm:h-48 sm:w-44"><Image src={image.celebration} alt="Wedding celebration" fill loading="eager" sizes="176px" className="object-cover" /></div>
               <div className="absolute bottom-10 right-0 flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-xs font-semibold text-[#486866] shadow-xl"><BadgeCheck className="h-5 w-5 text-[#61b69e]" /> {t("verifiedProfiles")}</div>
             </motion.div>
           </div>
@@ -149,7 +153,6 @@ export default function HomePage() {
                 <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f]">{t("betterWay")}</p>
                 <h2 className="mt-3 font-serif text-4xl text-[#263b3a] sm:text-5xl">{t("builtForReal")}</h2>
               </div>
-              <p className="max-w-sm text-sm leading-6 text-[#78908c]">{t("noEndlessNoise")}</p>
             </motion.div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {[{ icon: ShieldCheck, title: t("trustFirst"), text: t("noEndlessNoise") }, { icon: Sparkles, title: t("smarterRecommendations"), text: t("communityDescription") }, { icon: Heart, title: t("madeForCommitment"), text: t("homeDescription") }].map(({ icon: Icon, title, text }, index) => (
@@ -166,9 +169,6 @@ export default function HomePage() {
                   </div>
                   <h3 className="mt-5 font-serif text-xl text-[#355350]">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-[#78908c]">{text}</p>
-                  <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#355350]">
-                    {t("homeDescription")} <ArrowRight className="h-4 w-4" />
-                  </div>
                 </motion.div>
               ))}
             </div>
@@ -318,9 +318,9 @@ export default function HomePage() {
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative p-2 text-[#263b3a] sm:p-5">
               <div className="relative flex h-full flex-col justify-center">
                 <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#f4b0a8]">{t("successStories")}</p>
-                <h2 className="mt-4 max-w-md font-serif text-4xl leading-tight sm:text-5xl">The best love stories start with a conversation.</h2>
+                <h2 className="mt-4 max-w-md font-serif text-4xl leading-tight sm:text-5xl">{translateText("The best love stories start with a conversation.")}</h2>
                 <p className="mt-5 max-w-sm text-sm leading-6 text-[#78908c]">“We started with a simple conversation. Six months later, we knew.”</p>
-                <Link href="/success-stories" className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-[#174b4a] px-5 py-3 text-sm font-semibold text-white">Read member stories <ArrowRight className="h-4 w-4" /></Link>
+                <Link href="/success-stories" className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-[#174b4a] px-5 py-3 text-sm font-semibold text-white">{translateText("Read member stories")} <ArrowRight className="h-4 w-4" /></Link>
               </div>
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative h-70 overflow-hidden rounded-3xl shadow-[0_18px_35px_rgba(88,111,109,.12)] sm:h-80">
@@ -329,15 +329,15 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden bg-[#eff8f7] px-5 py-16 sm:px-8 lg:py-18">
-          <div className="absolute inset-0 opacity-45"><Image src={image.bride} alt="" fill sizes="100vw" className="object-cover object-center" /></div>
-          <div className="absolute inset-0 bg-linear-to-r from-[#fff9ee] via-[#fff9ee]/85 to-[#fff9ee]/15" />
+        <section className="home-final-cta relative overflow-hidden bg-[#eff8f7] px-5 py-16 sm:px-8 lg:py-18">
+          <div className="absolute inset-0 opacity-45 dark:opacity-25"><Image src={image.bride} alt="" fill sizes="100vw" className="object-cover object-center" /></div>
+          <div className="absolute inset-0 bg-linear-to-r from-[#fff9ee] via-[#fff9ee]/85 to-[#fff9ee]/15 dark:from-[#171412]/96 dark:via-[#171412]/90 dark:to-[#171412]/55" />
           <div className="relative mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.85fr_1.15fr]">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f]">Start today</p>
-              <h2 className="mt-3 font-serif text-4xl text-[#263b3a] sm:text-5xl">A thoughtful beginning can change everything.</h2>
-              <p className="mt-5 max-w-md text-sm leading-6 text-[#78908c]">Join a growing community of people looking for a partner, not just another profile.</p>
-              <Link href="/login" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#ef3f68] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#ef3f68]/20">Find your match <ArrowRight className="h-4 w-4" /></Link>
+              <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f] dark:text-[#fb9b90]">{translateText("Start today")}</p>
+              <h2 className="mt-3 font-serif text-4xl text-[#263b3a] dark:text-[#fff7ed] sm:text-5xl">{translateText("A thoughtful beginning can change everything.")}</h2>
+              <p className="mt-5 max-w-md text-sm leading-6 text-[#78908c] dark:text-[#e7d8d2]">{translateText("Join a growing community of people looking for a partner, not just another profile.")}</p>
+              <Link href="/login" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#ef3f68] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#ef3f68]/20">{translateText("Find your match")} <ArrowRight className="h-4 w-4" /></Link>
             </motion.div>
             <div className="hidden lg:block" />
           </div>

@@ -15,7 +15,6 @@ import {
   LogOut,
   Search,
   MessageCircle,
-  Languages,
   type LucideIcon,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
@@ -26,6 +25,7 @@ import { NotificationPanel } from "@/components/notifications/notification-panel
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/providers/language-provider";
+import { useSiteBranding } from "@/hooks/use-site-branding";
 
 interface NavLink {
   href: string;
@@ -60,6 +60,7 @@ export function Header() {
   const { logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const { headerLogoUrl } = useSiteBranding();
 
   React.useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -108,12 +109,18 @@ export function Header() {
         >
           {/* Logo */}
           <Link href="/" className="group flex items-center gap-3" aria-label="Marriage Media home">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
-              <Heart className="h-5 w-5 text-primary" fill="currentColor" />
-            </div>
-            <span className="hidden font-serif text-xl font-semibold tracking-tight sm:block">
-              Marriage <span className="text-primary">Media</span>
-            </span>
+            {headerLogoUrl ? (
+              <img src={headerLogoUrl} alt="Marriage Media" className="h-10 max-w-44 rounded-md object-contain object-left" />
+            ) : (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
+                  <Heart className="h-5 w-5 text-primary" fill="currentColor" />
+                </div>
+                <span className="hidden font-serif text-xl font-semibold tracking-tight sm:block">
+                  Marriage <span className="text-primary">Media</span>
+                </span>
+              </>
+            )}
           </Link>
 
           {/* Desktop Navigation */}
@@ -166,8 +173,10 @@ export function Header() {
               aria-label={t("toggleLanguage")}
               title={t("toggleLanguage")}
             >
-              <Languages className="h-5 w-5" />
-              <span className="sr-only">{language === "bn" ? "English" : "বাংলা"}</span>
+              <span className="text-xs font-bold tracking-wide" aria-hidden="true">
+                {language === "bn" ? "BN" : "EN"}
+              </span>
+              <span className="sr-only">{language === "bn" ? "বাংলা" : "English"}</span>
             </Button>
 
             {isAuthenticated && authUser ? (

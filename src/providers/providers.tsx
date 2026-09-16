@@ -20,7 +20,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <SocketProvider>
             {children}
             <Toaster
-              position="top-right"
+              position="top-center"
               richColors
               closeButton
               toastOptions={{

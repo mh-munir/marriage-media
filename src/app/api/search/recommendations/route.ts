@@ -6,11 +6,13 @@ import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { calculateMatchScore } from "@/lib/profile-matching";
 import { ensurePublicIdForProfile } from "@/lib/public-id";
+import { getActiveSubscription } from "@/lib/profile-access";
 
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    const canViewProfileImages = Boolean(await getActiveSubscription(user._id));
 
     const { searchParams } = new URL(request.url);
     const parsedPage = Number.parseInt(searchParams.get("page") || "1", 10);
@@ -157,8 +159,9 @@ export async function GET(request: NextRequest) {
     // Paginate
     const total = scoredProfiles.length;
     const paginatedProfiles = await Promise.all(
-      scoredProfiles.slice(skip, skip + limit).map(async (profile) => ({
+      scoredProfiles.slice(skip, skip + limit).map(async ({ photos, ...profile }) => ({
         ...profile,
+        photos: canViewProfileImages ? photos : [],
         publicId: await ensurePublicIdForProfile(profile.userId, profile.publicId),
       }))
     );

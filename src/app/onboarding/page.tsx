@@ -1,94 +1,64 @@
 "use client";
-
+/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-img-element */
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Loader2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuthStore } from "@/stores/auth-store";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
+import { EDUCATION_LEVELS, HEIGHTS, PROFESSIONS, RELIGIONS } from "@/lib/utils";
+import { useLanguage } from "@/providers/language-provider";
 
-export default function OnboardingPage() {
-  const router = useRouter();
-  const { user, updateUser } = useAuthStore();
-  const [firstName, setFirstName] = React.useState(user?.firstName || "");
-  const [lastName, setLastName] = React.useState(user?.lastName || "");
-  const [gender, setGender] = React.useState<"Male" | "Female" | undefined>(user?.gender);
-  const [error, setError] = React.useState("");
-  const [isSaving, setIsSaving] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!user) router.replace("/login");
-    else if (user.onboardingCompleted) router.replace("/dashboard");
-  }, [router, user]);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!gender) {
-      setError("Please select your gender before continuing.");
-      return;
-    }
-
-    setError("");
-    setIsSaving(true);
-    try {
-      const response = await fetch("/api/auth/onboarding", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ firstName, lastName, gender }),
-      });
-      const result = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(result.error || "Unable to save your details.");
-
-      updateUser({ firstName: firstName.trim(), lastName: lastName.trim(), gender, onboardingCompleted: true });
-      router.replace("/dashboard");
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save your details.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
+type D = Record<string, any>;
+const titles = ["Basic Information", "Family Information", "Location Information", "Education", "About Me", "Images", "Expected Partner", "Confirmation"];
+function StepTracker({ current }: { current: number }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-rose-50 via-background to-orange-50 px-4 py-12 dark:from-rose-950/20 dark:to-orange-950/10">
-      <Card className="w-full max-w-lg border-rose-200/70 shadow-xl dark:border-rose-900/50">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <UserRound className="h-7 w-7" />
-          </div>
-          <CardTitle className="text-2xl">Complete your account</CardTitle>
-          <CardDescription>Tell us your name and gender before building your full biodata.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {error ? <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="First Name" value={firstName} onChange={(event) => setFirstName(event.target.value)} required autoFocus />
-              <Input label="Last Name" value={lastName} onChange={(event) => setLastName(event.target.value)} required />
+    <nav className="onboarding-step-tracker" aria-label={`Step ${current} of ${titles.length}`}>
+      {titles.map((title, index) => {
+        const number = index + 1;
+        const status = number < current ? "done" : number === current ? "active" : "upcoming";
+        return (
+          <React.Fragment key={title}>
+            <div className={`onboarding-step ${status}`} aria-current={status === "active" ? "step" : undefined}>
+              <span className="onboarding-step-dot">{number}</span>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Gender</label>
-              <div className="grid grid-cols-2 gap-3">
-                {(["Male", "Female"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setGender(option)}
-                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${gender === option ? "border-primary bg-primary/10 text-primary" : "border-input hover:border-primary/50"}`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Button type="submit" variant="gradient" size="lg" className="w-full" disabled={isSaving}>
-              {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Save and continue <ArrowRight className="h-4 w-4" /></>}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+            {number < titles.length ? <span className={`onboarding-step-line ${number < current ? "done" : ""}`} aria-hidden="true" /> : null}
+          </React.Fragment>
+        );
+      })}
+    </nav>
   );
+}
+const blank: D = { firstName:"",lastName:"",gender:"",dateOfBirth:"",height:"",bloodGroup:"",maritalStatus:"Never Married",religion:"Islam",motherTongue:"Bengali",highestEducation:"",profession:"",country:"Bangladesh",division:"",district:"",thana:"",union:"",area:"",permanentLocation:{country:"Bangladesh",division:"",district:"",thana:"",union:"",area:""},guardianRelation:"",guardianName:"",guardianMobileNumber:"",fatherName:"",motherName:"", educationDetails:["SSC","HSC","Graduation","Other"].map(level=>({level,instituteName:"",year:""})),aboutYourself:"",photos:[],partnerPreferences:{age:"",height:"",maritalStatus:"",religion:"",highestEducation:"",country:"Bangladesh",division:"",district:""},familyAwareOfBiodata:"",informationAccurate:"",truthDeclaration:"",acceptsFalseInformationLiability:false };
+export default function OnboardingPage(){
+ const router=useRouter(),[data,setData]=React.useState<D>(blank),[step,setStep]=React.useState(1),[busy,setBusy]=React.useState(true),[error,setError]=React.useState("");
+ const { translateText: text } = useLanguage();
+ const [locations,setLocations]=React.useState({divisions:[] as string[],districts:[] as string[],thanas:[] as string[],unions:[] as string[]});
+ const [permanentLocations,setPermanentLocations]=React.useState({divisions:[] as string[],districts:[] as string[],thanas:[] as string[],unions:[] as string[]});
+ React.useEffect(()=>{fetch("/api/auth/onboarding").then(async r=>{if(!r.ok)throw Error(text("Please log in."));return r.json()}).then(x=>{setData({...blank,...x.data,photos:x.data?.photos||[],educationDetails:x.data?.educationDetails||blank.educationDetails,partnerPreferences:{...blank.partnerPreferences,...(x.data?.partnerPreferences||{})}});setStep(x.step||1)}).catch(e=>setError(e.message)).finally(()=>setBusy(false))},[text]);
+ React.useEffect(()=>{fetch("/api/locations?level=divisions").then(r=>r.json()).then(x=>setLocations(v=>({...v,divisions:x.options||[]}))).catch(()=>undefined)},[]);
+ React.useEffect(()=>{fetch("/api/locations?level=divisions").then(r=>r.json()).then(x=>setPermanentLocations(v=>({...v,divisions:x.options||[]}))).catch(()=>undefined)},[]);
+ React.useEffect(()=>{if(!data.division)return;fetch(`/api/locations?level=districts&division=${encodeURIComponent(data.division)}`).then(r=>r.json()).then(x=>setLocations(v=>({...v,districts:x.options||[]}))).catch(()=>undefined)},[data.division]);
+ React.useEffect(()=>{if(!data.division||!data.district)return;fetch(`/api/locations?level=thanas&division=${encodeURIComponent(data.division)}&district=${encodeURIComponent(data.district)}`).then(r=>r.json()).then(x=>setLocations(v=>({...v,thanas:x.options||[]}))).catch(()=>undefined)},[data.division,data.district]);
+ React.useEffect(()=>{if(!data.division||!data.district||!data.thana)return;fetch(`/api/locations?level=unions&division=${encodeURIComponent(data.division)}&district=${encodeURIComponent(data.district)}&thana=${encodeURIComponent(data.thana)}`).then(r=>r.json()).then(x=>setLocations(v=>({...v,unions:x.options||[]}))).catch(()=>undefined)},[data.division,data.district,data.thana]);
+ React.useEffect(()=>{const p=data.permanentLocation;if(!p?.division)return;fetch(`/api/locations?level=districts&division=${encodeURIComponent(p.division)}`).then(r=>r.json()).then(x=>setPermanentLocations(v=>({...v,districts:x.options||[]}))).catch(()=>undefined)},[data.permanentLocation]);
+ React.useEffect(()=>{const p=data.permanentLocation;if(!p?.division||!p?.district)return;fetch(`/api/locations?level=thanas&division=${encodeURIComponent(p.division)}&district=${encodeURIComponent(p.district)}`).then(r=>r.json()).then(x=>setPermanentLocations(v=>({...v,thanas:x.options||[]}))).catch(()=>undefined)},[data.permanentLocation]);
+ React.useEffect(()=>{const p=data.permanentLocation;if(!p?.division||!p?.district||!p?.thana)return;fetch(`/api/locations?level=unions&division=${encodeURIComponent(p.division)}&district=${encodeURIComponent(p.district)}&thana=${encodeURIComponent(p.thana)}`).then(r=>r.json()).then(x=>setPermanentLocations(v=>({...v,unions:x.options||[]}))).catch(()=>undefined)},[data.permanentLocation]);
+ const put=(k:string,v:any)=>setData(x=>({...x,[k]:v})); const input=(label:string,k:string,type="text")=><Input label={text(label)} type={type} value={data[k]||""} onChange={e=>put(k,e.target.value)} required/>; const phoneInput=(label:string,k:string)=><Input label={text(label)} type="tel" inputMode="numeric" pattern="01[3-9][0-9]{8}" maxLength={11} value={data[k]||""} onChange={e=>put(k,e.target.value.replace(/\D/g,"" ).slice(0,11))} required/>; const select=(label:string,k:string,options:string[]) => <label className="text-sm font-medium">{text(label)}<select className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3" value={data[k]} onChange={e=>put(k,e.target.value)}><option value="">{text("Select")}</option>{options.map(x=><option key={x} value={x}>{text(x)}</option>)}</select></label>;
+ const invalid=()=>{const need:Record<number,string[]>={1:["firstName","lastName","gender","dateOfBirth","height","maritalStatus","religion","motherTongue","highestEducation","profession"],2:["guardianRelation","guardianName","guardianMobileNumber","fatherName","motherName"],3:["country","division","district"],8:["familyAwareOfBiodata","informationAccurate","truthDeclaration"]};if(need[step]?.some(k=>!data[k]))return text("Please complete all required fields in this step.");if(step===3&&(!data.permanentLocation?.division||!data.permanentLocation?.district))return text("Permanent Address Division and District are required.");if(step===2&&!/^01[3-9][0-9]{8}$/.test(data.guardianMobileNumber))return text("Enter an 11-digit guardian mobile number.");if(step===6&&data.photos.length<1)return text("Upload at least one photo.");if(step===7&&!Object.values(data.partnerPreferences).some(Boolean))return text("Choose at least one partner preference.");if(step===8&&!data.acceptsFalseInformationLiability)return text("Please accept the declaration.");return ""};
+ const save=async(final=false)=>{const msg=invalid();if(msg)return setError(msg);setBusy(true);setError("");try{let r=await fetch("/api/auth/onboarding",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({data,step:final?8:step+1,completed:false})}),x=await r.json();if(!r.ok)throw Error(x.error);if(final){r=await fetch("/api/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...data,partnerPreference:data.aboutYourself,weight:"",familyType:"Nuclear",familyStatus:"Middle Class",familyValues:"Moderate",languages:[data.motherTongue],hobbies:[]})});x=await r.json();if(!r.ok)throw Error(x.error);await fetch("/api/auth/onboarding",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({data,step:8,completed:true})});router.replace("/dashboard/profile")}else setStep(step+1)}catch(e){setError(e instanceof Error?e.message:text("Unable to save."))}finally{setBusy(false)}};
+ const upload=async(file?:File)=>{if(!file)return;if(data.photos.length>=4)return setError(text("Maximum 4 photos allowed."));setBusy(true);try{const fd=new FormData();fd.append("file",file);const r=await fetch("/api/profile/photos/upload",{method:"POST",body:fd}),x=await r.json();if(!r.ok)throw Error(x.error);put("photos",[...data.photos,{...x.photo,isPrimary:data.photos.length===0}])}catch(e){setError(e instanceof Error?e.message:text("Upload failed"))}finally{setBusy(false)}};
+ const yn=(label:string,k:string)=><div><p className="mb-2 text-sm font-medium">{label}</p>{["Yes","No"].map(v=><label className="mr-5 text-sm" key={v}><input className="mr-1" type="radio" checked={data[k]===v} onChange={()=>put(k,v)}/>{v==="Yes"?"হ্যাঁ":"না"}</label>)}</div>;
+ // Keep the form mounted while saving. Replacing it during a click can make
+ // React attempt to remove an already-reconciled DOM child in development.
+ if(busy&&step===1&&!data.firstName&&!data.lastName&&!data.gender)return <main className="p-10 text-center">{text("Loading...")}</main>;
+ return <main className="min-h-screen bg-rose-50 p-4 md:p-8"><Card className="mx-auto max-w-3xl"><CardHeader><StepTracker current={step} /><CardTitle className="mt-7">{text(titles[step-1])}</CardTitle></CardHeader><CardContent className="space-y-5">{error&&<p className="rounded bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+ {step===1&&<div className="grid gap-4 sm:grid-cols-2">{input("First Name","firstName")}{input("Last Name","lastName")}{select("Gender","gender",["Male","Female"])}<label className="text-sm font-medium">{text("Date of Birth")}<div className="mt-1"><DatePicker value={data.dateOfBirth} onChange={(value)=>put("dateOfBirth",value)} placeholder={text("Select date of birth")} /></div></label>{select("Blood Group","bloodGroup",["A+","A-","B+","B-","AB+","AB-","O+","O-"])}{select("Height","height",[...HEIGHTS])}{select("Marital Status","maritalStatus",["Never Married","Married","Divorced","Widowed","Awaiting Divorce"])}{select("Religion","religion",[...RELIGIONS])}{input("Mother Tongue","motherTongue")}{select("Higher Education","highestEducation",[...EDUCATION_LEVELS])}{select("Profession","profession",[...PROFESSIONS])}</div>}
+ {step===2&&<div className="grid gap-4 sm:grid-cols-2">{select("Guardian","guardianRelation",["Father","Mother","Brother","Sister"])}{input("Guardian Name","guardianName")}{phoneInput("Guardian Mobile Number","guardianMobileNumber")}{input("Father Name","fatherName")}{input("Mother Name","motherName")}</div>}
+ {step===3&&<div className="space-y-7"><div><h3 className="mb-3 text-lg font-semibold">Present Address</h3><div className="grid gap-4 sm:grid-cols-2">{input("Country","country")}{select("Division","division",locations.divisions)}{select("District","district",locations.districts)}{select("Thana","thana",locations.thanas)}{select("Union","union",locations.unions)}{input("Area","area")}</div></div><div><h3 className="mb-3 text-lg font-semibold">Permanent Address</h3><div className="grid gap-4 sm:grid-cols-2"><Input label="Country" value={data.permanentLocation.country} onChange={e=>put("permanentLocation",{...data.permanentLocation,country:e.target.value})}/><label className="text-sm font-medium">Division<select className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3" value={data.permanentLocation.division} onChange={e=>put("permanentLocation",{...data.permanentLocation,division:e.target.value,district:"",thana:"",union:""})}><option value="">Select</option>{permanentLocations.divisions.map(v=><option key={v}>{v}</option>)}</select></label><label className="text-sm font-medium">District<select className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3" value={data.permanentLocation.district} onChange={e=>put("permanentLocation",{...data.permanentLocation,district:e.target.value,thana:"",union:""})}><option value="">Select</option>{permanentLocations.districts.map(v=><option key={v}>{v}</option>)}</select></label><label className="text-sm font-medium">Thana<select className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3" value={data.permanentLocation.thana} onChange={e=>put("permanentLocation",{...data.permanentLocation,thana:e.target.value,union:""})}><option value="">Select</option>{permanentLocations.thanas.map(v=><option key={v}>{v}</option>)}</select></label><label className="text-sm font-medium">Union<select className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3" value={data.permanentLocation.union} onChange={e=>put("permanentLocation",{...data.permanentLocation,union:e.target.value})}><option value="">Select</option>{permanentLocations.unions.map(v=><option key={v}>{v}</option>)}</select></label><Input label="Area" value={data.permanentLocation.area} onChange={e=>put("permanentLocation",{...data.permanentLocation,area:e.target.value})}/></div></div></div>}
+ {step===4&&<div className="space-y-4">{data.educationDetails.map((x:any,i:number)=><div className="grid gap-3 sm:grid-cols-3" key={x.level}><b className="self-center">{x.level}</b><Input label="Institute Name" value={x.instituteName} onChange={e=>put("educationDetails",data.educationDetails.map((a:any,n:number)=>n===i?{...a,instituteName:e.target.value}:a))}/><Input label="Year" value={x.year} onChange={e=>put("educationDetails",data.educationDetails.map((a:any,n:number)=>n===i?{...a,year:e.target.value}:a))}/></div>)}</div>}
+ {step===5&&<textarea className="min-h-48 w-full rounded-xl border p-3" placeholder="নিজের সম্পর্কে লিখুন" value={data.aboutYourself} onChange={e=>put("aboutYourself",e.target.value)}/>} {step===6&&<div><label className="block cursor-pointer rounded-xl border border-dashed p-8 text-center">ছবি আপলোড করুন (১–৪টি)<input className="hidden" type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/></label><div className="mt-3 flex gap-2">{data.photos.map((p:any)=><img className="h-20 w-20 rounded object-cover" src={p.url} alt="Uploaded" key={p.publicId}/>)}</div></div>}
+ {step===7&&<div className="grid gap-4 sm:grid-cols-2">{Object.keys(data.partnerPreferences).map(k=><Input key={k} label={`Expected partner ${k}`} value={data.partnerPreferences[k]} onChange={e=>put("partnerPreferences",{...data.partnerPreferences,[k]:e.target.value})}/>)}</div>}
+ {step===8&&<div className="space-y-6">{yn("আপনি যে ওয়েবসাইটে বায়োডাটা জমা দিচ্ছেন তা আপনার পরিবার জানে কি?","familyAwareOfBiodata")}{yn("আল্লাহকে সাক্ষী রেখে আমি সব তথ্য সঠিক দিয়েছি।","informationAccurate")}{yn("আল্লাহকে সাক্ষী রেখে বলুন আপনার সব তথ্য সঠিক।","truthDeclaration")}<label className="flex gap-2 text-sm"><input type="checkbox" checked={data.acceptsFalseInformationLiability} onChange={e=>put("acceptsFalseInformationLiability",e.target.checked)}/>আমি মিথ্যা তথ্য দিলে দুনিয়াবি আইনগত শাস্তি ও আখিরাতের দায় আমার।</label></div>}
+ <div className="flex justify-between pt-3">{step>1?<Button variant="outline" disabled={busy} onClick={()=>setStep(step-1)}>আগের ধাপ</Button>:<span/>}<Button disabled={busy} onClick={()=>save(step===8)}>{busy?"সংরক্ষণ হচ্ছে...":step===8?"সম্পন্ন করুন":"Next"}</Button></div></CardContent></Card></main>;
 }

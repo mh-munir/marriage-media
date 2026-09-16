@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeDistrictName } from "@/lib/location-normalization";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ type SecondaryExport = { type?: string; data?: SecondaryRecord[] };
 
 function names(nodes: LocationNode[] | undefined): string[] {
   return (nodes || [])
-    .map((node) => node.name?.trim())
+    .map((node) => normalizeDistrictName(node.name))
     .filter((name): name is string => Boolean(name));
 }
 

@@ -5,6 +5,7 @@ import connectToDatabase from "@/lib/mongodb";
 import { Payment, Profile, Coupon } from "@/models";
 import { requireAuth, generateInvoiceNumber, generateTransactionId } from "@/lib/auth";
 import { sendPaymentConfirmationEmail } from "@/lib/email";
+import { validatePhoneNumber } from "@/lib/utils";
 
 const PLAN_DURATIONS: Record<string, { days: number; amounts: Record<string, number> }> = {
   monthly: { days: 30, amounts: { bdt: 1500, usd: 15 } },
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
         { error: "Plan, payment method, and billing info are required" },
         { status: 400 }
       );
+    }
+    if (billingInfo.phone && !validatePhoneNumber(String(billingInfo.phone).replace(/\D/g, ""))) {
+      return NextResponse.json({ error: "Enter a valid 11-digit billing mobile number" }, { status: 400 });
     }
 
     const planConfig = PLAN_DURATIONS[plan];
