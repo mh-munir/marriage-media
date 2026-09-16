@@ -11,6 +11,7 @@ export async function GET() {
     return NextResponse.json({
       headerLogoUrl: branding?.headerLogoUrl || "",
       footerLogoUrl: branding?.footerLogoUrl || "",
+      faviconUrl: branding?.faviconUrl || "",
     });
   } catch {
     // Public pages retain their built-in fallback branding when the database is unavailable.

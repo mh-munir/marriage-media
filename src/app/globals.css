@@ -1,4 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+
+.admin-shell,
+.admin-shell *,
+.admin-login-shell,
+.admin-login-shell * {
+  font-family: "Roboto", sans-serif !important;
+}
 
 .admin-main > div[class*="max-w-"] {
   width: 100%;
@@ -427,8 +437,18 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Noto Sans Bengali", "Hind Siliguri", "Noto Sans", sans-serif;
+    font-family: "Noto Sans", sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  :lang(bn) body {
+    font-family: "Noto Sans Bengali", sans-serif;
+    line-height: 1.65;
+  }
+
+  :lang(bn) .font-serif {
+    font-family: "Noto Serif Bengali", serif !important;
+    line-height: 1.25 !important;
   }
 }
 

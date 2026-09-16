@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -56,10 +57,12 @@ export function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
-  const { user: authUser, isAuthenticated } = useAuthStore();
+  const authUser = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
-  const { unreadCount, fetchNotifications } = useNotificationStore();
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
   const { headerLogoUrl } = useSiteBranding();
 
   React.useEffect(() => {
@@ -110,7 +113,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="group flex items-center gap-3" aria-label="Marriage Media home">
             {headerLogoUrl ? (
-              <img src={headerLogoUrl} alt="Marriage Media" className="h-10 max-w-44 rounded-md object-contain object-left" />
+              <Image src={headerLogoUrl} alt="Marriage Media" width={176} height={40} className="h-10 max-w-44 rounded-md object-contain object-left" unoptimized />
             ) : (
               <>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">

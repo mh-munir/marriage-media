@@ -39,7 +39,8 @@ export default function AdminMediaPage() {
   }
 
   React.useEffect(() => {
-    void loadAssets();
+    const timer = window.setTimeout(() => void loadAssets(), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function uploadAsset(event: React.ChangeEvent<HTMLInputElement>) {

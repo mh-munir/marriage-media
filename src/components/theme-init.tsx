@@ -7,7 +7,7 @@ export function ThemeInit() {
       suppressHydrationWarning
       id="theme-init"
       dangerouslySetInnerHTML={{
-        __html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var r=t==='dark'||(!t&&d)?'dark':'light';document.documentElement.classList.add(r)}catch(e){document.documentElement.classList.add('light')}})();`,
+        __html: `(function(){try{var isAdmin=window.location.pathname.indexOf('/admin')===0;var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var r=isAdmin?'light':(t==='dark'||(!t&&d)?'dark':'light');document.documentElement.classList.add(r)}catch(e){document.documentElement.classList.add('light')}})();`,
       }}
     />
   )

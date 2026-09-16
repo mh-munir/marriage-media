@@ -17,6 +17,7 @@ export default function RootLayout({
   return (
     <html lang="bn" data-languages="bn,en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
+        <link rel="icon" href="/api/site-branding/favicon" />
         <ThemeInit />
         <Providers>{children}</Providers>
       </body>

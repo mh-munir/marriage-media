@@ -424,26 +424,31 @@ const biodataText: Record<string, string> = {
 
 const LanguageContext = React.createContext<LanguageContextValue | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+export function LanguageProvider({ children, forcedLanguage }: { children: React.ReactNode; forcedLanguage?: Language }) {
   // Keep the first client render identical to the server render. Reading
   // localStorage during state initialization caused the header language to
   // differ while React was hydrating.
-  const [language, setLanguageState] = React.useState<Language>("bn");
+  const [language, setLanguageState] = React.useState<Language>(forcedLanguage || "bn");
   const [hasHydrated, setHasHydrated] = React.useState(false);
 
   React.useEffect(() => {
+    if (forcedLanguage) {
+      queueMicrotask(() => setHasHydrated(true));
+      return;
+    }
     const saved = localStorage.getItem("marriage-media-language");
     queueMicrotask(() => {
       if (saved === "en") setLanguageState("en");
       setHasHydrated(true);
     });
-  }, []);
+  }, [forcedLanguage]);
 
   React.useEffect(() => {
     if (!hasHydrated) return;
+    if (forcedLanguage) return;
     localStorage.setItem("marriage-media-language", language);
     document.documentElement.lang = language;
-  }, [hasHydrated, language]);
+  }, [forcedLanguage, hasHydrated, language]);
 
   const setLanguage = React.useCallback((nextLanguage: Language) => {
     setLanguageState(nextLanguage);

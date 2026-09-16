@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
 import { useNotificationStore } from "@/stores/notification-store";
+import { LanguageProvider } from "@/providers/language-provider";
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
@@ -52,7 +53,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const notificationRef = React.useRef<HTMLDivElement>(null);
   const { user, isLoading, logout } = useAuth();
-  const { notifications, unreadCount, fetchNotifications, markAllAsRead } = useNotificationStore();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const restorePublicTheme = () => {
+      const savedTheme = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const shouldUseDark = savedTheme === "dark" || (!savedTheme && prefersDark);
+      root.classList.toggle("dark", shouldUseDark);
+      root.classList.toggle("light", !shouldUseDark);
+    };
+
+    root.classList.remove("dark");
+    root.classList.add("light");
+    return restorePublicTheme;
+  }, []);
 
   React.useEffect(() => {
     if (!isLoading && pathname !== "/admin/login" && (!user || (user.role !== "admin" && user.role !== "superadmin"))) {
@@ -80,14 +99,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [notificationsOpen]);
 
-  if (pathname === "/admin/login") return <>{children}</>;
+  if (pathname === "/admin/login") return <LanguageProvider forcedLanguage="en"><div className="admin-login-shell">{children}</div></LanguageProvider>;
   if (isLoading || !user || (user.role !== "admin" && user.role !== "superadmin")) {
     return <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] text-sm text-slate-500">Checking admin session...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb] text-slate-950 dark:bg-background dark:text-foreground">
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-72 max-w-[calc(100vw-1rem)] flex-col overflow-hidden border-r border-slate-200 bg-[#0d1b2a] px-5 py-6 text-white transition-transform dark:border-border lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+    <LanguageProvider forcedLanguage="en">
+      <div className="admin-shell min-h-screen bg-[#f6f8fb] text-slate-950">
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-72 max-w-[calc(100vw-1rem)] flex-col overflow-hidden border-r border-slate-200 bg-[#0d1b2a] px-5 py-6 text-white transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between px-2">
           <Link href="/admin" className="flex items-center gap-3" onClick={() => setOpen(false)}>
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400 text-lg font-black text-[#0d1b2a]">M</span>
@@ -122,7 +142,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
         <main className="admin-main min-h-[calc(100vh-4.5rem)] px-3 py-5 sm:px-5 sm:py-6 xl:px-6">{children}</main>
       </div>
-    </div>
+      </div>
+    </LanguageProvider>
   );
 }
 

@@ -18,12 +18,6 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "5mb",
-    },
-  },
-
   headers: async () => [
     {
       source: "/(.*)",

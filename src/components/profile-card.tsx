@@ -46,7 +46,7 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
   onView: (profileUserId: string) => void;
   currentUserIsPremium?: boolean;
 }) {
-  const { user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
   const { translateText } = useLanguage();
   const isPremiumUser = Boolean(user?.isPremium);
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || translateText("Marriage Media Member");

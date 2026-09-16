@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Heart, Mail, Phone, MapPin } from "lucide-react";
 import { useLanguage } from "@/providers/language-provider";
@@ -45,7 +46,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               {footerLogoUrl ? (
-                <img src={footerLogoUrl} alt="Marriage Media" className="h-12 max-w-52 rounded-md object-contain object-left" />
+                <Image src={footerLogoUrl} alt="Marriage Media" width={208} height={48} className="h-12 max-w-52 rounded-md object-contain object-left" unoptimized />
               ) : (
                 <>
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
     await connectToDatabase();
     const branding = await SiteBranding.findOne({ key: "default" }).lean();
-    return NextResponse.json({ headerLogoUrl: branding?.headerLogoUrl || "", footerLogoUrl: branding?.footerLogoUrl || "" });
+    return NextResponse.json({ headerLogoUrl: branding?.headerLogoUrl || "", footerLogoUrl: branding?.footerLogoUrl || "", faviconUrl: branding?.faviconUrl || "" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500 });
@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest) {
     await connectToDatabase();
     const branding = await SiteBranding.findOneAndUpdate(
       { key: "default" },
-      { $set: { headerLogoUrl: cleanLogoUrl(body.headerLogoUrl), footerLogoUrl: cleanLogoUrl(body.footerLogoUrl) } },
+      { $set: { headerLogoUrl: cleanLogoUrl(body.headerLogoUrl), footerLogoUrl: cleanLogoUrl(body.footerLogoUrl), faviconUrl: cleanLogoUrl(body.faviconUrl) } },
       { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
     ).lean();
     return NextResponse.json({ branding });

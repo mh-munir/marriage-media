@@ -30,9 +30,13 @@ interface RegisterData {
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const store = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const loginUser = useAuthStore((state) => state.login);
+  const logoutUser = useAuthStore((state) => state.logout);
+  const setUser = useAuthStore((state) => state.setUser);
   const resetNotifications = useNotificationStore((state) => state.reset);
-  const { user, isAuthenticated, isLoading } = store;
   const pathname = usePathname();
   const router = useRouter();
   const hasCheckedSession = React.useRef(false);
@@ -47,9 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }>("/api/auth/login", { phone, password, rememberMe });
 
       resetNotifications();
-      store.login(result.user, result.accessToken, result.refreshToken);
+      loginUser(result.user, result.accessToken, result.refreshToken);
     },
-    [resetNotifications, store]
+    [loginUser, resetNotifications]
   );
 
   const register = React.useCallback(
@@ -64,10 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await apiClient.post("/api/auth/logout");
     } finally {
       resetNotifications();
-      store.logout();
+      logoutUser();
       window.location.replace("/");
     }
-  }, [resetNotifications, store]);
+  }, [logoutUser, resetNotifications]);
 
   const refreshUser = React.useCallback(async () => {
     try {
@@ -75,18 +79,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         cache: "no-store",
         credentials: "include",
       });
-      store.setUser(result.user);
+      setUser(result.user);
     } catch (error) {
       // Do not destroy a persisted session on a transient network/server error.
       if (error instanceof Error && error.message === "SESSION_EXPIRED") {
         resetNotifications();
-        store.logout();
+        logoutUser();
         if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
           router.replace("/login");
         }
       }
     }
-  }, [pathname, resetNotifications, router, store]);
+  }, [logoutUser, pathname, resetNotifications, router, setUser]);
 
   React.useEffect(() => {
     if (hasCheckedSession.current) return;
