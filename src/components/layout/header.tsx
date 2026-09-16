@@ -177,7 +177,7 @@ export function Header() {
               title={t("toggleLanguage")}
             >
               <span className="text-xs font-bold tracking-wide" aria-hidden="true">
-                {language === "bn" ? "BN" : "EN"}
+                {language === "bn" ? "EN" : "BN"}
               </span>
               <span className="sr-only">{language === "bn" ? "বাংলা" : "English"}</span>
             </Button>
