@@ -1,6 +1,5 @@
 import { cache } from "react";
 import type { Types } from "mongoose";
-import { ensurePublicIdForProfile } from "@/lib/public-id";
 
 type RawHomeProfile = {
   _id: Types.ObjectId;
@@ -98,9 +97,7 @@ async function mapProfile(profile: RawHomeProfile): Promise<HomeProfile> {
   const location = [profile.district, profile.division, profile.country]
     .filter(Boolean)
     .join(", ");
-  const publicId = profile.userId
-    ? await ensurePublicIdForProfile(profile.userId, profile.publicId)
-    : profile.publicId?.trim() || `IMD-${profile._id.toString().slice(-6).toUpperCase()}`;
+  const publicId = profile.publicId?.trim() || `IMD-${profile._id.toString().slice(-6).toUpperCase()}`;
 
   return {
     id: profile.userId?.toString() || profile._id.toString(),

@@ -64,12 +64,19 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
   if (!String(body.motherName || "").trim()) missingFields.push("Mother's Name");
   if (!String(body.division || "").trim() || !String(body.district || "").trim()) missingFields.push("Present Address location");
   if (!body.permanentLocation || typeof body.permanentLocation !== "object" || !String((body.permanentLocation as Record<string, unknown>).division || "").trim() || !String((body.permanentLocation as Record<string, unknown>).district || "").trim()) missingFields.push("Permanent Address location");
+  if (!String(body.thana || "").trim() || !String(body.union || "").trim() || !String(body.area || "").trim()) missingFields.push("Complete Present Address");
+  const permanentLocation = body.permanentLocation as Record<string, unknown> | undefined;
+  if (!String(permanentLocation?.country || "").trim() || !String(permanentLocation?.thana || "").trim() || !String(permanentLocation?.union || "").trim() || !String(permanentLocation?.area || "").trim()) missingFields.push("Complete Permanent Address");
+  if (!Array.isArray(body.educationDetails) || !(body.educationDetails as Record<string, unknown>[]).some((entry) => String(entry.instituteName || "").trim() || String(entry.year || "").trim())) missingFields.push("At least one Education field");
+  const requiredHabits = ["Exercise", "Reading", "Travel", "Cooking", "Smoking", "Drinking"];
+  if (!body.habitAnswers || typeof body.habitAnswers !== "object" || requiredHabits.some((habit) => !["Yes", "No"].includes(String((body.habitAnswers as Record<string, unknown>)[habit])))) missingFields.push("Yes/No answer for every habit");
   if (!body.guardianRelation || !String(body.guardianName || "").trim() || !validatePhoneNumber(String(body.guardianMobileNumber || ""))) {
     missingFields.push("Guardian details (with a valid 11 digit mobile number)");
   }
   const partnerPreferences = body.partnerPreferences;
-  if (!partnerPreferences || typeof partnerPreferences !== "object" || !Object.values(partnerPreferences).some(Boolean)) {
-    missingFields.push("At least one Expected Partner preference");
+  const requiredPartnerFields = ["age", "height", "weight", "maritalStatus", "religion", "highestEducation", "annualIncome", "country", "division", "district", "familyType", "familyStatus", "familyValues"];
+  if (!partnerPreferences || typeof partnerPreferences !== "object" || requiredPartnerFields.some((field) => !String((partnerPreferences as Record<string, unknown>)[field] || "").trim())) {
+    missingFields.push("Every Expected Partner field");
   }
   if (!["Yes", "No"].includes(String(body.familyAwareOfBiodata)) || !["Yes", "No"].includes(String(body.informationAccurate)) || !["Yes", "No"].includes(String(body.truthDeclaration)) || body.acceptsFalseInformationLiability !== true) missingFields.push("All declarations");
   return missingFields;
@@ -111,15 +118,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         profile: null,
         mobileNumber: user.phone || "",
+        whatsappNumber: user.whatsappNumber || "",
         onboarding: {
-          firstName: user.firstName || "",
-          lastName: user.lastName || "",
-          gender: user.gender || "",
+          ...(user.onboardingData || {}),
+          firstName: user.onboardingData?.firstName || user.firstName || "",
+          lastName: user.onboardingData?.lastName || user.lastName || "",
+          gender: user.onboardingData?.gender || user.gender || "",
         },
       });
     }
 
-    return NextResponse.json({ profile, mobileNumber: user.phone || "" });
+    return NextResponse.json({ profile, mobileNumber: user.phone || "", whatsappNumber: user.whatsappNumber || "", onboarding: user.onboardingData || {} });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
     const status = message === "Unauthorized" ? 401 : 500;
@@ -175,7 +184,11 @@ export async function POST(request: NextRequest) {
     const completionPercentage = calculateProfileCompletion(body);
 
     // Update user profile completion
-    await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
+    await User.findByIdAndUpdate(user._id, {
+      profileCompleted: completionPercentage,
+      ...(typeof body.whatsappNumber === "string" ? { whatsappNumber: body.whatsappNumber } : {}),
+      ...(body.habitAnswers ? { onboardingData: { ...(user.onboardingData || {}), habitAnswers: body.habitAnswers } } : {}),
+    });
     if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 
@@ -225,7 +238,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const completionPercentage = calculateProfileCompletion(body);
-    await User.findByIdAndUpdate(user._id, { profileCompleted: completionPercentage });
+    await User.findByIdAndUpdate(user._id, {
+      profileCompleted: completionPercentage,
+      ...(typeof body.whatsappNumber === "string" ? { whatsappNumber: body.whatsappNumber } : {}),
+      ...(body.habitAnswers ? { onboardingData: { ...(user.onboardingData || {}), habitAnswers: body.habitAnswers } } : {}),
+    });
     if (completionPercentage === 100) await submitProfileReview(user._id.toString());
     await notifyProfileMatches(user._id.toString());
 

@@ -105,7 +105,21 @@ async function sendViaHttpProvider(params: SendSMSParams): Promise<SMSResult> {
   }
 
   const isSmsNetBd = apiUrl.includes("api.sms.net.bd");
-  const requestUrl = apiUrl;
+  const isZendSms = apiUrl.includes("api.zendsms.com");
+  const senderId = process.env.SMS_SENDER_ID?.trim();
+
+  if (isZendSms && !senderId) {
+    return { success: false, error: "SMS_SENDER_ID is required for ZendSMS." };
+  }
+
+  const requestUrl = isZendSms
+    ? `${apiUrl}?${new URLSearchParams({
+        api_key: apiKey || "",
+        to: params.to.replace(/\D/g, ""),
+        sender_id: senderId || "",
+        message: params.message,
+      }).toString()}`
+    : apiUrl;
   const smsNetBody = new FormData();
   if (isSmsNetBd) {
     smsNetBody.append("api_key", apiKey || "");
@@ -117,6 +131,8 @@ async function sendViaHttpProvider(params: SendSMSParams): Promise<SMSResult> {
   const response = await fetch(requestUrl, isSmsNetBd ? {
     method: "POST",
     body: smsNetBody,
+  } : isZendSms ? {
+    method: "GET",
   } : {
     method: "POST",
     headers: {
@@ -133,7 +149,7 @@ async function sendViaHttpProvider(params: SendSMSParams): Promise<SMSResult> {
   } catch {
     return {
       success: false,
-      error: `SMS provider returned a non-JSON response (${response.status}). Check SMS_API_URL.`,
+      error: `SMS provider returned a non-JSON response (${response.status})${response.headers.get("allow") ? `; allowed methods: ${response.headers.get("allow")}` : ""}. ${responseText.slice(0, 200) || "Check SMS_API_URL."}`,
     };
   }
 
@@ -143,7 +159,7 @@ async function sendViaHttpProvider(params: SendSMSParams): Promise<SMSResult> {
 
   return {
     success: false,
-    error: `SMS.NET.BD (${response.status}): ${data.msg || String(data.error || "SMS provider request failed")}`,
+    error: `SMS provider (${response.status}): ${data.msg || String(data.error || "SMS provider request failed")}`,
   };
 }
 

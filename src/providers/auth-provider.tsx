@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const loginUser = useAuthStore((state) => state.login);
   const logoutUser = useAuthStore((state) => state.logout);
   const setUser = useAuthStore((state) => state.setUser);
@@ -94,10 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (hasCheckedSession.current) return;
+    if (!hasHydrated) return;
     if (pathname === "/login" || pathname === "/register" || pathname === "/admin/login") return;
     hasCheckedSession.current = true;
     void refreshUser();
-  }, [pathname, refreshUser]);
+  }, [hasHydrated, pathname, refreshUser]);
 
   React.useEffect(() => {
     if (!user?.id) {

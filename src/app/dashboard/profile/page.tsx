@@ -42,6 +42,7 @@ import { useLanguage } from "@/providers/language-provider";
 interface ProfileFormData {
   email: string;
   mobileNumber: string;
+  whatsappNumber: string;
   firstName: string;
   lastName: string;
   gender: string;
@@ -66,10 +67,18 @@ interface ProfileFormData {
   familyStatus: string;
   familyValues: string;
   fatherName: string;
+  fatherProfession: string;
   guardianRelation: string;
   guardianName: string;
   guardianMobileNumber: string;
   motherName: string;
+  motherProfession: string;
+  numberOfSiblings: number;
+  hobbies: string[];
+  smoke: string;
+  drink: string;
+  diet: string;
+  habitAnswers: Record<string, string>;
   permanentAddress: string;
   presentAddress: string;
   bloodGroup: string;
@@ -110,6 +119,7 @@ interface ProfileFormData {
 const createInitialProfile = (): ProfileFormData => ({
   email: "",
   mobileNumber: "",
+  whatsappNumber: "",
   firstName: "",
   lastName: "",
   gender: "Male",
@@ -134,10 +144,18 @@ const createInitialProfile = (): ProfileFormData => ({
   familyStatus: "Middle Class",
   familyValues: "Moderate",
   fatherName: "",
+  fatherProfession: "",
   guardianRelation: "",
   guardianName: "",
   guardianMobileNumber: "",
   motherName: "",
+  motherProfession: "",
+  numberOfSiblings: 0,
+  hobbies: [],
+  smoke: "No",
+  drink: "No",
+  diet: "No Preference",
+  habitAnswers: {},
   permanentAddress: "",
   presentAddress: "",
   bloodGroup: "",
@@ -297,7 +315,7 @@ export default function DashboardProfilePage() {
       try {
         setIsLoading(true);
         setError("");
-        const response = await apiClient.get<{ profile?: Partial<ProfileFormData>; mobileNumber?: string; onboarding?: Partial<ProfileFormData> }>('/api/profile');
+        const response = await apiClient.get<{ profile?: Partial<ProfileFormData>; mobileNumber?: string; whatsappNumber?: string; onboarding?: Partial<ProfileFormData> }>('/api/profile');
         const profileData = response.profile;
 
         if (profileData) {
@@ -305,6 +323,8 @@ export default function DashboardProfilePage() {
             ...createInitialProfile(),
             ...profileData,
             mobileNumber: response.mobileNumber || "",
+            whatsappNumber: response.whatsappNumber || profileData.whatsappNumber || "",
+            habitAnswers: response.onboarding?.habitAnswers || profileData.habitAnswers || {},
             partnerPreferences: {
               ...createInitialProfile().partnerPreferences,
               ...(profileData.partnerPreferences || {}),
@@ -319,10 +339,19 @@ export default function DashboardProfilePage() {
         } else {
           setProfile((current) => ({
             ...current,
+            ...response.onboarding,
             firstName: response.onboarding?.firstName || current.firstName,
             lastName: response.onboarding?.lastName || current.lastName,
             gender: response.onboarding?.gender || current.gender,
             mobileNumber: response.mobileNumber || current.mobileNumber,
+            partnerPreferences: {
+              ...current.partnerPreferences,
+              ...(response.onboarding?.partnerPreferences || {}),
+            },
+            permanentLocation: {
+              ...current.permanentLocation,
+              ...(response.onboarding?.permanentLocation || {}),
+            },
           }));
           setProfileExists(false);
         }
@@ -793,6 +822,13 @@ export default function DashboardProfilePage() {
                             readOnly
                             placeholder="Registered mobile number"
                           />
+                          <Input
+                            label={text("WhatsApp/Imo Number")}
+                            type="tel"
+                            inputMode="numeric"
+                            value={profile.whatsappNumber}
+                            onChange={(e) => setProfile({ ...profile, whatsappNumber: `+88${sanitizePhoneNumberInput(e.target.value).replace(/^88/, "").slice(0, 11)}` })}
+                          />
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
@@ -894,12 +930,15 @@ export default function DashboardProfilePage() {
                             value={profile.fatherName}
                             onChange={(e) => setProfile({ ...profile, fatherName: e.target.value })}
                           />
+                          <Input label={text("Father's Profession")} value={profile.fatherProfession} onChange={(e) => setProfile({ ...profile, fatherProfession: e.target.value })} />
                         </div>
                         <Input
                           label={text("Mother's Name")}
                           value={profile.motherName}
                           onChange={(e) => setProfile({ ...profile, motherName: e.target.value })}
                         />
+                        <Input label={text("Mother's Profession")} value={profile.motherProfession} onChange={(e) => setProfile({ ...profile, motherProfession: e.target.value })} />
+                        <Input label={text("Brothers and Sisters")} type="number" min={0} max={20} value={profile.numberOfSiblings} onChange={(e) => setProfile({ ...profile, numberOfSiblings: Math.min(20, Math.max(0, Number.parseInt(e.target.value, 10) || 0)) })} />
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1.5">{text("Family Type")}</label>
@@ -1149,6 +1188,24 @@ export default function DashboardProfilePage() {
                           <label className="mb-1.5 block text-sm font-medium text-foreground">About Me</label>
                           <textarea className="min-h-28 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" value={profile.aboutYourself} onChange={(e) => setProfile({ ...profile, aboutYourself: e.target.value })} />
                         </div>
+                        <fieldset className="sm:col-span-2 rounded-xl border border-border p-4">
+                          <legend className="px-1 text-sm font-medium">{text("Your habits")}</legend>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {["Exercise", "Reading", "Travel", "Cooking", "Smoking", "Drinking"].map((habit) => (
+                              <div className="rounded-lg border p-3" key={habit}>
+                                <p className="mb-2 text-sm font-medium">{text(habit)}</p>
+                                <div className="flex gap-4 text-sm">
+                                  {["Yes", "No"].map((answer) => (
+                                    <label className="flex items-center gap-1" key={answer}>
+                                      <input type="radio" name={`dashboard-habit-${habit}`} checked={profile.habitAnswers[habit] === answer} onChange={() => setProfile({ ...profile, habitAnswers: { ...profile.habitAnswers, [habit]: answer } })} />
+                                      {text(answer)}
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </fieldset>
                           </div>
                         </section>
 

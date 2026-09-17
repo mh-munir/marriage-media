@@ -2,12 +2,18 @@
 
 import * as React from "react";
 import { format, isValid, parseISO } from "date-fns";
+import { bn } from "date-fns/locale";
 import { CalendarDays } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/providers/language-provider";
+
+function toBengaliDigits(value: string): string {
+  return value.replace(/[0-9]/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
+}
 
 interface DatePickerProps {
   value?: string;
@@ -17,6 +23,8 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ value, onChange, placeholder = "Pick a date", disabled }: DatePickerProps) {
+  const { language } = useLanguage();
+  const calendarLocale = language === "bn" ? bn : undefined;
   const selectedDate = value ? parseISO(value) : undefined;
   const validDate = selectedDate && isValid(selectedDate) ? selectedDate : undefined;
   const currentYear = new Date().getFullYear();
@@ -33,7 +41,11 @@ export function DatePicker({ value, onChange, placeholder = "Pick a date", disab
             !validDate && "text-muted-foreground"
           )}
         >
-          {validDate ? format(validDate, "PPP") : placeholder}
+          {validDate
+            ? language === "bn"
+              ? toBengaliDigits(format(validDate, "PPP", { locale: calendarLocale }))
+              : format(validDate, "PPP")
+            : placeholder}
           <CalendarDays className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
@@ -44,6 +56,7 @@ export function DatePicker({ value, onChange, placeholder = "Pick a date", disab
           onSelect={(date) => onChange(date ? format(date, "yyyy-MM-dd") : "")}
           disabled={{ after: new Date() }}
           defaultMonth={validDate}
+          locale={calendarLocale}
           captionLayout="dropdown"
           startMonth={new Date(1940, 0)}
           endMonth={new Date(currentYear, 11)}

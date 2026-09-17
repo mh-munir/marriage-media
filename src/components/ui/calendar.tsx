@@ -5,9 +5,15 @@ import { DayPicker } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 
+function toBengaliDigits(value: string): string {
+  return value.replace(/[0-9]/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
+}
+
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({ className, classNames, ...props }: CalendarProps) {
+  const isBengali = props.locale?.code === "bn";
+
   return (
     <DayPicker
       className={cn("p-0", className)}
@@ -36,6 +42,15 @@ function Calendar({ className, classNames, ...props }: CalendarProps) {
         ...classNames,
       }}
       {...props}
+      formatters={{
+        ...props.formatters,
+        ...(isBengali
+          ? {
+              formatDay: (date: Date) => toBengaliDigits(String(date.getDate())),
+              formatYearDropdown: (date: Date) => toBengaliDigits(String(date.getFullYear())),
+            }
+          : {}),
+      }}
     />
   );
 }
