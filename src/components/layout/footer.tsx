@@ -72,7 +72,7 @@ export function Footer() {
               </a>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                Dhaka, Bangladesh
+                {text("Dhaka, Bangladesh")}
               </div>
             </div>
           </div>
@@ -121,7 +121,7 @@ export function Footer() {
 
           {/* Premium */}
           <div>
-            <h3 className="text-sm font-semibold mb-4">Premium</h3>
+            <h3 className="text-sm font-semibold mb-4">{text("Premium")}</h3>
             <ul className="space-y-2.5">
               {footerLinks.premium.map((link) => (
                 <li key={link.href}>

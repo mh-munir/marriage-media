@@ -24,16 +24,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
+import { useLanguage } from "@/providers/language-provider";
+import { localizedField } from "@/lib/localized-content";
+import { localizedText } from "@/lib/localized-content";
 
 interface PricingPlan {
   id: string;
   name: string;
+  nameBn?: string;
+  nameEn?: string;
   description: string;
+  descriptionBn?: string;
+  descriptionEn?: string;
   price: string;
   period: string;
+  periodBn?: string;
+  periodEn?: string;
   popular: boolean;
   features: string[];
+  featuresBn?: string[];
+  featuresEn?: string[];
   notIncluded: string[];
+  notIncludedBn?: string[];
+  notIncludedEn?: string[];
   icon: string;
 }
 
@@ -80,6 +93,7 @@ const premiumBenefits = [
 ];
 
 export default function PricingPage() {
+  const { language, translateText: text } = useLanguage();
   const { page, loading } = useSitePage("pricing");
   const { sections, loading: managedLoading } = useManagedPage("pricing");
   const [pricingData, setPricingData] = React.useState<PricingData | null>(null);
@@ -109,14 +123,14 @@ export default function PricingPage() {
   }, []);
 
   if (loading || managedLoading) return null;
-  if (page?.content) return <SitePageOverride page={page} />;
+  if (page?.content || page?.contentBn || page?.contentEn) return <SitePageOverride page={page} />;
 
   const defaults = defaultManagedSections("pricing");
   const hero = sectionValue(sections.length ? sections : defaults, "hero", defaults[0]);
   const benefits = sectionValue(sections.length ? sections : defaults, "benefits", defaults[1]);
   const testimonialsSection = sectionValue(sections.length ? sections : defaults, "testimonials", defaults[2]);
   const faqSection = sectionValue(sections.length ? sections : defaults, "faq", defaults[3]);
-  const managedBenefits = premiumBenefits.map((benefit, index) => ({ ...benefit, title: benefits.items[index]?.title || benefit.title, description: benefits.items[index]?.text || benefit.description }));
+  const managedBenefits = premiumBenefits.map((benefit, index) => ({ ...benefit, title: localizedField((benefits.items[index] || {}) as unknown as Record<string, unknown>, "title", language, benefit.title), description: localizedField((benefits.items[index] || {}) as unknown as Record<string, unknown>, "text", language, benefit.description) }));
 
   const plans = pricingData?.plans ?? [];
   const testimonials = pricingData?.testimonials ?? [];
@@ -138,13 +152,13 @@ export default function PricingPage() {
           >
             <Badge variant="premium" className="mb-4">
               <Crown className="h-3.5 w-3.5 mr-1" />
-              {hero.eyebrow}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "eyebrow", language, hero.eyebrow))}
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-              {hero.title}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "title", language, hero.title))}
             </h1>
             <p className="text-lg text-muted-foreground">
-              {hero.description}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "description", language, hero.description))}
             </p>
           </motion.div>
         </div>
@@ -170,7 +184,7 @@ export default function PricingPage() {
                 >
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge variant="premium">Most Popular</Badge>
+                      <Badge variant="premium">{text("Most Popular")}</Badge>
                     </div>
                   )}
                   <CardContent className="p-8">
@@ -179,7 +193,7 @@ export default function PricingPage() {
                         {plan.icon === "crown" ? <Crown className="h-5 w-5 text-primary" /> : plan.icon === "sparkles" ? <Sparkles className="h-5 w-5 text-primary" /> : <Heart className="h-5 w-5 text-primary" />}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg">{plan.name}</h3>
+                        <h3 className="font-semibold text-lg">{localizedText({ bn: plan.nameBn, en: plan.nameEn }, language, plan.name)}</h3>
                       </div>
                     </div>
 
@@ -187,9 +201,9 @@ export default function PricingPage() {
                       <div className="flex items-baseline gap-1">
                         <span className="text-sm text-muted-foreground">৳</span>
                         <span className="text-4xl font-bold">{plan.price}</span>
-                        <span className="text-sm text-muted-foreground">{plan.period}</span>
+                        <span className="text-sm text-muted-foreground">{localizedText({ bn: plan.periodBn, en: plan.periodEn }, language, plan.period)}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{localizedText({ bn: plan.descriptionBn, en: plan.descriptionEn }, language, plan.description)}</p>
                     </div>
 
                     <Button
@@ -198,19 +212,19 @@ export default function PricingPage() {
                       asChild
                     >
                       <Link href={`/payment?plan=${encodeURIComponent(plan.id)}`}>
-                        {plan.popular ? "Start Premium" : plan.name === "Gold" ? "Go Gold" : "Get Started Free"}
+                        {plan.popular ? text("Start Premium") : plan.name === "Gold" ? text("Go Gold") : text("Get Started Free")}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
 
                     <div className="space-y-3">
-                      {plan.features.map((feature) => (
+                      {(language === "bn" ? plan.featuresBn || plan.features : plan.featuresEn || plan.features).map((feature) => (
                         <div key={feature} className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500 shrink-0" />
                           <span className="text-sm">{feature}</span>
                         </div>
                       ))}
-                      {plan.notIncluded.map((feature) => (
+                      {(language === "bn" ? plan.notIncludedBn || plan.notIncluded : plan.notIncludedEn || plan.notIncluded).map((feature) => (
                         <div key={feature} className="flex items-center gap-2 opacity-50">
                           <X className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="text-sm">{feature}</span>
@@ -235,11 +249,11 @@ export default function PricingPage() {
             className="text-center mb-16"
           >
             <Badge variant="secondary" className="mb-4">
-              Why Upgrade?
+              {text("Why Upgrade?")}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">{benefits.title}</h2>
+            <h2 className="text-3xl font-bold mb-4">{localizedField(benefits as unknown as Record<string, unknown>, "title", language, benefits.title)}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {benefits.description}
+              {localizedField(benefits as unknown as Record<string, unknown>, "description", language, benefits.description)}
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">

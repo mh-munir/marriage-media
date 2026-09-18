@@ -24,11 +24,11 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin(request);
     await connectToDatabase();
-    const body = (await request.json()) as Partial<{ slug: string; title: string; description: string; content: string; seoTitle: string; seoDescription: string; isPublished: boolean; sections: Array<Record<string, unknown>> }>;
+    const body = (await request.json()) as Partial<{ slug: string; title: string; titleBn: string; titleEn: string; description: string; descriptionBn: string; descriptionEn: string; content: string; contentBn: string; contentEn: string; seoTitle: string; seoDescription: string; isPublished: boolean; sections: Array<Record<string, unknown>> }>;
     if (!body.slug || !PAGE_SLUGS.has(body.slug) || !body.title?.trim()) return NextResponse.json({ error: "A valid page slug and title are required" }, { status: 400 });
     const page = await SitePage.findOneAndUpdate(
       { slug: body.slug },
-      { $set: { title: body.title.trim(), description: body.description || "", content: body.content || "", seoTitle: body.seoTitle || "", seoDescription: body.seoDescription || "", isPublished: body.isPublished !== false, ...(Array.isArray(body.sections) ? { sections: body.sections } : {}) } },
+      { $set: { title: body.title.trim(), titleBn: body.titleBn || body.title.trim(), titleEn: body.titleEn || body.title.trim(), description: body.description || "", descriptionBn: body.descriptionBn || body.description || "", descriptionEn: body.descriptionEn || body.description || "", content: body.content || "", contentBn: body.contentBn || body.content || "", contentEn: body.contentEn || body.content || "", seoTitle: body.seoTitle || "", seoDescription: body.seoDescription || "", isPublished: body.isPublished !== false, ...(Array.isArray(body.sections) ? { sections: body.sections } : {}) } },
       { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
     ).lean();
     return NextResponse.json({ page });

@@ -17,6 +17,8 @@ export default function RootLayout({
   return (
     <html lang="bn" data-languages="bn,en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/api/site-branding/favicon" />
         <ThemeInit />
         <Providers>{children}</Providers>

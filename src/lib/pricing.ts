@@ -1,12 +1,22 @@
 export interface PricingPlan {
   id: string;
   name: string;
+  nameBn?: string;
+  nameEn?: string;
   description: string;
+  descriptionBn?: string;
+  descriptionEn?: string;
   price: string;
   period: string;
+  periodBn?: string;
+  periodEn?: string;
   popular: boolean;
   features: string[];
+  featuresBn?: string[];
+  featuresEn?: string[];
   notIncluded: string[];
+  notIncludedBn?: string[];
+  notIncludedEn?: string[];
   icon: string;
 }
 

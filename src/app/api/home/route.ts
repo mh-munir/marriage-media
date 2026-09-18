@@ -6,7 +6,11 @@ import { getHomeData } from "@/lib/home-data";
 export async function GET() {
   try {
     const homeData = await getHomeData();
-    return NextResponse.json(homeData);
+    return NextResponse.json(homeData, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load home content.";
     return NextResponse.json(

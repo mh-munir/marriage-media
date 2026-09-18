@@ -7,9 +7,15 @@ import Blog from "@/models/Blog";
 interface BlogDocument {
   _id: { toString(): string };
   title?: string;
+  titleBn?: string;
+  titleEn?: string;
   slug?: string;
   excerpt?: string;
+  excerptBn?: string;
+  excerptEn?: string;
   category?: string;
+  categoryBn?: string;
+  categoryEn?: string;
   featuredImage?: { url?: string };
   publishedAt?: Date | string;
   createdAt?: Date | string;
@@ -20,9 +26,15 @@ function mapBlogPost(post: BlogDocument) {
   return {
     id: post._id.toString(),
     title: post.title || "Untitled article",
+    titleBn: post.titleBn || post.title || "Untitled article",
+    titleEn: post.titleEn || post.title || "Untitled article",
     slug: post.slug || "",
     excerpt: post.excerpt || "",
+    excerptBn: post.excerptBn || post.excerpt || "",
+    excerptEn: post.excerptEn || post.excerpt || "",
     category: post.category || "General",
+    categoryBn: post.categoryBn || post.category || "General",
+    categoryEn: post.categoryEn || post.category || "General",
     imageUrl: post.featuredImage?.url || null,
     likes: post.likes || 0,
     publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : null,
@@ -46,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     const posts = await Blog.find(query)
-      .select("title slug excerpt category featuredImage publishedAt createdAt likes")
+      .select("title titleBn titleEn slug excerpt excerptBn excerptEn category categoryBn categoryEn featuredImage publishedAt createdAt likes")
       .sort({ publishedAt: -1, createdAt: -1 })
       .limit(safeLimit)
       .lean<BlogDocument[]>()

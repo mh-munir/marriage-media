@@ -24,12 +24,22 @@ function normalizePlans(value: unknown): PricingPlan[] | null {
       ...fallback,
       id: fallback.id,
       name: typeof input.name === "string" ? input.name.trim() : fallback.name,
+      nameBn: typeof input.nameBn === "string" ? input.nameBn.trim() : fallback.nameBn || fallback.name,
+      nameEn: typeof input.nameEn === "string" ? input.nameEn.trim() : fallback.nameEn || fallback.name,
       description: typeof input.description === "string" ? input.description.trim() : fallback.description,
+      descriptionBn: typeof input.descriptionBn === "string" ? input.descriptionBn.trim() : fallback.descriptionBn || fallback.description,
+      descriptionEn: typeof input.descriptionEn === "string" ? input.descriptionEn.trim() : fallback.descriptionEn || fallback.description,
       price: typeof input.price === "string" ? input.price.trim() : fallback.price,
       period: typeof input.period === "string" ? input.period.trim() : fallback.period,
+      periodBn: typeof input.periodBn === "string" ? input.periodBn.trim() : fallback.periodBn || fallback.period,
+      periodEn: typeof input.periodEn === "string" ? input.periodEn.trim() : fallback.periodEn || fallback.period,
       popular: input.popular === true,
       features: Array.isArray(input.features) ? input.features.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0).map((feature) => feature.trim()) : fallback.features,
+      featuresBn: Array.isArray(input.featuresBn) ? input.featuresBn.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0).map((feature) => feature.trim()) : fallback.featuresBn || fallback.features,
+      featuresEn: Array.isArray(input.featuresEn) ? input.featuresEn.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0).map((feature) => feature.trim()) : fallback.featuresEn || fallback.features,
       notIncluded: Array.isArray(input.notIncluded) ? input.notIncluded.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0).map((feature) => feature.trim()) : fallback.notIncluded,
+      notIncludedBn: Array.isArray(input.notIncludedBn) ? input.notIncludedBn.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0).map((feature) => feature.trim()) : fallback.notIncludedBn || fallback.notIncluded,
+      notIncludedEn: Array.isArray(input.notIncludedEn) ? input.notIncludedEn.filter((feature): feature is string => typeof feature === "string" && feature.trim().length > 0).map((feature) => feature.trim()) : fallback.notIncludedEn || fallback.notIncluded,
     };
   });
   return plans.every((plan, index) => plan.id === planIds[index] && plan.name) ? plans : null;

@@ -18,7 +18,7 @@ class ApiClient {
 
   private async getHeaders(options: RequestOptions): Promise<HeadersInit> {
     const headers: HeadersInit = {
-      "Content-Type": "application/json",
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...options.headers,
     };
 
@@ -57,13 +57,14 @@ class ApiClient {
     this.refreshPromise = (async () => {
       try {
         const { refreshToken } = useAuthStore.getState();
-        if (!refreshToken) return false;
 
         const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ refreshToken }),
+          // The httpOnly refresh-token cookie is the source of truth. Sending
+          // the persisted token as well supports existing signed-in sessions.
+          body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
         });
 
         if (!response.ok) return false;

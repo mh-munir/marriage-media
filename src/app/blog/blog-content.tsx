@@ -9,12 +9,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/providers/language-provider";
+import { localizedText } from "@/lib/localized-content";
 
 interface BlogPost {
   id: string;
   title: string;
+  titleBn?: string;
+  titleEn?: string;
   excerpt: string;
+  excerptBn?: string;
+  excerptEn?: string;
   category: string;
+  categoryBn?: string;
+  categoryEn?: string;
   slug: string;
   imageUrl: string | null;
   publishedAt: string | null;
@@ -25,6 +33,7 @@ interface BlogPost {
 const categories = ["All", "Tips & Advice", "Technology", "Success Stories", "Culture", "Safety"];
 
 export default function BlogContent() {
+  const { language, translateText: text } = useLanguage();
   const { page, loading } = useSitePage("blog");
   const [selectedCategory, setSelectedCategory] = React.useState("All");
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -61,11 +70,11 @@ export default function BlogContent() {
   }, []);
 
   if (loading) return null;
-  if (page?.content) return <SitePageOverride page={page} />;
+  if (page?.content || page?.contentBn || page?.contentEn) return <SitePageOverride page={page} />;
 
   const filteredPosts = posts.filter((post) => {
-    const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
-    const searchText = `${post.title} ${post.excerpt}`.toLowerCase();
+    const matchesCategory = selectedCategory === "All" || localizedText({ bn: post.categoryBn, en: post.categoryEn }, "en", post.category) === selectedCategory || localizedText({ bn: post.categoryBn, en: post.categoryEn }, "bn", post.category) === selectedCategory;
+    const searchText = `${post.titleEn || post.title} ${post.excerptEn || post.excerpt} ${post.titleBn || ""} ${post.excerptBn || ""}`.toLowerCase();
     const matchesSearch = searchText.includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -77,9 +86,9 @@ export default function BlogContent() {
         <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-3xl mx-auto">
-            <Badge variant="secondary" className="mb-4"><BookOpen className="h-3.5 w-3.5 mr-1" />Blog</Badge>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">Marriage Media <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">Blog</span></h1>
-            <p className="text-lg text-muted-foreground">Tips, stories, and insights to help you on your journey.</p>
+            <Badge variant="secondary" className="mb-4"><BookOpen className="h-3.5 w-3.5 mr-1" />{text("Blog")}</Badge>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">Marriage Media <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">{text("Blog")}</span></h1>
+            <p className="text-lg text-muted-foreground">{text("Tips, stories, and insights to help you on your journey.")}</p>
           </motion.div>
         </div>
       </section>
@@ -88,7 +97,7 @@ export default function BlogContent() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search articles..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+              <Input placeholder={text("Search articles...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {categories.map((category) => (
@@ -102,11 +111,11 @@ export default function BlogContent() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {isLoading ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Loading articles from the database...
+              {text("Loading articles from the database...")}
             </div>
           ) : filteredPosts.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              No articles match your current filters.
+              {text("No articles match your current filters.")}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -118,14 +127,14 @@ export default function BlogContent() {
                     </div>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-3 mb-3">
-                        <Badge variant="outline" className="text-xs">{post.category}</Badge>
+                        <Badge variant="outline" className="text-xs">{localizedText({ bn: post.categoryBn, en: post.categoryEn }, language, post.category)}</Badge>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{post.slug ? "Article" : "Story"}</div>
                       </div>
-                      <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{post.excerpt}</p>
+                      <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2">{localizedText({ bn: post.titleBn, en: post.titleEn }, language, post.title)}</h3>
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{localizedText({ bn: post.excerptBn, en: post.excerptEn }, language, post.excerpt)}</p>
                         <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Calendar className="h-3 w-3" />{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Recently published"}</div>
-                        <span className="flex items-center gap-3"><span className="flex items-center gap-1 text-xs text-rose-500"><Heart className="h-3 w-3 fill-current" />{post.likes.toLocaleString()}</span><span className="text-sm text-primary hover:underline font-medium flex items-center gap-1">Read more<ArrowRight className="h-3 w-3" /></span></span>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Calendar className="h-3 w-3" />{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : text("Recently published")}</div>
+                        <span className="flex items-center gap-3"><span className="flex items-center gap-1 text-xs text-rose-500"><Heart className="h-3 w-3 fill-current" />{post.likes.toLocaleString()}</span><span className="text-sm text-primary hover:underline font-medium flex items-center gap-1">{text("Read more")}<ArrowRight className="h-3 w-3" /></span></span>
                       </div>
                     </CardContent>
                   </Card>

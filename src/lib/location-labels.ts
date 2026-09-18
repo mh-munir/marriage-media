@@ -5,6 +5,7 @@ const bengaliLocationLabels: Record<string, string> = {
   Chittagong: "চট্টগ্রাম",
   "Cox's Bazar": "কক্সবাজার",
   Coxsbazar: "কক্সবাজার",
+  "Cox's Bazar Sadar": "কক্সবাজার সদর",
   "Coxsbazar Sadar": "কক্সবাজার সদর",
   Eidgaon: "ঈদগাঁও",
   Islampur: "ইসলামপুর",

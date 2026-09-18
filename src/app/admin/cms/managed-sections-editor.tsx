@@ -85,31 +85,22 @@ export function ManagedSectionsEditor({
               Show this section
             </label>
             <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                label="Eyebrow"
-                value={section.eyebrow}
-                onChange={(event) =>
-                  update(index, { eyebrow: event.target.value })
-                }
-              />
-              <Input
-                label="Title"
-                value={section.title}
-                onChange={(event) =>
-                  update(index, { title: event.target.value })
-                }
-              />
+              <Input label="Eyebrow (বাংলা)" value={section.eyebrowBn || section.eyebrow} onChange={(event) => update(index, { eyebrowBn: event.target.value })} />
+              <Input label="Eyebrow (English)" value={section.eyebrowEn || section.eyebrow} onChange={(event) => update(index, { eyebrowEn: event.target.value })} />
+              <Input label="Title (বাংলা)" value={section.titleBn || section.title} onChange={(event) => update(index, { titleBn: event.target.value })} />
+              <Input label="Title (English)" value={section.titleEn || section.title} onChange={(event) => update(index, { titleEn: event.target.value })} />
             </div>
             <label className="block text-sm font-medium">
-              Description
+              Description (বাংলা)
               <textarea
                 className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm"
-                value={section.description}
+                value={section.descriptionBn || section.description}
                 onChange={(event) =>
-                  update(index, { description: event.target.value })
+                  update(index, { descriptionBn: event.target.value })
                 }
               />
             </label>
+            <label className="block text-sm font-medium">Description (English)<textarea className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" value={section.descriptionEn || section.description} onChange={(event) => update(index, { descriptionEn: event.target.value })} /></label>
             <ImageField
               label="Section image"
               value={section.imageUrl}
@@ -159,7 +150,11 @@ export function ManagedSectionsEditor({
                           ...section.items,
                           {
                             title: "New item",
+                            titleBn: "",
+                            titleEn: "New item",
                             text: "",
+                            textBn: "",
+                            textEn: "",
                             imageUrl: "",
                             imageAlt: "",
                           },
@@ -177,23 +172,29 @@ export function ManagedSectionsEditor({
                     className="grid gap-3 rounded-lg border bg-slate-50 p-3 md:grid-cols-[1fr_1fr_auto]"
                   >
                     <Input
-                      label="Item title"
-                      value={item.title}
+                      label="Item title (বাংলা)"
+                      value={item.titleBn || item.title}
                       onChange={(event) =>
                         updateItem(index, itemIndex, {
-                          title: event.target.value,
+                          titleBn: event.target.value,
                         })
                       }
                     />
                     <Input
-                      label="Item text"
-                      value={item.text}
+                      label="Item title (English)"
+                      value={item.titleEn || item.title}
+                      onChange={(event) => updateItem(index, itemIndex, { titleEn: event.target.value })}
+                    />
+                    <Input
+                      label="Item text (বাংলা)"
+                      value={item.textBn || item.text}
                       onChange={(event) =>
                         updateItem(index, itemIndex, {
-                          text: event.target.value,
+                          textBn: event.target.value,
                         })
                       }
                     />
+                    <Input label="Item text (English)" value={item.textEn || item.text} onChange={(event) => updateItem(index, itemIndex, { textEn: event.target.value })} />
                     <button
                       type="button"
                       className="self-end p-2 text-red-600"

@@ -66,6 +66,7 @@ export interface IProfile extends Document {
   siblings?: {
     name: string;
     relation: "Brother" | "Sister";
+    profession?: string;
   }[];
 
   // Lifestyle
@@ -265,6 +266,7 @@ const ProfileSchema = new Schema<IProfile>(
       {
         name: { type: String, trim: true, default: "" },
         relation: { type: String, enum: ["Brother", "Sister"], default: "Brother" },
+        profession: { type: String, trim: true, default: "" },
       },
     ],
 

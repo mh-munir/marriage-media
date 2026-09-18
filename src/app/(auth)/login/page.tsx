@@ -106,12 +106,12 @@ function LoginFormInner() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <Input
-                label="Mobile Number"
+                label={text("Mobile Number")}
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 icon={<span className="text-sm font-semibold">+88</span>}
-                placeholder="018XXXXXXXX"
+                placeholder={text("018XXXXXXXX")}
                 error={errors.phone?.message}
                 {...register("phone")}
                 onInput={(event) => {
@@ -121,7 +121,7 @@ function LoginFormInner() {
 
               <div className="relative">
                 <Input
-                  label="Password"
+                  label={text("Password")}
                   type={showPassword ? "text" : "password"}
                   placeholder={text("Enter your password")}
                   error={errors.password?.message}

@@ -8,21 +8,31 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
 import type { HomeProfile } from "@/lib/home-data";
+import { localizedField } from "@/lib/localized-content";
+import { useLanguage } from "@/providers/language-provider";
 
 export interface HomeSection {
   id: string;
   type: "hero" | "values" | "community" | "steps" | "stories" | "final";
   visible: boolean;
   eyebrow: string;
+  eyebrowBn?: string;
+  eyebrowEn?: string;
   title: string;
+  titleBn?: string;
+  titleEn?: string;
   description: string;
+  descriptionBn?: string;
+  descriptionEn?: string;
   imageUrl: string;
   imageAlt: string;
   secondaryImageUrl?: string;
   secondaryImageAlt?: string;
   buttonText: string;
+  buttonTextBn?: string;
+  buttonTextEn?: string;
   buttonLink: string;
-  items: Array<{ title: string; text: string; imageUrl?: string; imageAlt?: string }>;
+  items: Array<{ title: string; titleBn?: string; titleEn?: string; text: string; textBn?: string; textEn?: string; imageUrl?: string; imageAlt?: string }>;
 }
 
 const getFallbackProfileImage = (gender?: "Male" | "Female") =>
@@ -40,7 +50,20 @@ export function ensureHomeSections(sections: HomeSection[]) {
 }
 
 export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
+  const { language } = useLanguage();
   const [memberProfiles, setMemberProfiles] = useState<HomeProfile[]>([]);
+  const localizedSections = ensureHomeSections(sections).map((section) => ({
+    ...section,
+    eyebrow: localizedField(section as unknown as Record<string, unknown>, "eyebrow", language, section.eyebrow),
+    title: localizedField(section as unknown as Record<string, unknown>, "title", language, section.title),
+    description: localizedField(section as unknown as Record<string, unknown>, "description", language, section.description),
+    buttonText: localizedField(section as unknown as Record<string, unknown>, "buttonText", language, section.buttonText),
+    items: section.items.map((item) => ({
+      ...item,
+      title: localizedField(item as unknown as Record<string, unknown>, "title", language, item.title),
+      text: localizedField(item as unknown as Record<string, unknown>, "text", language, item.text),
+    })),
+  }));
 
   useEffect(() => {
     let active = true;
@@ -73,7 +96,7 @@ export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
     };
   }, []);
 
-  return <div className="min-h-screen bg-[#fffdfc] text-[#263b3a]"><Header /><main>{ensureHomeSections(sections).filter((section) => section.visible).map((section) => section.type === "hero" ? <HeroSection key={section.id} section={section} /> : section.type === "community" ? <CommunitySection key={section.id} section={section} memberProfiles={memberProfiles} /> : <StandardSection key={section.id} section={section} />)}</main><Footer /></div>;
+  return <div className="min-h-screen bg-[#fffdfc] text-[#263b3a]"><Header /><main>{localizedSections.filter((section) => section.visible).map((section) => section.type === "hero" ? <HeroSection key={section.id} section={section} /> : section.type === "community" ? <CommunitySection key={section.id} section={section} memberProfiles={memberProfiles} /> : <StandardSection key={section.id} section={section} />)}</main><Footer /></div>;
 }
 
 function HeroSection({ section }: { section: HomeSection }) {

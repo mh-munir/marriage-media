@@ -14,6 +14,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, error, label, ...props }, ref) => {
     const { translateText } = useLanguage();
     const localizedLabel = label ? translateText(label) : label;
+    const localizedPlaceholder = typeof props.placeholder === "string" ? translateText(props.placeholder) : props.placeholder;
     return (
       <div className="w-full">
         {label && (
@@ -30,6 +31,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           )}
           ref={ref}
           {...props}
+          placeholder={localizedPlaceholder}
         />
         {error && (
           <p className="mt-1 text-sm text-destructive">{error}</p>

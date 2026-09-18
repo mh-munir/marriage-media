@@ -3,15 +3,23 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IBlog extends Document {
   _id: mongoose.Types.ObjectId;
   title: string;
+  titleBn?: string;
+  titleEn?: string;
   slug: string;
   content: string;
+  contentBn?: string;
+  contentEn?: string;
   excerpt: string;
+  excerptBn?: string;
+  excerptEn?: string;
   featuredImage: {
     url: string;
     publicId: string;
   };
   author: mongoose.Types.ObjectId;
   category: string;
+  categoryBn?: string;
+  categoryEn?: string;
   tags: string[];
   isPublished: boolean;
   publishedAt?: Date;
@@ -31,6 +39,8 @@ const BlogSchema = new Schema<IBlog>(
       trim: true,
       maxlength: [200, "Title cannot exceed 200 characters"],
     },
+    titleBn: { type: String, default: "" },
+    titleEn: { type: String, default: "" },
     slug: {
       type: String,
       required: true,
@@ -41,11 +51,15 @@ const BlogSchema = new Schema<IBlog>(
       type: String,
       required: [true, "Content is required"],
     },
+    contentBn: { type: String, default: "" },
+    contentEn: { type: String, default: "" },
     excerpt: {
       type: String,
       required: [true, "Excerpt is required"],
       maxlength: [500, "Excerpt cannot exceed 500 characters"],
     },
+    excerptBn: { type: String, default: "" },
+    excerptEn: { type: String, default: "" },
     featuredImage: {
       url: { type: String, default: "" },
       publicId: { type: String, default: "" },
@@ -59,6 +73,8 @@ const BlogSchema = new Schema<IBlog>(
       type: String,
       default: "General",
     },
+    categoryBn: { type: String, default: "" },
+    categoryEn: { type: String, default: "" },
     tags: [{ type: String }],
     isPublished: {
       type: Boolean,

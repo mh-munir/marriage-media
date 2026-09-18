@@ -1,12 +1,11 @@
 "use client";
 
-import * as React from "react";
 import { Crown, Users } from "lucide-react";
 
-interface HomeStatsResponse {
+interface HomeHeroStatsProps {
   stats?: {
-    activeUsers?: number;
-    premiumProfiles?: number;
+    activeProfiles?: number;
+    premiumMembers?: number;
   };
 }
 
@@ -15,28 +14,7 @@ function formatCount(value: number | undefined): string {
   return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
-export function HomeHeroStats() {
-  const [stats, setStats] = React.useState<HomeStatsResponse["stats"]>();
-
-  React.useEffect(() => {
-    let active = true;
-
-    const loadStats = async () => {
-      try {
-        const response = await fetch("/api/about/stats", { cache: "no-store" });
-        if (!response.ok) return;
-        const result = (await response.json()) as HomeStatsResponse;
-        if (active) setStats(result.stats);
-      } catch {
-      }
-    };
-
-    void loadStats();
-    return () => {
-      active = false;
-    };
-  }, []);
-
+export function HomeHeroStats({ stats }: HomeHeroStatsProps) {
   return (
     <div className="mt-6 grid max-w-md grid-cols-2 gap-3" aria-label="Community statistics">
       <div className="group relative overflow-hidden rounded-2xl border border-[#b9dcd5] bg-white/80 p-3.5 shadow-[0_10px_28px_rgba(54,92,86,0.08)] backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(54,92,86,0.14)] dark:border-[#2f504b] dark:bg-[#211e1c]/85">
@@ -46,7 +24,7 @@ export function HomeHeroStats() {
             <Users className="h-4.5 w-4.5" />
           </span>
           <div className="min-w-0">
-            <strong className="block text-xl leading-none tracking-tight text-[#263b3a] dark:text-[#f8f3ef]">{formatCount(stats?.activeUsers)}</strong>
+            <strong className="block text-xl leading-none tracking-tight text-[#263b3a] dark:text-[#f8f3ef]">{formatCount(stats?.activeProfiles)}</strong>
             <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#607572] dark:text-[#bcb4ae]">active users</span>
           </div>
         </div>
@@ -58,7 +36,7 @@ export function HomeHeroStats() {
             <Crown className="h-4.5 w-4.5" />
           </span>
           <div className="min-w-0">
-            <strong className="block text-xl leading-none tracking-tight text-[#263b3a] dark:text-[#f8f3ef]">{formatCount(stats?.premiumProfiles)}</strong>
+            <strong className="block text-xl leading-none tracking-tight text-[#263b3a] dark:text-[#f8f3ef]">{formatCount(stats?.premiumMembers)}</strong>
             <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#607572] dark:text-[#bcb4ae]">premium users</span>
           </div>
         </div>

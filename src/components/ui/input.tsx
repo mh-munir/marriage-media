@@ -15,7 +15,10 @@ export interface InputProps
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, icon, rightIcon, id, ...props }, ref) => {
     const { translateText } = useLanguage();
-    const localizedLabel = label ? translateText(label) : label;
+    const localizedLabel = label
+      ? label.replace(/^(\d+)\. Name$/, (_, number) => `${number}. ${translateText("Name")}`)
+      : label;
+    const translatedLabel = localizedLabel ? translateText(localizedLabel) : localizedLabel;
     const localizedPlaceholder = typeof props.placeholder === "string" ? translateText(props.placeholder) : props.placeholder;
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
@@ -26,7 +29,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             htmlFor={inputId}
             className="text-sm font-medium text-foreground"
           >
-            {localizedLabel}
+            {translatedLabel}
           </label>
         )}
         <div className="relative">

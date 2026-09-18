@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
+import { useLanguage } from "@/providers/language-provider";
+import { localizedField } from "@/lib/localized-content";
 
 const values = [
   {
@@ -75,6 +77,8 @@ const team = [
 const statLabels = ["Active Users", "Premium Profiles", "Verified Profiles", "Happy Families"];
 
 export default function AboutPage() {
+  const { translateText: text } = useLanguage();
+  const { language } = useLanguage();
   const { page, loading } = useSitePage("about");
   const { sections, loading: managedLoading } = useManagedPage("about");
   const [liveStats, setLiveStats] = React.useState<Record<string, number> | null>(null);
@@ -84,7 +88,7 @@ export default function AboutPage() {
     return () => { mounted = false; };
   }, []);
   if (loading || managedLoading) return null;
-  if (page?.content) return <SitePageOverride page={page} />;
+  if (page?.content || page?.contentBn || page?.contentEn) return <SitePageOverride page={page} />;
 
   const managed = sections.length ? sections : defaultManagedSections("about");
   const hero = sectionValue(managed, "hero", defaultManagedSections("about")[0]);
@@ -93,11 +97,11 @@ export default function AboutPage() {
   const valuesSection = sectionValue(managed, "values", defaultManagedSections("about")[4]);
   const teamSection = sectionValue(managed, "team", defaultManagedSections("about")[5]);
   const recognition = sectionValue(managed, "recognition", defaultManagedSections("about")[6]);
-  const managedValues = values.map((value, index) => ({ ...value, title: valuesSection.items[index]?.title || value.title, description: valuesSection.items[index]?.text || value.description }));
+  const managedValues = values.map((value, index) => ({ ...value, title: localizedField((valuesSection.items[index] || {}) as unknown as Record<string, unknown>, "title", language, value.title), description: localizedField((valuesSection.items[index] || {}) as unknown as Record<string, unknown>, "text", language, value.description) }));
   const managedTeam = team.map((member, index) => {
     const item = teamSection.items[index];
     const [role, description] = (item?.text || `${member.role} | ${member.description}`).split(" | ");
-    return { ...member, name: item?.title || member.name, role, description, imageUrl: item?.imageUrl || "", imageAlt: item?.imageAlt || item?.title || member.name };
+    return { ...member, name: localizedField((item || {}) as unknown as Record<string, unknown>, "title", language, member.name), role, description: localizedField((item || {}) as unknown as Record<string, unknown>, "text", language, description), imageUrl: item?.imageUrl || "", imageAlt: item?.imageAlt || item?.title || member.name };
   });
 
   return (
@@ -115,16 +119,16 @@ export default function AboutPage() {
             className="text-center max-w-3xl mx-auto"
           >
             <Badge variant="secondary" className="mb-4">
-              {hero.eyebrow}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "eyebrow", language, hero.eyebrow))}
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-              {hero.title}{" "}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "title", language, hero.title))}{" "}
               <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
-                Happy Marriages
+                {text("Happy Marriages")}
               </span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              {hero.description}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "description", language, hero.description))}
             </p>
           </motion.div>
         </div>
@@ -140,7 +144,7 @@ export default function AboutPage() {
                 <div className="text-3xl font-bold text-primary">
                   {liveStats ? `${liveStats[key].toLocaleString()}+` : "..."}
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">{label}</div>
+                <div className="text-sm text-muted-foreground mt-1">{text(label)}</div>
               </div>
             })}
           </div>
@@ -159,10 +163,10 @@ export default function AboutPage() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <Target className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold">{mission.title}</h2>
+                <h2 className="text-2xl font-bold">{text(localizedField(mission as unknown as Record<string, unknown>, "title", language, mission.title))}</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                {mission.description}
+                {text(localizedField(mission as unknown as Record<string, unknown>, "description", language, mission.description))}
               </p>
             </motion.div>
             <motion.div
@@ -173,10 +177,10 @@ export default function AboutPage() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <Eye className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold">{vision.title}</h2>
+                <h2 className="text-2xl font-bold">{text(localizedField(vision as unknown as Record<string, unknown>, "title", language, vision.title))}</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                {vision.description}
+                {text(localizedField(vision as unknown as Record<string, unknown>, "description", language, vision.description))}
               </p>
             </motion.div>
           </div>
@@ -193,11 +197,11 @@ export default function AboutPage() {
             className="text-center mb-16"
           >
             <Badge variant="secondary" className="mb-4">
-              Our Values
+              {text("Our Values")}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">What We Stand For</h2>
+            <h2 className="text-3xl font-bold mb-4">{text("What We Stand For")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Our core values guide everything we do, from building features to serving our community.
+              {text("Our core values guide everything we do, from building features to serving our community.")}
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -214,8 +218,8 @@ export default function AboutPage() {
                     <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 mb-4">
                       <value.icon className="h-7 w-7 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">{value.title}</h3>
-                    <p className="text-sm text-muted-foreground">{value.description}</p>
+                    <h3 className="text-lg font-semibold mb-2">{text(value.title)}</h3>
+                    <p className="text-sm text-muted-foreground">{text(value.description)}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -234,11 +238,11 @@ export default function AboutPage() {
             className="text-center mb-16"
           >
             <Badge variant="secondary" className="mb-4">
-              Our Team
+              {text("Our Team")}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">Meet the People Behind Marriage Media</h2>
+            <h2 className="text-3xl font-bold mb-4">{text("Meet the People Behind Marriage Media")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              A passionate team dedicated to helping you find your perfect match.
+              {text("A passionate team dedicated to helping you find your perfect match.")}
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -265,9 +269,9 @@ export default function AboutPage() {
                         member.name.split(" ").map((n) => n[0]).join("")
                       )}
                     </div>
-                    <h3 className="font-semibold">{member.name}</h3>
-                    <p className="text-sm text-primary mb-2">{member.role}</p>
-                    <p className="text-xs text-muted-foreground">{member.description}</p>
+                    <h3 className="font-semibold">{text(member.name)}</h3>
+                    <p className="text-sm text-primary mb-2">{text(member.role)}</p>
+                    <p className="text-xs text-muted-foreground">{text(member.description)}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -286,9 +290,9 @@ export default function AboutPage() {
             className="text-center mb-12"
           >
             <Badge variant="secondary" className="mb-4">
-              Why Choose Us
+              {text("Why Choose Us")}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">What Makes Us Different</h2>
+            <h2 className="text-3xl font-bold mb-4">{text("What Makes Us Different")}</h2>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-8">
             {[

@@ -89,7 +89,7 @@ interface ProfileFormData {
   informationAccurate: string;
   truthDeclaration: string;
   acceptsFalseInformationLiability: boolean;
-  siblings: Array<{ name: string; relation: "Brother" | "Sister" }>;
+  siblings: Array<{ name: string; relation: "Brother" | "Sister"; profession?: string }>;
   partnerPreference: string;
   partnerPreferences: {
     age: string;
@@ -563,9 +563,9 @@ export default function DashboardProfilePage() {
   };
 
   const sections = [
-    { id: "basic", label: "Basic Info", icon: User },
-    { id: "photos", label: "Photos", icon: Sparkles },
-    { id: "expected-partner", label: "Expected partner", icon: Heart },
+    { id: "basic", label: text("Basic Info"), icon: User },
+    { id: "photos", label: text("Photos"), icon: Sparkles },
+    { id: "expected-partner", label: text("Expected partner"), icon: Heart },
   ];
 
   const displayName = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Your Profile";
@@ -581,7 +581,7 @@ export default function DashboardProfilePage() {
             className="mb-7 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {text("Back to Dashboard")}
           </Link>
 
           <motion.div
@@ -589,10 +589,10 @@ export default function DashboardProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8 max-w-2xl"
           >
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your profile workspace</p>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl">Your Profile</h1>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">{text("Your profile workspace")}</p>
+            <h1 className="mb-2 text-3xl font-bold tracking-tight sm:text-4xl">{text("Your Profile")}</h1>
             <p className="text-sm leading-6 text-muted-foreground sm:text-base">
-              Manage your profile information and preferences.
+              {text("Manage your profile information and preferences.")}
             </p>
           </motion.div>
 
@@ -616,16 +616,16 @@ export default function DashboardProfilePage() {
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <h3 className="font-semibold">{displayName}</h3>
                     <Badge variant="outline" className="text-xs">
-                      {profile.isPremium ? "Premium" : "Free Plan"}
+                      {profile.isPremium ? text("Premium") : text("Free Plan")}
                     </Badge>
                     {profile.isVerified ? (
                       <Badge variant="outline" className="text-xs text-emerald-600">
                         <Sparkles className="mr-1 h-3 w-3" />
-                        Verified
+                        {text("Verified")}
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2">Complete your profile to get better matches.</p>
+                  <p className="text-sm text-muted-foreground mb-2">{text("Complete your profile to get better matches.")}</p>
                   <div className="flex max-w-md items-center gap-3">
                     <Progress value={profileCompletion} className="h-2 flex-1" />
                     <span className="text-xs font-semibold tabular-nums text-primary">{profileCompletion}%</span>
@@ -633,7 +633,7 @@ export default function DashboardProfilePage() {
                 </div>
                 {!profile.isPremium ? (
                   <Button variant="gradient" size="sm" asChild>
-                    <Link href="/pricing">Upgrade to Premium</Link>
+                    <Link href="/pricing">{text("Upgrade to Premium")}</Link>
                   </Button>
                 ) : null}
               </div>
@@ -832,9 +832,9 @@ export default function DashboardProfilePage() {
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">Blood Group</label>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Blood Group")}</label>
                             <select value={profile.bloodGroup} onChange={(e) => setProfile({ ...profile, bloodGroup: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm">
-                              <option value="">Select blood group</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group} value={group}>{group}</option>)}
+                              <option value="">{text("Select blood group")}</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group} value={group}>{group}</option>)}
                             </select>
                           </div>
                           <div>
@@ -1175,7 +1175,7 @@ export default function DashboardProfilePage() {
                           </select>
                         </div>
                         <div className="space-y-3 sm:col-span-2">
-                          <label className="block text-sm font-medium text-foreground">Education Details</label>
+                          <label className="block text-sm font-medium text-foreground">{text("Education Details")}</label>
                           {profile.educationDetails.map((education, index) => (
                             <div className="grid gap-3 sm:grid-cols-3" key={education.level}>
                               <p className="self-center text-sm font-medium">{education.level}</p>
@@ -1185,7 +1185,7 @@ export default function DashboardProfilePage() {
                           ))}
                         </div>
                         <div className="sm:col-span-2">
-                          <label className="mb-1.5 block text-sm font-medium text-foreground">About Me</label>
+                          <label className="mb-1.5 block text-sm font-medium text-foreground">{text("About Me")}</label>
                           <textarea className="min-h-28 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" value={profile.aboutYourself} onChange={(e) => setProfile({ ...profile, aboutYourself: e.target.value })} />
                         </div>
                         <fieldset className="sm:col-span-2 rounded-xl border border-border p-4">
@@ -1288,13 +1288,13 @@ export default function DashboardProfilePage() {
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Highest Education</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Highest Education")}</label>
                             <select
                               value={profile.partnerPreferences.highestEducation}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, highestEducation: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any education</option>
+                              <option value="">{text("Any education")}</option>
                               {EDUCATION_LEVELS.map((education) => <option key={education} value={education}>{text(education)}</option>)}
                             </select>
                           </div>
@@ -1317,49 +1317,49 @@ export default function DashboardProfilePage() {
                           />
                           <Input
                             label="District"
-                            placeholder="Example: Dhaka, Coxsbazar"
+                            placeholder={text("Example: Dhaka, Cox's Bazar")}
                             value={profile.partnerPreferences.district}
                             onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, district: e.target.value, thana: "", union: "" } })}
                           />
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Family Type</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Family Type")}</label>
                             <select
                               value={profile.partnerPreferences.familyType}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyType: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any family type</option>
-                              <option value="Joint">Joint</option>
-                              <option value="Nuclear">Nuclear</option>
+                              <option value="">{text("Any family type")}</option>
+                              <option value="Joint">{text("Joint")}</option>
+                              <option value="Nuclear">{text("Nuclear")}</option>
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Family Status</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Family Status")}</label>
                             <select
                               value={profile.partnerPreferences.familyStatus}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyStatus: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any family status</option>
-                              <option value="Middle Class">Middle Class</option>
-                              <option value="Upper Middle Class">Upper Middle Class</option>
-                              <option value="Rich">Rich</option>
-                              <option value="Affluent">Affluent</option>
+                              <option value="">{text("Any family status")}</option>
+                              <option value="Middle Class">{text("Middle Class")}</option>
+                              <option value="Upper Middle Class">{text("Upper Middle Class")}</option>
+                              <option value="Rich">{text("Rich")}</option>
+                              <option value="Affluent">{text("Affluent")}</option>
                             </select>
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">Family Values</label>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Family Values")}</label>
                             <select
                               value={profile.partnerPreferences.familyValues}
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyValues: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">Any family values</option>
-                              <option value="Orthodox">Orthodox</option>
-                              <option value="Traditional">Traditional</option>
-                              <option value="Moderate">Moderate</option>
-                              <option value="Liberal">Liberal</option>
-                              <option value="Secular">Secular</option>
+                              <option value="">{text("Any family values")}</option>
+                              <option value="Orthodox">{text("Orthodox")}</option>
+                              <option value="Traditional">{text("Traditional")}</option>
+                              <option value="Moderate">{text("Moderate")}</option>
+                              <option value="Liberal">{text("Liberal")}</option>
+                              <option value="Secular">{text("Secular")}</option>
                             </select>
                           </div>
                         </div>

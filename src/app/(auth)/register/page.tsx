@@ -15,11 +15,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { registerSchema } from "@/lib/validations";
 import { sanitizePhoneNumberInput } from "@/lib/utils";
 import type { z } from "zod";
+import { useLanguage } from "@/providers/language-provider";
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { translateText: text } = useLanguage();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -97,17 +99,17 @@ export default function RegisterPage() {
 
         <Card className="auth-card">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create Your Account</CardTitle>
+            <CardTitle className="text-2xl">{text("Create Your Account")}</CardTitle>
             <CardDescription>
-              Join thousands finding their perfect match
+              {text("Join thousands finding their perfect match")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {pendingUserId ? <form onSubmit={verifyOtp} className="space-y-4">
               {error && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>}
-              <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">A verification code was sent to your mobile number.</div>
-              <Input label="Mobile verification code" inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))} required />
-              <Button type="submit" variant="gradient" className="w-full" size="lg" disabled={otpLoading}>{otpLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ShieldCheck className="h-4 w-4" /> Verify and continue</>}</Button>
+              <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{text("A verification code was sent to your mobile number.")}</div>
+              <Input label={text("Mobile verification code")} inputMode="numeric" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))} required />
+              <Button type="submit" variant="gradient" className="w-full" size="lg" disabled={otpLoading}>{otpLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><ShieldCheck className="h-4 w-4" /> {text("Verify and continue")}</>}</Button>
             </form> : <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {error && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -116,7 +118,7 @@ export default function RegisterPage() {
               )}
 
               <Input
-                label="Mobile Number"
+                label={text("Mobile Number")}
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -131,9 +133,9 @@ export default function RegisterPage() {
 
               <div className="relative">
                 <Input
-                  label="Password"
+                  label={text("Password")}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
+                  placeholder={text("Create a strong password")}
                   error={errors.password?.message}
                   {...register("password")}
                 />
@@ -148,9 +150,9 @@ export default function RegisterPage() {
 
               <div className="relative">
                 <Input
-                  label="Confirm Password"
+                  label={text("Confirm Password")}
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
+                  placeholder={text("Confirm your password")}
                   error={errors.confirmPassword?.message}
                   {...register("confirmPassword")}
                 />
@@ -168,7 +170,7 @@ export default function RegisterPage() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <>
-                    Create Account
+                    {text("Create Account")}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -176,9 +178,9 @@ export default function RegisterPage() {
             </form>}
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">Already have an account? </span>
+              <span className="text-muted-foreground">{text("Already have an account?")} </span>
               <Link href="/login" className="text-primary hover:underline font-medium">
-                Sign in
+                {text("Sign in")}
               </Link>
             </div>
           </CardContent>
@@ -189,7 +191,7 @@ export default function RegisterPage() {
           {["100% free to register", "AI-powered matching", "Verified profiles only"].map((benefit) => (
             <div key={benefit} className="flex items-center gap-2 text-sm text-muted-foreground">
               <CheckCircle className="h-4 w-4 text-emerald-500" />
-              {benefit}
+              {text(benefit)}
             </div>
           ))}
         </div>

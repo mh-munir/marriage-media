@@ -2,7 +2,9 @@ export function normalizeDistrictName(value: string | undefined | null): string 
   const trimmedValue = value?.trim() || "";
   const compactValue = trimmedValue.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  return compactValue === "coxsbazar" ? "Cox's Bazar" : trimmedValue;
+  if (compactValue === "coxsbazar") return "Cox's Bazar";
+  if (compactValue === "coxsbazarsadar") return "Cox's Bazar Sadar";
+  return trimmedValue;
 }
 
 export function normalizeProfileDistricts<T extends {

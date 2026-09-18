@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { defaultManualPaymentNumbers, defaultPricingPlans, type ManualPaymentNumbers, type PricingPlan } from "@/lib/pricing";
+import { useLanguage } from "@/providers/language-provider";
+import { localizedText } from "@/lib/localized-content";
 
 type PricingResponse = {
   plans?: PricingPlan[];
@@ -15,6 +17,7 @@ type PricingResponse = {
 };
 
 export function PaymentContent() {
+  const { language, translateText: text } = useLanguage();
   const searchParams = useSearchParams();
   const planId = searchParams.get("plan") || "";
   const [plans, setPlans] = React.useState<PricingPlan[]>(defaultPricingPlans);
@@ -100,8 +103,8 @@ export function PaymentContent() {
             <form className="space-y-5" onSubmit={submitManualPayment}>
               <div className="rounded-xl border bg-muted/40 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Selected plan</p>
-                <p className="mt-1 text-lg font-semibold">{plan.name}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+                <p className="mt-1 text-lg font-semibold">{localizedText({ bn: plan.nameBn, en: plan.nameEn }, language, plan.name)}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{localizedText({ bn: plan.descriptionBn, en: plan.descriptionEn }, language, plan.description)}</p>
               </div>
 
               <div className="space-y-2">
@@ -119,7 +122,7 @@ export function PaymentContent() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium">Payment method</p>
+                <p className="text-sm font-medium">{text("Payment method")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button type="button" variant={paymentMethod === "bkash" ? "default" : "outline"} onClick={() => setPaymentMethod("bkash")}>bKash</Button>
                   <Button type="button" variant={paymentMethod === "nagad" ? "default" : "outline"} onClick={() => setPaymentMethod("nagad")}>Nagad</Button>
@@ -128,7 +131,7 @@ export function PaymentContent() {
 
               <Input
                 id="sender-mobile-number"
-                label="Sender mobile number"
+                label={text("Sender mobile number")}
                 type="tel"
                 inputMode="numeric"
                 placeholder="01XXXXXXXXX"
@@ -141,8 +144,8 @@ export function PaymentContent() {
 
               <Input
                 id="transaction-id"
-                label="Transaction ID"
-                placeholder="Enter the transaction ID from your payment"
+                label={text("Transaction ID")}
+                placeholder={text("Enter the transaction ID from your payment")}
                 value={transactionId}
                 onChange={(event) => setTransactionId(event.target.value)}
                 required
@@ -150,7 +153,7 @@ export function PaymentContent() {
 
               <Input
                 id="payment-price"
-                label="Price"
+                label={text("Price")}
                 value={`৳${plan.price} ${plan.period}`}
                 readOnly
                 className="font-semibold"
@@ -160,11 +163,11 @@ export function PaymentContent() {
               {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
 
               <Button className="w-full" variant="gradient" type="submit" disabled={isSubmitting || Boolean(message)}>
-                {isSubmitting ? "Submitting…" : "Submit payment for verification"}
+                {isSubmitting ? text("Submitting…") : text("Submit payment for verification")}
               </Button>
 
               <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" /> Your payment details are kept secure.
+                <ShieldCheck className="h-4 w-4 text-emerald-600" /> {text("Your payment details are kept secure.")}
               </p>
             </form>
           )}

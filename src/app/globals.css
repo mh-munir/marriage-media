@@ -118,6 +118,8 @@
   z-index: 1;
   display: flex;
   width: min(100%, 48rem);
+  max-width: 100%;
+  min-width: 0;
   .min-h-screen.bg-rose-50:has(.max-w-3xl) [data-slot="card-content"] button {
     border-color: transparent;
     background: linear-gradient(to right, #f43f5e, #ec4899, #9333ea);
@@ -131,6 +133,19 @@
   flex-direction: column;
   align-items: stretch;
   gap: 1.25rem;
+}
+
+.onboarding-root {
+  overflow-x: clip;
+}
+
+.onboarding-root .onboarding-form-layout > * {
+  min-width: 0;
+}
+
+/* Keep sibling inputs simply numbered in their labels; no separate number badge. */
+.onboarding-root p.flex.items-center.gap-2.text-sm.font-semibold > span {
+  display: none;
 }
 
 .onboarding-step-tracker {
@@ -213,13 +228,13 @@
   box-shadow: 0 0 0 4px rgb(37 99 235 / 0.12), 0 4px 12px rgb(37 99 235 / 0.18);
   transform: translateY(-1px);
 }
-.onboarding-step:nth-of-type(2) { color: #d88908; }
-.onboarding-step:nth-of-type(2) .onboarding-step-dot {
+.onboarding-step:nth-of-type(2):not(.done):not(.active) { color: #d88908; }
+.onboarding-step:nth-of-type(2):not(.done):not(.active) .onboarding-step-dot {
   background: #fff9e8;
   box-shadow: 0 4px 12px rgb(216 137 8 / 0.18);
 }
 
-.min-h-screen.bg-rose-50:has(.max-w-3xl) [data-slot="card-header"] { overflow-x: auto; }
+.min-h-screen.bg-rose-50:has(.max-w-3xl) [data-slot="card-header"] { overflow-x: hidden; }
 .min-h-screen.bg-rose-50:has(.max-w-3xl) [data-slot="card-content"] { min-width: 0; }
 .min-h-screen.bg-rose-50:has(.max-w-3xl) select,
 .min-h-screen.bg-rose-50:has(.max-w-3xl) input,
@@ -257,6 +272,7 @@
 
   .min-h-screen.bg-rose-50:has(.max-w-3xl) .onboarding-form-layout > .max-w-3xl {
     width: 100%;
+    max-width: 100%;
     border-radius: 1rem;
   }
 

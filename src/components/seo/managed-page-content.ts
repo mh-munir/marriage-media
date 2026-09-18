@@ -4,7 +4,11 @@ import * as React from "react";
 
 export interface ManagedPageItem {
   title: string;
+  titleBn?: string;
+  titleEn?: string;
   text: string;
+  textBn?: string;
+  textEn?: string;
   imageUrl?: string;
   imageAlt?: string;
 }
@@ -13,11 +17,19 @@ export interface ManagedPageSection {
   id: string;
   visible: boolean;
   eyebrow: string;
+  eyebrowBn?: string;
+  eyebrowEn?: string;
   title: string;
+  titleBn?: string;
+  titleEn?: string;
   description: string;
+  descriptionBn?: string;
+  descriptionEn?: string;
   imageUrl: string;
   imageAlt: string;
   buttonText: string;
+  buttonTextBn?: string;
+  buttonTextEn?: string;
   buttonLink: string;
   items: ManagedPageItem[];
 }

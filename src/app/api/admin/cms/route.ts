@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
     const admin = await requireAdmin(request);
 
     const body = await request.json();
-    const { blogId, title, content, excerpt, category, tags, isPublished, metaTitle, metaDescription, featuredImage, likes } = body;
+    const { blogId, title, titleBn, titleEn, content, contentBn, contentEn, excerpt, excerptBn, excerptEn, category, categoryBn, categoryEn, tags, isPublished, metaTitle, metaDescription, featuredImage, likes } = body;
     const likeCount = Number.isFinite(Number(likes)) ? Math.max(0, Math.floor(Number(likes))) : 0;
 
     if (blogId) {
       // Update
       const blog = await Blog.findByIdAndUpdate(
         blogId,
-        { $set: { title, content, excerpt, category, tags, isPublished, metaTitle, metaDescription, featuredImage, likes: likeCount, publishedAt: isPublished ? new Date() : undefined } },
+        { $set: { title, titleBn, titleEn, content, contentBn, contentEn, excerpt, excerptBn, excerptEn, category, categoryBn, categoryEn, tags, isPublished, metaTitle, metaDescription, featuredImage, likes: likeCount, publishedAt: isPublished ? new Date() : undefined } },
         { returnDocument: "after" }
       );
       return NextResponse.json({ blog });
@@ -73,10 +73,18 @@ export async function POST(request: NextRequest) {
     // Create
     const blog = await Blog.create({
       title,
+      titleBn: titleBn || title || "",
+      titleEn: titleEn || title || "",
       slug: slugify(title) + "-" + Date.now(),
       content,
+      contentBn: contentBn || content || "",
+      contentEn: contentEn || content || "",
       excerpt: excerpt || "",
+      excerptBn: excerptBn || excerpt || "",
+      excerptEn: excerptEn || excerpt || "",
       category: category || "General",
+      categoryBn: categoryBn || category || "General",
+      categoryEn: categoryEn || category || "General",
       tags: tags || [],
       isPublished: isPublished || false,
       publishedAt: isPublished ? new Date() : undefined,

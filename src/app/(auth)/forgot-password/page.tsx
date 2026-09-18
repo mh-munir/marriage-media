@@ -6,8 +6,10 @@ import { ArrowLeft, CheckCircle, Heart, Loader2, Phone, ShieldCheck } from "luci
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/providers/language-provider";
 
 export default function ForgotPasswordPage() {
+  const { translateText: text } = useLanguage();
   const [phone, setPhone] = React.useState("");
   const [code, setCode] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -51,25 +53,25 @@ export default function ForgotPasswordPage() {
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Heart className="h-5 w-5" fill="currentColor" /></span>
             Marriage<span className="text-primary">Media</span>
           </Link>
-          <CardTitle>Forgot password?</CardTitle>
-          <CardDescription>Enter your mobile number to receive a secure recovery code.</CardDescription>
+          <CardTitle>{text("Forgot password?")}</CardTitle>
+          <CardDescription>{text("Enter your mobile number to receive a secure recovery code.")}</CardDescription>
         </CardHeader>
         <CardContent>
           {message ? <div className="mb-4 flex gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700"><CheckCircle className="h-4 w-4 shrink-0" />{message}</div> : null}
           {error ? <p className="mb-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <Input label="Mobile number" type="tel" inputMode="numeric" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 11))} required />
+            <Input label={text("Mobile number")} type="tel" inputMode="numeric" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 11))} required />
             {codeSent ? <>
-              <Input label="Recovery code" inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} required />
-              <Input label="New password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required />
-              <Input label="Confirm password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} required />
+              <Input label={text("Recovery code")} inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} required />
+              <Input label={text("New password")} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required />
+              <Input label={text("Confirm password")} type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} required />
             </> : null}
             <Button className="w-full" type="submit" size="lg" disabled={busy}>
-              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : codeSent ? <><ShieldCheck className="h-4 w-4" /> Reset password</> : <><Phone className="h-4 w-4" /> Send recovery code</>}
+              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : codeSent ? <><ShieldCheck className="h-4 w-4" /> {text("Reset password")}</> : <><Phone className="h-4 w-4" /> {text("Send recovery code")}</>}
             </Button>
           </form>
-          {codeSent ? <button type="button" className="mx-auto mt-3 block text-sm text-muted-foreground underline hover:text-primary" onClick={() => { setCodeSent(false); setCode(""); setMessage(""); setError(""); }}>Use a different number or resend code</button> : null}
-          <Link href="/login" className="mt-6 flex items-center justify-center gap-2 text-sm text-primary hover:underline"><ArrowLeft className="h-4 w-4" /> Back to login</Link>
+          {codeSent ? <button type="button" className="mx-auto mt-3 block text-sm text-muted-foreground underline hover:text-primary" onClick={() => { setCodeSent(false); setCode(""); setMessage(""); setError(""); }}>{text("Use a different number or resend code")}</button> : null}
+          <Link href="/login" className="mt-6 flex items-center justify-center gap-2 text-sm text-primary hover:underline"><ArrowLeft className="h-4 w-4" /> {text("Back to login")}</Link>
         </CardContent>
       </Card>
     </main>

@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileCard } from "@/components/profile-card";
 import { useAuthStore } from "@/stores/auth-store";
+import { useLanguage } from "@/providers/language-provider";
 
 type BrowseProfile = {
   _id: string;
@@ -138,6 +139,7 @@ async function fetchJson(url: string, init?: RequestInit): Promise<ProfileRespon
 }
 
 export default function DashboardSearchPage() {
+  const { translateText: text } = useLanguage();
   const router = useRouter();
   const { user } = useAuthStore();
   const [view, setView] = React.useState<"browse" | "recent">("browse");
@@ -404,7 +406,7 @@ export default function DashboardSearchPage() {
                 </Button>
               </div>
               <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                <span className="text-muted-foreground">Infinite scroll</span>
+                <span className="text-muted-foreground">{text("Infinite scroll")}</span>
                 <input
                   type="checkbox"
                   checked={infiniteScroll}
@@ -420,22 +422,22 @@ export default function DashboardSearchPage() {
               value={filters.education}
               onChange={(event) => setFilters((current) => ({ ...current, education: event.target.value }))}
               className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-              aria-label="Filter by education"
+              aria-label={text("Filter by education")}
             >
-              <option value="">All Education</option>
-              <option value="Primary">Primary</option>
-              <option value="Secondary">Secondary</option>
-              <option value="Higher Secondary">Higher Secondary</option>
-              <option value="Bachelor's Degree">Bachelor&apos;s Degree</option>
-              <option value="Master's Degree">Master&apos;s Degree</option>
-              <option value="PhD">PhD</option>
+              <option value="">{text("All Education")}</option>
+              <option value="Primary">{text("Primary")}</option>
+              <option value="Secondary">{text("Secondary")}</option>
+              <option value="Higher Secondary">{text("Higher Secondary")}</option>
+              <option value="Bachelor's Degree">{text("Bachelor's Degree")}</option>
+              <option value="Master's Degree">{text("Master's Degree")}</option>
+              <option value="PhD">{text("PhD")}</option>
             </select>
             <input
               value={filters.location}
               onChange={(event) => setFilters((current) => ({ ...current, location: event.target.value }))}
-              placeholder="Location"
+              placeholder={text("Location")}
               className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-              aria-label="Filter by location"
+              aria-label={text("Filter by location")}
             />
             <input
               value={filters.ageMin}
@@ -443,9 +445,9 @@ export default function DashboardSearchPage() {
               type="number"
               min="18"
               max="80"
-              placeholder="Min age"
+              placeholder={text("Min age")}
               className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-              aria-label="Minimum age"
+              aria-label={text("Minimum age")}
             />
             <input
               value={filters.ageMax}
@@ -453,9 +455,9 @@ export default function DashboardSearchPage() {
               type="number"
               min="18"
               max="80"
-              placeholder="Max age"
+              placeholder={text("Max age")}
               className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
-              aria-label="Maximum age"
+              aria-label={text("Maximum age")}
             />
             <label className="flex h-10 items-center gap-2 rounded-xl border border-input bg-background px-3 text-sm">
               <input
@@ -464,7 +466,7 @@ export default function DashboardSearchPage() {
                 onChange={(event) => setFilters((current) => ({ ...current, premiumOnly: event.target.checked }))}
                 className="h-4 w-4 accent-primary"
               />
-              Premium only
+              {text("Premium only")}
             </label>
           </div>
 

@@ -24,18 +24,28 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
+import { useLanguage } from "@/providers/language-provider";
+import { localizedText } from "@/lib/localized-content";
+import { localizedField } from "@/lib/localized-content";
 
 interface StoryCard {
   id: string;
   title: string;
+  titleBn?: string;
+  titleEn?: string;
   excerpt: string;
+  excerptBn?: string;
+  excerptEn?: string;
   category: string;
+  categoryBn?: string;
+  categoryEn?: string;
   slug: string;
   imageUrl: string | null;
   publishedAt: string | null;
 }
 
 export default function SuccessStoriesPage() {
+  const { language, translateText: text } = useLanguage();
   const { page, loading: pageLoading } = useSitePage("success-stories");
   const { sections, loading: managedLoading } = useManagedPage("success-stories");
   const [stories, setStories] = React.useState<StoryCard[]>([]);
@@ -77,7 +87,7 @@ export default function SuccessStoriesPage() {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [selectedImage]);
   if (pageLoading || managedLoading) return null;
-  if (page?.content) return <SitePageOverride page={page} />;
+  if (page?.content || page?.contentBn || page?.contentEn) return <SitePageOverride page={page} />;
 
   const defaults = defaultManagedSections("success-stories");
   const hero = sectionValue(sections.length ? sections : defaults, "hero", defaults[0]);
@@ -102,16 +112,16 @@ export default function SuccessStoriesPage() {
           >
             <Badge variant="secondary" className="mb-4">
               <Heart className="h-3.5 w-3.5 mr-1" />
-              {hero.eyebrow}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "eyebrow", language, hero.eyebrow))}
             </Badge>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-              {hero.title}{" "}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "title", language, hero.title))}{" "}
               <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
-                Inspire
+                {text("Inspire")}
               </span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              {hero.description}
+              {text(localizedField(hero as unknown as Record<string, unknown>, "description", language, hero.description))}
             </p>
           </motion.div>
         </div>
@@ -121,16 +131,16 @@ export default function SuccessStoriesPage() {
       {gallery.visible ? <section className="border-y border-border bg-card/50 py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mx-auto mb-12 max-w-2xl text-center">
-            <Badge variant="secondary" className="mb-4">{gallery.eyebrow}</Badge>
-            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">{gallery.title}</h2>
-            <p className="text-muted-foreground">{gallery.description}</p>
+            <Badge variant="secondary" className="mb-4">{text(localizedField(gallery as unknown as Record<string, unknown>, "eyebrow", language, gallery.eyebrow))}</Badge>
+            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">{text(localizedField(gallery as unknown as Record<string, unknown>, "title", language, gallery.title))}</h2>
+            <p className="text-muted-foreground">{text(localizedField(gallery as unknown as Record<string, unknown>, "description", language, gallery.description))}</p>
           </motion.div>
-          <div className="grid auto-rows-[14rem] grid-cols-2 gap-4 md:auto-rows-[18rem] md:grid-cols-4">
+          <div className="grid auto-rows-56 grid-cols-2 gap-4 md:auto-rows-72 md:grid-cols-4">
             {gallery.items.filter((item) => item.imageUrl).map((item, index) => (
               <motion.figure key={`${item.imageUrl}-${index}`} initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className={`group relative overflow-hidden rounded-2xl ${index === 0 ? "col-span-2 row-span-2" : index === 3 ? "col-span-2" : ""}`}>
                 <button type="button" className="absolute inset-0 z-10 cursor-zoom-in" aria-label={`Open ${item.title || "success story image"} fullscreen`} onClick={() => setSelectedImage({ url: item.imageUrl || "", alt: item.imageAlt || item.title || "Success story", title: item.title, text: item.text })} />
                 <Image src={item.imageUrl || ""} alt={item.imageAlt || item.title || "Success story"} fill className="object-cover transition duration-700 group-hover:scale-105" sizes="100vw" />
-                {item.title || item.text ? <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-5 pb-5 pt-12 text-white"><p className="font-semibold">{item.title}</p><p className="mt-1 text-sm text-white/80">{item.text}</p></figcaption> : null}
+                {item.title || item.text ? <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-5 pb-5 pt-12 text-white"><p className="font-semibold">{localizedField(item as unknown as Record<string, unknown>, "title", language, item.title)}</p><p className="mt-1 text-sm text-white/80">{localizedField(item as unknown as Record<string, unknown>, "text", language, item.text)}</p></figcaption> : null}
               </motion.figure>
             ))}
           </div>
@@ -150,7 +160,7 @@ export default function SuccessStoriesPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {isLoading ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Loading success stories from the database...
+              {text("Loading success stories from the database...")}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -169,10 +179,10 @@ export default function SuccessStoriesPage() {
                           {story.title.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-lg">{story.title}</h3>
+                          <h3 className="font-semibold text-lg">{localizedText({ bn: story.titleBn, en: story.titleEn }, language, story.title)}</h3>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <MapPin className="h-3 w-3" />
-                            {story.category}
+                            {localizedText({ bn: story.categoryBn, en: story.categoryEn }, language, story.category)}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                             <Calendar className="h-3 w-3" />
@@ -184,7 +194,7 @@ export default function SuccessStoriesPage() {
                       <div className="relative mb-4">
                         <Quote className="h-6 w-6 text-primary/20 absolute -top-1 -left-1" />
                         <p className="text-sm text-muted-foreground leading-relaxed pl-6">
-                          {story.excerpt}
+                          {localizedText({ bn: story.excerptBn, en: story.excerptEn }, language, story.excerpt)}
                         </p>
                       </div>
 
@@ -221,10 +231,10 @@ export default function SuccessStoriesPage() {
             <div className="relative">
               <Users className="h-12 w-12 text-white/80 mx-auto mb-4" />
               <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                {cta.title}
+                {localizedField(cta as unknown as Record<string, unknown>, "title", language, cta.title)}
               </h2>
               <p className="text-white/80 max-w-xl mx-auto mb-8">
-                {cta.description}
+                {localizedField(cta as unknown as Record<string, unknown>, "description", language, cta.description)}
               </p>
               <Button variant="secondary" size="lg" asChild>
                 <Link href="/register">

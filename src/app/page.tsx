@@ -48,6 +48,7 @@ export default function HomePage() {
     { icon: MessageCircleHeart, number: "03", title: t("startSomethingReal"), text: t("noEndlessNoise") },
   ];
   const [memberProfiles, setMemberProfiles] = useState<HomeProfile[]>([]);
+  const [homeStats, setHomeStats] = useState<{ activeProfiles?: number; premiumMembers?: number }>();
   const [loadingProfiles, setLoadingProfiles] = useState(true);
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,13 +57,14 @@ export default function HomePage() {
 
     const loadProfiles = async () => {
       try {
-        const response = await fetch("/api/home", { cache: "no-store" });
+        const response = await fetch("/api/home", { cache: "force-cache" });
         if (!response.ok) {
           return;
         }
 
         const data = (await response.json()) as {
           premiumMembers?: HomeProfile[];
+          stats?: { activeProfiles?: number; premiumMembers?: number };
         };
 
         if (!active) {
@@ -70,6 +72,7 @@ export default function HomePage() {
         }
 
         setMemberProfiles(data.premiumMembers ?? []);
+        setHomeStats(data.stats);
       } catch {
         if (active) {
           setMemberProfiles([]);
@@ -108,7 +111,7 @@ export default function HomePage() {
   // The homepage has its own application layout. CMS pages remain overridable,
   // but a saved home-page section must not replace this public UI with the
   // legacy CMS renderer.
-  if ((page?.content || page?.sections?.length) && page?.slug !== "home") return <SitePageOverride page={page} />;
+  if ((page?.content || page?.contentBn || page?.contentEn || page?.sections?.length) && page?.slug !== "home") return <SitePageOverride page={page} />;
 
   return (
     <div className="home-page min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">
@@ -136,7 +139,7 @@ export default function HomePage() {
                 <HomeDashboardAction />
                 <Link href="/success-stories" className="inline-flex items-center gap-2 px-2 py-3 text-sm font-semibold text-[#486866]">{t("seeSuccessStories")} <ArrowRight className="h-4 w-4" /></Link>
               </div>
-              <HomeHeroStats />
+                <HomeHeroStats stats={homeStats} />
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="relative mx-auto h-105 w-full max-w-xl sm:h-125">
               <div className="absolute right-[7%] top-0 h-[88%] w-[73%] overflow-hidden rounded-[46%_46%_20%_20%] border-7 border-white bg-white shadow-[0_24px_55px_rgba(128,88,72,.18)]"><Image src={image.couple} alt="Couple walking together" fill priority sizes="(min-width: 1024px) 38vw, 78vw" className="object-cover" /></div>

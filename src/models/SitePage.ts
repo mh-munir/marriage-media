@@ -4,8 +4,14 @@ import type { ManualPaymentNumbers, PricingPlan } from "@/lib/pricing";
 export interface ISitePage extends Document {
   slug: string;
   title: string;
+  titleBn?: string;
+  titleEn?: string;
   description: string;
+  descriptionBn?: string;
+  descriptionEn?: string;
   content: string;
+  contentBn?: string;
+  contentEn?: string;
   seoTitle: string;
   seoDescription: string;
   isPublished: boolean;
