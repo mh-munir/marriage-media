@@ -128,7 +128,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ profile, mobileNumber: user.phone || "", whatsappNumber: user.whatsappNumber || "", onboarding: user.onboardingData || {} });
+    return NextResponse.json({
+      profile,
+      mobileNumber: user.phone || "",
+      whatsappNumber: user.whatsappNumber || "",
+      onboarding: user.onboardingData || {},
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
     const status = message === "Unauthorized" ? 401 : 500;

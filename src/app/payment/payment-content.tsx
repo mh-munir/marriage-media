@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, CreditCard, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,8 +28,7 @@ export function PaymentContent() {
   const [senderMobileNumber, setSenderMobileNumber] = React.useState("");
   const [transactionId, setTransactionId] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [message, setMessage] = React.useState("");
-  const [error, setError] = React.useState("");
+  const [isSubmitted, setIsSubmitted] = React.useState(false);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -58,8 +58,6 @@ export function PaymentContent() {
     event.preventDefault();
     if (!plan) return;
     setIsSubmitting(true);
-    setError("");
-    setMessage("");
     try {
       const response = await fetch("/api/payment/manual", {
         method: "POST",
@@ -68,9 +66,10 @@ export function PaymentContent() {
       });
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || "Could not submit payment");
-      setMessage("Payment submitted successfully. Our team will verify it shortly.");
+      setIsSubmitted(true);
+      toast.success(text("Payment submitted successfully. Our team will verify it shortly."));
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Could not submit payment");
+      toast.error(submitError instanceof Error ? submitError.message : "Could not submit payment");
     } finally {
       setIsSubmitting(false);
     }
@@ -159,10 +158,7 @@ export function PaymentContent() {
                 className="font-semibold"
               />
 
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
-
-              <Button className="w-full" variant="gradient" type="submit" disabled={isSubmitting || Boolean(message)}>
+              <Button className="w-full" variant="gradient" type="submit" disabled={isSubmitting || isSubmitted}>
                 {isSubmitting ? text("Submitting…") : text("Submit payment for verification")}
               </Button>
 

@@ -259,6 +259,7 @@ export default function AdminCmsPage() {
                     ? (page.sections as ManagedPageSection[])
                     : defaultManagedSections(selectedSlug)
                 }
+                imageCapabilities={{ section: false, items: selectedSlug === "success-stories" }}
                 onSave={saveManagedSections}
               />
             )}

@@ -250,6 +250,7 @@ export default function DashboardProfilePage() {
   const [deletingPhotoId, setDeletingPhotoId] = React.useState<string | null>(null);
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
   const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
+  const [permanentLocationOptions, setPermanentLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const { updateUser } = useAuthStore();
   const { translateText: text } = useLanguage();
 
@@ -265,6 +266,7 @@ export default function DashboardProfilePage() {
   React.useEffect(() => {
     void fetchLocationOptions("divisions").then((divisions) => {
       setLocationOptions((current) => ({ ...current, divisions }));
+      setPermanentLocationOptions((current) => ({ ...current, divisions }));
     });
   }, []);
 
@@ -311,6 +313,29 @@ export default function DashboardProfilePage() {
   }, [profile.division, profile.district, profile.thana]);
 
   React.useEffect(() => {
+    let active = true;
+    const { division, district, thana } = profile.permanentLocation;
+    if (!division) {
+      void Promise.resolve().then(() => {
+        if (active) setPermanentLocationOptions((current) => ({ ...current, districts: [], thanas: [], unions: [] }));
+      });
+      return () => { active = false; };
+    }
+    void fetchLocationOptions("districts", { division }).then((districts) => {
+      if (active) setPermanentLocationOptions((current) => ({ ...current, districts, thanas: [], unions: [] }));
+    });
+    if (!district) return () => { active = false; };
+    void fetchLocationOptions("thanas", { division, district }).then((thanas) => {
+      if (active) setPermanentLocationOptions((current) => ({ ...current, thanas, unions: [] }));
+    });
+    if (!thana) return () => { active = false; };
+    void fetchLocationOptions("unions", { division, district, thana }).then((unions) => {
+      if (active) setPermanentLocationOptions((current) => ({ ...current, unions }));
+    });
+    return () => { active = false; };
+  }, [profile.permanentLocation]);
+
+  React.useEffect(() => {
     const loadProfile = async () => {
       try {
         setIsLoading(true);
@@ -321,14 +346,21 @@ export default function DashboardProfilePage() {
         if (profileData) {
           setProfile({
             ...createInitialProfile(),
+            ...(response.onboarding || {}),
             ...profileData,
             mobileNumber: response.mobileNumber || "",
-            whatsappNumber: response.whatsappNumber || profileData.whatsappNumber || "",
+            whatsappNumber: response.whatsappNumber || profileData.whatsappNumber || response.onboarding?.whatsappNumber || "",
             habitAnswers: response.onboarding?.habitAnswers || profileData.habitAnswers || {},
             partnerPreferences: {
               ...createInitialProfile().partnerPreferences,
+              ...(response.onboarding?.partnerPreferences || {}),
               ...(profileData.partnerPreferences || {}),
               country: profileData.partnerPreferences?.country || "Bangladesh",
+            },
+            permanentLocation: {
+              ...createInitialProfile().permanentLocation,
+              ...(response.onboarding?.permanentLocation || {}),
+              ...(profileData.permanentLocation || {}),
             },
             dateOfBirth: formatDateForInput(profileData.dateOfBirth),
           });
@@ -441,6 +473,7 @@ export default function DashboardProfilePage() {
       const response = profileExists
         ? await apiClient.put<{ profile: ProfileFormData }>('/api/profile', payload)
         : await apiClient.post<{ profile: ProfileFormData }>('/api/profile', payload);
+      await apiClient.patch('/api/auth/onboarding', { data: payload, sync: true });
 
       const savedProfile = response.profile;
       setProfile({
@@ -883,6 +916,11 @@ export default function DashboardProfilePage() {
                               ))}
                             </select>
                           </div>
+                          <Input
+                            label={text("Mother Tongue")}
+                            value={profile.motherTongue}
+                            onChange={(e) => setProfile({ ...profile, motherTongue: e.target.value })}
+                          />
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
@@ -1048,11 +1086,7 @@ export default function DashboardProfilePage() {
                         <section>
                           <h2 className="mb-4 text-lg font-semibold">{text("Location Information")}</h2>
                           <div className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <Input label="Permanent Address" placeholder="বাড়ি/গ্রাম/রোডসহ স্থায়ী ঠিকানা" value={profile.permanentAddress} onChange={(e) => setProfile({ ...profile, permanentAddress: e.target.value })} />
-                          <Input label="Present Address" placeholder="বাড়ি/গ্রাম/রোডসহ বর্তমান ঠিকানা" value={profile.presentAddress} onChange={(e) => setProfile({ ...profile, presentAddress: e.target.value })} />
-                        </div>
-                        <p className="text-sm text-muted-foreground">{text("Present location: select Division, District, Thana and Union below.")}</p>
+                        <h3 className="text-lg font-semibold">{text("Present Address")}</h3>
                         <Input
                           label="Country"
                           value={profile.country}
@@ -1122,6 +1156,68 @@ export default function DashboardProfilePage() {
                           value={profile.area}
                           onChange={(e) => setProfile({ ...profile, area: e.target.value })}
                         />
+                        <div className="space-y-4 border-t border-border pt-4">
+                          <h3 className="text-lg font-semibold">{text("Permanent Address")}</h3>
+                          <Input
+                            label={text("Country")}
+                            value={profile.permanentLocation.country}
+                            onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, country: e.target.value } })}
+                          />
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1.5">{text("Division")}</label>
+                              <select
+                                value={profile.permanentLocation.division}
+                                onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, division: e.target.value, district: "", thana: "", union: "" } })}
+                                className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
+                              >
+                                <option value="">{text("Select division")}</option>
+                                {permanentLocationOptions.divisions.map((division) => <option key={division} value={division}>{division}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1.5">{text("District")}</label>
+                              <select
+                                value={profile.permanentLocation.district}
+                                onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, district: e.target.value, thana: "", union: "" } })}
+                                disabled={!profile.permanentLocation.division}
+                                className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <option value="">{text(profile.permanentLocation.division ? "Select district" : "Select division first")}</option>
+                                {permanentLocationOptions.districts.map((district) => <option key={district} value={district}>{district}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1.5">{text("Thana")}</label>
+                              <select
+                                value={profile.permanentLocation.thana}
+                                onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, thana: e.target.value, union: "" } })}
+                                disabled={!profile.permanentLocation.district}
+                                className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <option value="">{text(profile.permanentLocation.district ? "Select thana" : "Select district first")}</option>
+                                {permanentLocationOptions.thanas.map((thana) => <option key={thana} value={thana}>{thana}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1.5">{text("Union")}</label>
+                              <select
+                                value={profile.permanentLocation.union}
+                                onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, union: e.target.value } })}
+                                disabled={!profile.permanentLocation.thana}
+                                className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <option value="">{text(profile.permanentLocation.thana ? "Select union" : "Select thana first")}</option>
+                                {permanentLocationOptions.unions.map((union) => <option key={union} value={union}>{union}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                          <Input
+                            label={text("Area")}
+                            value={profile.permanentLocation.area}
+                            onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, area: e.target.value } })}
+                          />
+                        </div>
                           </div>
                         </section>
 

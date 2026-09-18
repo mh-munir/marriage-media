@@ -104,7 +104,7 @@ export function Header() {
       <div className="mx-auto max-w-7xl">
         <div
           className={cn(
-            "grid grid-cols-[1fr_auto_1fr] items-center rounded-full px-3 transition-all duration-300 sm:px-5",
+            "grid grid-cols-[1fr_auto] items-center rounded-full px-3 transition-all duration-300 sm:px-5 md:grid-cols-[1fr_auto_1fr]",
             isScrolled
               ? "h-14 border border-border/70 bg-background/98 shadow-xl shadow-rose-950/10 backdrop-blur-2xl sm:h-16"
               : "h-18 border border-white/80 bg-white/95 shadow-lg shadow-rose-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-background/95"

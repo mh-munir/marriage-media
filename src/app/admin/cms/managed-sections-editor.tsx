@@ -11,9 +11,11 @@ import { adminFetch } from "@/lib/admin-fetch";
 export function ManagedSectionsEditor({
   sections,
   onSave,
+  imageCapabilities = { section: false, items: false },
 }: {
   sections: ManagedPageSection[];
   onSave: (sections: ManagedPageSection[]) => Promise<void>;
+  imageCapabilities?: { section: boolean; items: boolean };
 }) {
   const [draft, setDraft] = React.useState(sections);
   const [uploading, setUploading] = React.useState("");
@@ -101,23 +103,25 @@ export function ManagedSectionsEditor({
               />
             </label>
             <label className="block text-sm font-medium">Description (English)<textarea className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" value={section.descriptionEn || section.description} onChange={(event) => update(index, { descriptionEn: event.target.value })} /></label>
-            <ImageField
-              label="Section image"
-              value={section.imageUrl}
-              busy={uploading === section.id}
-              onChange={(file) =>
-                void upload(file, section.id, (url) =>
-                  update(index, { imageUrl: url }),
-                )
-              }
-            />
-            <Input
-              label="Image alt text"
-              value={section.imageAlt}
-              onChange={(event) =>
-                update(index, { imageAlt: event.target.value })
-              }
-            />
+            {imageCapabilities.section ? <>
+              <ImageField
+                label="Section image"
+                value={section.imageUrl}
+                busy={uploading === section.id}
+                onChange={(file) =>
+                  void upload(file, section.id, (url) =>
+                    update(index, { imageUrl: url }),
+                  )
+                }
+              />
+              <Input
+                label="Image alt text"
+                value={section.imageAlt}
+                onChange={(event) =>
+                  update(index, { imageAlt: event.target.value })
+                }
+              />
+            </> : null}
             {section.buttonText !== "" ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <Input
@@ -209,25 +213,27 @@ export function ManagedSectionsEditor({
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
-                    <ImageField
-                      label="Item image"
-                      value={item.imageUrl || ""}
-                      busy={uploading === `${section.id}-${itemIndex}`}
-                      onChange={(file) =>
-                        void upload(file, `${section.id}-${itemIndex}`, (url) =>
-                          updateItem(index, itemIndex, { imageUrl: url }),
-                        )
-                      }
-                    />
-                    <Input
-                      label="Item image alt"
-                      value={item.imageAlt || ""}
-                      onChange={(event) =>
-                        updateItem(index, itemIndex, {
-                          imageAlt: event.target.value,
-                        })
-                      }
-                    />
+                    {imageCapabilities.items ? <>
+                      <ImageField
+                        label="Item image"
+                        value={item.imageUrl || ""}
+                        busy={uploading === `${section.id}-${itemIndex}`}
+                        onChange={(file) =>
+                          void upload(file, `${section.id}-${itemIndex}`, (url) =>
+                            updateItem(index, itemIndex, { imageUrl: url }),
+                          )
+                        }
+                      />
+                      <Input
+                        label="Item image alt"
+                        value={item.imageAlt || ""}
+                        onChange={(event) =>
+                          updateItem(index, itemIndex, {
+                            imageAlt: event.target.value,
+                          })
+                        }
+                      />
+                    </> : null}
                   </div>
                 ))}
               </div>
