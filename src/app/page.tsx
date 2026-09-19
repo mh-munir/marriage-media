@@ -133,7 +133,7 @@ export default function HomePage() {
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#efc5bf] bg-white/70 px-4 py-2 text-xs font-semibold text-[#b96862]">
                 <Sparkles className="h-3.5 w-3.5" /> {t("homeEyebrow")}
               </div>
-              <h1 className="font-serif text-4xl leading-16 tracking-[-.035em] text-[#174b4a] sm:text-5xl lg:text-6xl">{t("homeTitle")}</h1>
+              <h1 className="max-w-[11ch] font-serif text-[2.75rem] leading-[1.08] tracking-normal text-[#174b4a] sm:max-w-xl sm:text-5xl sm:leading-[1.08] lg:text-6xl">{t("homeTitle")}</h1>
               <p className="mt-6 max-w-md text-base leading-7 text-[#5f7e7b]">{t("homeDescription")}</p>
               <div className="mt-9 flex flex-wrap items-center gap-4">
                 <HomeDashboardAction />

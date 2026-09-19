@@ -1033,9 +1033,24 @@ export default function DashboardProfilePage() {
                             </Button>
                           </div>
                           {profile.siblings.map((sibling, index) => (
-                            <div key={`sibling-${index}`} className="flex items-end gap-3">
+                            <div key={`sibling-${index}`} className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
+                              <div className="flex justify-end">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  aria-label={`Remove sibling ${index + 1}`}
+                                  onClick={() => setProfile({
+                                    ...profile,
+                                    siblings: profile.siblings.filter((_, itemIndex) => itemIndex !== index),
+                                  })}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+
                               <Input
-                                label={`Sibling ${index + 1} name`}
+                                label={`${index + 1}. ${text(sibling.relation)} ${text("Name")}`}
                                 value={sibling.name}
                                 onChange={(e) => setProfile({
                                   ...profile,
@@ -1044,36 +1059,17 @@ export default function DashboardProfilePage() {
                                   ),
                                 })}
                               />
-                              <div className="w-36 shrink-0">
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Relation")}</label>
-                                <select
-                                  value={sibling.relation}
-                                  onChange={(e) => setProfile({
-                                    ...profile,
-                                    siblings: profile.siblings.map((item, itemIndex) =>
-                                      itemIndex === index
-                                        ? { ...item, relation: e.target.value as "Brother" | "Sister" }
-                                        : item
-                                    ),
-                                  })}
-                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                                >
-                                  <option value="Brother">{text("Brother")}</option>
-                                  <option value="Sister">{text("Sister")}</option>
-                                </select>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                aria-label={`Remove sibling ${index + 1}`}
-                                onClick={() => setProfile({
+
+                              <Input
+                                label={text("Profession / Occupation")}
+                                value={sibling.profession || ""}
+                                onChange={(e) => setProfile({
                                   ...profile,
-                                  siblings: profile.siblings.filter((_, itemIndex) => itemIndex !== index),
+                                  siblings: profile.siblings.map((item, itemIndex) =>
+                                    itemIndex === index ? { ...item, profession: e.target.value } : item
+                                  ),
                                 })}
-                              >
-                                Remove
-                              </Button>
+                              />
                             </div>
                           ))}
                           {!profile.siblings.length ? (

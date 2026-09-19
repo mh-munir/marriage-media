@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     const districtName = searchParams.get("district");
     const thanaName = searchParams.get("thana");
 
-    if (!level || !["divisions", "districts", "thanas", "unions"].includes(level)) {
+    if (!level || !["labels", "divisions", "districts", "thanas", "unions"].includes(level)) {
       return NextResponse.json({ error: "A valid location level is required." }, { status: 400 });
     }
 
@@ -117,6 +117,12 @@ export async function GET(request: NextRequest) {
     const dataset = (await response.json()) as LocationDataset;
     const divisions = dataset.divisions || [];
     const bengaliLabels = await getBengaliLabels();
+
+    if (level === "labels") {
+      return NextResponse.json({
+        labels: Object.fromEntries(bengaliLabels.entries()),
+      });
+    }
 
     if (level === "divisions") {
       return NextResponse.json(locationPayload(names(divisions), bengaliLabels));

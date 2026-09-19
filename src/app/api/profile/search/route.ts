@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import type { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
-import { Favorite, Profile } from "@/models";
+import { Favorite, Profile, User } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { calculateMatchScore } from "@/lib/profile-matching";
 import { ensurePublicIdForProfile } from "@/lib/public-id";
@@ -341,6 +341,10 @@ export async function GET(request: NextRequest) {
       userId: { $ne: user._id },
       ...(typeof filter.gender === "string" ? { gender: filter.gender } : {}),
     };
+    const adminUserIds = await User.find({ role: { $in: ["admin", "superadmin"] } }).distinct("_id");
+    if (adminUserIds.length) {
+      databaseFilter.userId = { $nin: [user._id, ...adminUserIds] };
+    }
     const basicEducation = searchParams.get("education");
     const location = searchParams.get("location");
     const basicAgeMin = Number(searchParams.get("ageMin"));

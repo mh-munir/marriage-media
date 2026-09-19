@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
-import { Profile } from "@/models";
+import { Profile, User } from "@/models";
 import { getCloudinary } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,27 @@ export async function DELETE(request: NextRequest) {
     const profile = await Profile.findOne({ userId: user._id });
 
     if (!profile) {
-      return jsonError("Profile not found.", 404);
+      const onboardingUser = await User.findById(user._id).select("onboardingData");
+      const onboardingPhotos = Array.isArray(onboardingUser?.onboardingData?.photos)
+        ? onboardingUser.onboardingData.photos as { publicId?: string }[]
+        : [];
+      if (!publicId.startsWith(`profiles/${user._id.toString()}/`)) {
+        return jsonError("Photo not found.", 404);
+      }
+
+      try {
+        await getCloudinary().uploader.destroy(publicId);
+      } catch (cloudinaryError) {
+        console.error("Failed to delete onboarding Cloudinary image:", cloudinaryError);
+        return jsonError("Image deletion failed. Please try again.", 500);
+      }
+
+      if (onboardingPhotos.some((photo) => photo.publicId === publicId)) {
+        await User.findByIdAndUpdate(user._id, {
+          $set: { "onboardingData.photos": onboardingPhotos.filter((photo) => photo.publicId !== publicId) },
+        });
+      }
+      return NextResponse.json({ success: true, photo: { publicId, remainingPhotosCount: onboardingPhotos.length - 1 } });
     }
 
     const photoToDelete = profile.photos.find((photo) => photo.publicId === publicId);

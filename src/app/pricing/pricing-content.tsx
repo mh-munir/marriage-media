@@ -193,7 +193,7 @@ export default function PricingPage() {
                         {plan.icon === "crown" ? <Crown className="h-5 w-5 text-primary" /> : plan.icon === "sparkles" ? <Sparkles className="h-5 w-5 text-primary" /> : <Heart className="h-5 w-5 text-primary" />}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg">{localizedText({ bn: plan.nameBn, en: plan.nameEn }, language, plan.name)}</h3>
+                        <h3 className="font-semibold text-lg">{text(localizedText({ bn: plan.nameBn, en: plan.nameEn }, language, plan.name))}</h3>
                       </div>
                     </div>
 
@@ -201,9 +201,9 @@ export default function PricingPage() {
                       <div className="flex items-baseline gap-1">
                         <span className="text-sm text-muted-foreground">৳</span>
                         <span className="text-4xl font-bold">{plan.price}</span>
-                        <span className="text-sm text-muted-foreground">{localizedText({ bn: plan.periodBn, en: plan.periodEn }, language, plan.period)}</span>
+                        <span className="text-sm text-muted-foreground">{text(localizedText({ bn: plan.periodBn, en: plan.periodEn }, language, plan.period))}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{localizedText({ bn: plan.descriptionBn, en: plan.descriptionEn }, language, plan.description)}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{text(localizedText({ bn: plan.descriptionBn, en: plan.descriptionEn }, language, plan.description))}</p>
                     </div>
 
                     <Button
@@ -221,13 +221,13 @@ export default function PricingPage() {
                       {(language === "bn" ? plan.featuresBn || plan.features : plan.featuresEn || plan.features).map((feature) => (
                         <div key={feature} className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                          <span className="text-sm">{feature}</span>
+                          <span className="text-sm">{text(feature)}</span>
                         </div>
                       ))}
                       {(language === "bn" ? plan.notIncludedBn || plan.notIncluded : plan.notIncludedEn || plan.notIncluded).map((feature) => (
                         <div key={feature} className="flex items-center gap-2 opacity-50">
                           <X className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-sm">{feature}</span>
+                          <span className="text-sm">{text(feature)}</span>
                         </div>
                       ))}
                     </div>
@@ -251,9 +251,9 @@ export default function PricingPage() {
             <Badge variant="secondary" className="mb-4">
               {text("Why Upgrade?")}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">{localizedField(benefits as unknown as Record<string, unknown>, "title", language, benefits.title)}</h2>
+            <h2 className="text-3xl font-bold mb-4">{text(localizedField(benefits as unknown as Record<string, unknown>, "title", language, benefits.title))}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {localizedField(benefits as unknown as Record<string, unknown>, "description", language, benefits.description)}
+              {text(localizedField(benefits as unknown as Record<string, unknown>, "description", language, benefits.description))}
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -270,8 +270,8 @@ export default function PricingPage() {
                     <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mb-4">
                       <benefit.icon className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="font-semibold mb-2">{benefit.title}</h3>
-                    <p className="text-sm text-muted-foreground">{benefit.description}</p>
+                    <h3 className="font-semibold mb-2">{text(benefit.title)}</h3>
+                    <p className="text-sm text-muted-foreground">{text(benefit.description)}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -290,9 +290,9 @@ export default function PricingPage() {
             className="text-center mb-16"
           >
             <Badge variant="secondary" className="mb-4">
-              {testimonialsSection.eyebrow}
+              {text(testimonialsSection.eyebrow)}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">{testimonialsSection.title}</h2>
+            <h2 className="text-3xl font-bold mb-4">{text(testimonialsSection.title)}</h2>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (

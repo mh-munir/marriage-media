@@ -120,8 +120,8 @@ function normalizePagination(pagination?: Partial<PaginationState>): PaginationS
   };
 }
 
-function formatCount(value: number): string {
-  return new Intl.NumberFormat("en", {
+function formatCount(value: number, language: "bn" | "en"): string {
+  return new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", {
     notation: value >= 1000 ? "compact" : "standard",
     maximumFractionDigits: 1,
   }).format(value);
@@ -139,7 +139,7 @@ async function fetchJson(url: string, init?: RequestInit): Promise<ProfileRespon
 }
 
 export default function DashboardSearchPage() {
-  const { translateText: text } = useLanguage();
+  const { language, translateText: text } = useLanguage();
   const router = useRouter();
   const { user } = useAuthStore();
   const [view, setView] = React.useState<"browse" | "recent">("browse");
@@ -353,11 +353,11 @@ export default function DashboardSearchPage() {
 
   const currentProfiles = view === "browse" ? profiles : recentProfiles;
   const currentPagination = view === "browse" ? pagination : recentPagination;
-  const currentEmptyTitle = view === "browse" ? "No profiles found" : "No recently viewed profiles";
+  const currentEmptyTitle = text(view === "browse" ? "No profiles found" : "No recently viewed profiles");
   const currentEmptyDescription =
     view === "browse"
-      ? "There are no profiles available right now."
-      : "Profiles you view from Browse Profiles will appear here.";
+      ? text("There are no profiles available right now.")
+      : text("Profiles you view from Browse Profiles will appear here.");
 
   return (
     <div className="min-h-screen bg-background">
@@ -369,18 +369,18 @@ export default function DashboardSearchPage() {
             className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {text("Back to Dashboard")}
           </Link>
 
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <Badge variant="secondary" className="mb-3">
                 <Sparkles className="mr-1 h-3.5 w-3.5" />
-                Browse Profiles
+                {text("Browse Profiles")}
               </Badge>
-              <h1 className="text-2xl font-bold sm:text-3xl">Discover Matches</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">{text("Discover Matches")}</h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Browse live profiles from the database and view your recent profile history.
+                {text("Browse live profiles from the database and view your recent profile history.")}
               </p>
             </div>
 
@@ -393,7 +393,7 @@ export default function DashboardSearchPage() {
                   onClick={() => setView("browse")}
                 >
                   <Search className="h-4 w-4" />
-                  Browse
+                  {text("Browse")}
                 </Button>
                 <Button
                   type="button"
@@ -402,7 +402,7 @@ export default function DashboardSearchPage() {
                   onClick={() => setView("recent")}
                 >
                   <Eye className="h-4 w-4" />
-                  Recent
+                  {text("Recent")}
                 </Button>
               </div>
               <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-sm">
@@ -473,11 +473,11 @@ export default function DashboardSearchPage() {
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {isLoading ? (
-                "Loading profiles..."
+                text("Loading profiles...")
               ) : (
                 <>
-                  Showing <span className="font-medium text-foreground">{currentProfiles.length}</span> of{" "}
-                  <span className="font-medium text-foreground">{formatCount(currentPagination.total)}</span> profiles
+                  {text("Showing")} <span className="font-medium text-foreground">{formatCount(currentProfiles.length, language)}</span> {text("of")} {" "}
+                  <span className="font-medium text-foreground">{formatCount(currentPagination.total, language)}</span> {text("profiles")}
                 </>
               )}
             </div>
@@ -492,7 +492,7 @@ export default function DashboardSearchPage() {
                 >
                   {sortOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {text(option.label)}
                     </option>
                   ))}
                 </select>
@@ -500,7 +500,7 @@ export default function DashboardSearchPage() {
             ) : (
               <Button variant="outline" size="sm" onClick={() => void loadRecentProfiles(1)}>
                 <RotateCcw className="h-4 w-4" />
-                Refresh
+                {text("Refresh")}
               </Button>
             )}
           </div>
@@ -538,6 +538,7 @@ export default function DashboardSearchPage() {
 
             <Pagination
               pagination={currentPagination}
+              text={text}
               isLoading={isLoading || isAppending}
               onPageChange={(page) => {
                 if (view === "browse") {
@@ -600,11 +601,13 @@ function ProfileGrid({
 
 function Pagination({
   pagination,
+  text,
   isLoading,
   onPageChange,
   onLoadMore,
 }: {
   pagination: PaginationState;
+  text: (value: string) => string;
   isLoading: boolean;
   onPageChange: (page: number) => void;
   onLoadMore: () => void;
@@ -617,7 +620,7 @@ function Pagination({
   return (
     <div className="mt-8 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row">
       <div className="text-sm text-muted-foreground">
-        Page <span className="font-medium text-foreground">{pagination.page}</span> of{" "}
+        {text("Page")} <span className="font-medium text-foreground">{pagination.page}</span> {text("of")} {" "}
         <span className="font-medium text-foreground">{pagination.pages}</span>
       </div>
       <div className="flex items-center gap-2">

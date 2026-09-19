@@ -17,12 +17,14 @@ type PublicProfile = {
   lastName: string;
   email?: string;
   contactNumber?: string;
+  whatsappNumber?: string;
   gender: string;
   age: number;
   height: string;
   weight: string;
   bloodGroup?: string;
   maritalStatus: string;
+  childrenCount?: number;
   profileCreatedBy: string;
   religion: string;
   caste?: string;
@@ -52,6 +54,7 @@ type PublicProfile = {
   guardianMobileNumber?: string;
   permanentAddress?: string;
   presentAddress?: string;
+  permanentLocation?: { country?: string; division?: string; district?: string; thana?: string; union?: string; area?: string };
   aboutYourself?: string;
   fatherContactNumber?: string;
   fatherProfession?: string;
@@ -59,6 +62,12 @@ type PublicProfile = {
   numberOfSiblings?: number;
   siblingDetails?: string;
   siblings?: { name: string; relation: string }[];
+  educationDetails?: { level: string; instituteName?: string; year?: string }[];
+  habitAnswers?: Record<string, string>;
+  familyAwareOfBiodata?: string;
+  informationAccurate?: string;
+  truthDeclaration?: string;
+  acceptsFalseInformationLiability?: boolean;
   diet: string;
   smoke?: string;
   drink?: string;
@@ -75,6 +84,8 @@ type PublicProfile = {
     country?: string;
     division?: string;
     district?: string;
+    thana?: string;
+    union?: string;
     area?: string;
     familyType?: string;
     familyStatus?: string;
@@ -95,7 +106,7 @@ function Detail({ label, value, isPremiumField = false, currentUserIsPremium = t
   return (
     <div className="grid grid-cols-[minmax(112px,34%)_1fr] gap-2 border-b border-[#d9a0a6]/45 py-1.5 text-xs leading-5 sm:text-sm">
       <dt className="font-semibold text-[#8d3d49]">{translateText(label)}</dt>
-      <dd className="min-w-0 text-[#4c3d40]">{typeof value === "string" ? translateText(value) : value}</dd>
+      <dd className="min-w-0 wrap-break-word text-[#4c3d40]">{typeof value === "string" ? translateText(value) : value}</dd>
     </div>
   );
 }
@@ -178,6 +189,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
   const photos = profile.photos.length ? profile.photos : [{ url: "", isPrimary: true }];
   const activePhoto = photos.find((photo) => photo.isPrimary) || photos[0];
   const photoCountLabel = `${currentUserIsPremium ? profile.photos.length : "?"} ${profile.photos.length === 1 ? translateText("photo") : translateText("photos")}`;
+  const educationEntries = (profile.educationDetails || []).filter((education) => education.instituteName || education.year);
 
   return (
     <div className="min-h-screen bg-linear-to-b from-rose-50/60 via-background to-background dark:from-rose-950/10">
@@ -190,7 +202,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
           <span className="pointer-events-none absolute bottom-2 left-2 h-12 w-12 border-b-2 border-l-2 border-[#a83f50] sm:bottom-4 sm:left-4" />
           <span className="pointer-events-none absolute bottom-2 right-2 h-12 w-12 border-b-2 border-r-2 border-[#a83f50] sm:bottom-4 sm:right-4" />
           <div className="mx-auto max-w-3xl">
-            <header className="relative min-h-36 pb-4 text-center sm:min-h-40">
+            <header className="relative min-h-36 pb-4 pr-28 text-center sm:min-h-40 sm:pr-36">
               <h1 className="mt-1 font-serif text-2xl font-bold tracking-[0.18em] text-[#7b2938] sm:text-3xl">{translateText("BIODATA")}</h1>
               <p className="mt-1 text-sm font-semibold text-[#9c4a55]">{displayName}</p>
               <div onClick={handlePhotoClick} className={`absolute right-0 top-6 h-28 w-24 overflow-hidden rounded-sm border border-[#c99aa1] bg-[#ead8da] sm:h-32 sm:w-28 ${!currentUserIsPremium ? "cursor-pointer opacity-50 hover:opacity-75" : ""}`}>
@@ -229,6 +241,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Age" value={profile.age} />
                 <Detail label="Gender" value={profile.gender} />
                 <Detail label="Marital Status" value={profile.maritalStatus} />
+                {profile.maritalStatus !== "Never Married" ? <Detail label="Number of Children" value={profile.childrenCount} /> : null}
                 <Detail label="Profile Created By" value={profile.profileCreatedBy} />
                 <Detail label="Religion" value={profile.religion} />
                 <Detail label="Caste" value={profile.caste} />
@@ -243,6 +256,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
               <DetailsCard title={translateText("Contact Details")}>
                 <Detail label="Email" value={currentUserIsPremium ? profile.email : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Contact Number" value={currentUserIsPremium ? profile.contactNumber : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
+                <Detail label="WhatsApp/Imo Number" value={currentUserIsPremium ? profile.whatsappNumber : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Country" value={profile.country} />
                 <Detail label="Division" value={profile.division} />
                 <Detail label="District" value={profile.district} />
@@ -258,6 +272,19 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Company" value={profile.company} />
                 <Detail label="Annual Income" value={profile.annualIncome} />
               </DetailsCard>
+              {educationEntries.length ? (
+                <DetailsCard title={translateText("Education Details")}>
+                  <div className="space-y-2 pt-1">
+                    {educationEntries.map((education) => (
+                      <div key={education.level} className="grid gap-1 border-b border-[#d9a0a6]/45 py-2 sm:grid-cols-[minmax(112px,30%)_1fr_auto] sm:items-center sm:gap-3">
+                        <span className="font-semibold text-[#8d3d49]">{translateText(education.level)}</span>
+                        <span className="min-w-0 wrap-break-word text-sm text-[#4c3d40]">{education.instituteName || translateText("Not provided")}</span>
+                        <span className="text-xs text-[#8d6b70]">{education.year || ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DetailsCard>
+              ) : null}
               <DetailsCard title={translateText("Family Details")}>
                 <Detail label="Family Type" value={profile.familyType} />
                 <Detail label="Family Status" value={profile.familyStatus} />
@@ -272,17 +299,33 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Mother's Profession" value={profile.motherProfession} />
                 <Detail label="Siblings" value={profile.siblings?.map((sibling) => `${sibling.name} (${translateText(sibling.relation)})`).join(", ") || profile.siblingDetails || profile.numberOfSiblings} />
               </DetailsCard>
-              <DetailsCard title={translateText("Location Information")}>
-                <Detail label="Permanent Address" value={profile.permanentAddress} />
-                <Detail label="Present Address" value={profile.presentAddress} />
-                <Detail label="Present Location" value={[profile.union, profile.thana, profile.district, profile.division, profile.country].filter(Boolean).join(", ")} />
+              <DetailsCard title={translateText("Present Address")}>
+                <Detail label="Address" value={profile.presentAddress} />
+                <Detail label="Area" value={profile.area} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
+                <Detail label="Union" value={profile.union} />
+                <Detail label="Thana" value={profile.thana} />
+                <Detail label="District" value={profile.district} />
+                <Detail label="Division" value={profile.division} />
+                <Detail label="Country" value={profile.country} />
               </DetailsCard>
+              {currentUserIsPremium && profile.permanentLocation ? (
+                <DetailsCard title={translateText("Permanent Address")}>
+                  <Detail label="Address" value={profile.permanentAddress} />
+                  <Detail label="Area" value={profile.permanentLocation.area} />
+                  <Detail label="Union" value={profile.permanentLocation.union} />
+                  <Detail label="Thana" value={profile.permanentLocation.thana} />
+                  <Detail label="District" value={profile.permanentLocation.district} />
+                  <Detail label="Division" value={profile.permanentLocation.division} />
+                  <Detail label="Country" value={profile.permanentLocation.country} />
+                </DetailsCard>
+              ) : null}
               {profile.aboutYourself ? <DetailsCard title={translateText("About Me")}><p className="whitespace-pre-wrap text-sm text-muted-foreground">{profile.aboutYourself}</p></DetailsCard> : null}
               <DetailsCard title={translateText("Lifestyle Details")}>
                 <Detail label="Diet" value={profile.diet} />
                 <Detail label="Smoking" value={profile.smoke} />
                 <Detail label="Drinking" value={profile.drink} />
                 <Detail label="Hobbies" value={profile.hobbies?.join(", ")} />
+                {Object.entries(profile.habitAnswers || {}).map(([habit, answer]) => <Detail key={habit} label={habit} value={answer} />)}
               </DetailsCard>
               <DetailsCard title={translateText("Expected Partner")}>
                 <Detail label="Preference" value={profile.partnerPreference} />
@@ -296,10 +339,18 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Country" value={profile.partnerPreferences?.country} />
                 <Detail label="Division" value={profile.partnerPreferences?.division} />
                 <Detail label="District" value={profile.partnerPreferences?.district} />
+                <Detail label="Thana" value={profile.partnerPreferences?.thana} />
+                <Detail label="Union" value={profile.partnerPreferences?.union} />
                 <Detail label="Area" value={profile.partnerPreferences?.area} />
                 <Detail label="Family Type" value={profile.partnerPreferences?.familyType} />
                 <Detail label="Family Status" value={profile.partnerPreferences?.familyStatus} />
                 <Detail label="Family Values" value={profile.partnerPreferences?.familyValues} />
+              </DetailsCard>
+              <DetailsCard title={translateText("Declarations")}>
+                <Detail label="Family Aware Of Biodata" value={profile.familyAwareOfBiodata} isPremiumField currentUserIsPremium={currentUserIsPremium} />
+                <Detail label="Information Accurate" value={profile.informationAccurate} isPremiumField currentUserIsPremium={currentUserIsPremium} />
+                <Detail label="Truth Declaration" value={profile.truthDeclaration} isPremiumField currentUserIsPremium={currentUserIsPremium} />
+                <Detail label="False Information Liability Accepted" value={profile.acceptsFalseInformationLiability ? "Yes" : undefined} isPremiumField currentUserIsPremium={currentUserIsPremium} />
               </DetailsCard>
             </div>
           </div>

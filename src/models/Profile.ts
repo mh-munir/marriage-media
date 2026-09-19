@@ -15,6 +15,7 @@ export interface IProfile extends Document {
   weight: string;
   bloodGroup?: string;
   maritalStatus: "Never Married" | "Married" | "Divorced" | "Widowed" | "Awaiting Divorce";
+  childrenCount?: number;
   profileCreatedBy: "Self" | "Parent" | "Sibling" | "Relative" | "Friend";
 
   // Religion & Culture
@@ -193,6 +194,7 @@ const ProfileSchema = new Schema<IProfile>(
       enum: ["Never Married", "Married", "Divorced", "Widowed", "Awaiting Divorce"],
       required: [true, "Marital status is required"],
     },
+    childrenCount: { type: Number, min: 0, max: 20, default: 0 },
     profileCreatedBy: {
       type: String,
       enum: ["Self", "Parent", "Sibling", "Relative", "Friend"],

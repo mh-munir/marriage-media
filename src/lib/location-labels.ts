@@ -17,10 +17,15 @@ const bengaliLocationLabels: Record<string, string> = {
 };
 
 export function registerLocationLabels(labels: Record<string, string>): void {
-  Object.assign(bengaliLocationLabels, labels);
+  Object.entries(labels).forEach(([key, value]) => {
+    bengaliLocationLabels[key] = value;
+    bengaliLocationLabels[key.toLowerCase().replace(/[^a-z0-9]/g, "")] = value;
+  });
 }
 
 export function translateLocationLabel(value: string, language: "bn" | "en"): string {
   if (language !== "bn") return value;
-  return bengaliLocationLabels[value] || value;
+  return bengaliLocationLabels[value]
+    || bengaliLocationLabels[value.toLowerCase().replace(/[^a-z0-9]/g, "")]
+    || value;
 }

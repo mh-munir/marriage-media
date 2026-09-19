@@ -342,7 +342,10 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                     <React.Fragment key={user._id}><tr className={isAdminTeam ? "cursor-pointer hover:bg-slate-50" : "hover:bg-slate-50"} onClick={isAdminTeam ? () => openAccount(user) : undefined}>
                       <td className="px-6 py-4">
                         <p className="font-semibold">
-                          {user.profile
+                          {isAdminTeam
+                            ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                              "Platform administrator"
+                            : user.profile
                             ? `${user.profile.firstName || ""} ${user.profile.lastName || ""}`.trim() ||
                               "Unnamed member"
                             : isAdminTeam

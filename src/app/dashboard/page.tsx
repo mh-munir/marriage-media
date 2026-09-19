@@ -26,6 +26,7 @@ import { ProfileCard } from "@/components/profile-card";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useNotificationStore } from "@/stores/notification-store";
+import { useLanguage } from "@/providers/language-provider";
 
 interface ProfileSummary {
   profileViews?: number;
@@ -84,6 +85,7 @@ function formatCount(value: number): string {
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const { translateText: text, language } = useLanguage();
   const router = useRouter();
   const { unreadCount, fetchNotifications } = useNotificationStore();
   const [profile, setProfile] = React.useState<ProfileSummary | null>(null);
@@ -157,7 +159,7 @@ export default function DashboardPage() {
   }, []);
 
   const profileCompletion = profile?.profileCompleted ?? user?.profileCompleted ?? 0;
-  const displayName = user?.firstName || user?.email?.split("@")[0] || "there";
+  const displayName = user?.firstName || user?.email?.split("@")[0] || text("there");
 
   const toggleRecommendationFavorite = React.useCallback(async (profileUserId: string) => {
     const update = (list: RecommendedMatch[]) => list.map((match) =>
@@ -213,35 +215,35 @@ export default function DashboardPage() {
   const stats = React.useMemo(
     () => [
       {
-        label: "Profile Views",
-        value: isLoading ? "—" : formatCount(profile?.profileViews ?? 0),
+        label: text("Profile Views"),
+        value: isLoading ? "—" : new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", { notation: "compact", maximumFractionDigits: 1 }).format(profile?.profileViews ?? 0),
         icon: Eye,
         color: "text-blue-500",
         bg: "bg-blue-500/10",
       },
       {
-        label: "Interests Received",
-        value: isLoading ? "—" : formatCount(interestCount),
+        label: text("Interests Received"),
+        value: isLoading ? "—" : new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", { notation: "compact", maximumFractionDigits: 1 }).format(interestCount),
         icon: Heart,
         color: "text-rose-500",
         bg: "bg-rose-500/10",
       },
       {
-        label: "Unread Alerts",
-        value: isLoading ? "—" : formatCount(unreadCount),
+        label: text("Unread Alerts"),
+        value: isLoading ? "—" : new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", { notation: "compact", maximumFractionDigits: 1 }).format(unreadCount),
         icon: Bell,
         color: "text-emerald-500",
         bg: "bg-emerald-500/10",
       },
       {
-        label: "Unread Messages",
-        value: isLoading ? "—" : formatCount(conversationStats.unread),
+        label: text("Unread Messages"),
+        value: isLoading ? "—" : new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", { notation: "compact", maximumFractionDigits: 1 }).format(conversationStats.unread),
         icon: MessageCircle,
         color: "text-purple-500",
         bg: "bg-purple-500/10",
       },
     ],
-    [conversationStats.unread, interestCount, isLoading, profile?.profileViews, unreadCount]
+    [conversationStats.unread, interestCount, isLoading, language, profile?.profileViews, text, unreadCount]
   );
 
   return (
@@ -256,15 +258,15 @@ export default function DashboardPage() {
             className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
           >
             <div>
-              <h1 className="mb-2 text-2xl font-bold sm:text-3xl">Welcome back, {displayName}! 👋</h1>
+              <h1 className="mb-2 text-2xl font-bold sm:text-3xl">{text("Welcome back")}, {displayName}! 👋</h1>
               <p className="text-muted-foreground">
-                Here&apos;s what&apos;s happening with your profile today.
+                {text("Here's what's happening with your profile today.")}
               </p>
             </div>
             <Button variant="outline" asChild className="rounded-xl border-primary/25 text-primary hover:bg-primary/5">
               <Link href="/dashboard/profile">
                 <Pencil className="h-4 w-4" />
-                Edit Profile
+                {text("Edit Profile")}
               </Link>
             </Button>
           </motion.div>
@@ -279,9 +281,9 @@ export default function DashboardPage() {
                 <CardContent className="p-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-1">Complete your profile</h3>
+                      <h3 className="font-semibold mb-1">{text("Complete your profile")}</h3>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Profiles with 100% completion get more visibility and better match suggestions.
+                        {text("Profiles with 100% completion get more visibility and better match suggestions.")}
                       </p>
                       <div className="flex items-center gap-3">
                         <Progress value={profileCompletion} className="flex-1 max-w-xs" />
@@ -290,7 +292,7 @@ export default function DashboardPage() {
                     </div>
                     <Button variant="gradient" asChild>
                       <Link href="/dashboard/profile">
-                        Complete Profile
+                        {text("Complete Profile")}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -332,10 +334,10 @@ export default function DashboardPage() {
             >
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg">AI Recommended Matches</CardTitle>
+                  <CardTitle className="text-lg">{text("AI Recommended Matches")}</CardTitle>
                   <Button variant="ghost" size="sm" asChild>
                     <Link href="/dashboard/search">
-                      View All
+                      {text("View All")}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   </Button>
@@ -347,7 +349,7 @@ export default function DashboardPage() {
                     </div>
                   ) : recommendations.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      Add your Expected partner preferences to see profiles with more than 50% matches.
+                      {text("Add your Expected partner preferences to see profiles with more than 50% matches.")}
                     </div>
                   ) : (
                     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -401,31 +403,31 @@ export default function DashboardPage() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Quick Actions</CardTitle>
+                  <CardTitle className="text-lg">{text("Quick Actions")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/dashboard/search">
                       <Search className="h-4 w-4 mr-2" />
-                      Search Profiles
+                      {text("Search Profiles")}
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/dashboard/interests">
                       <Heart className="h-4 w-4 mr-2" />
-                      View Interests
+                      {text("View Interests")}
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/dashboard/messages">
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Messages
+                      {text("Messages")}
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/dashboard/favorites">
                       <Star className="h-4 w-4 mr-2" />
-                      Favorites
+                      {text("Favorites")}
                     </Link>
                   </Button>
                 </CardContent>
@@ -436,14 +438,14 @@ export default function DashboardPage() {
                   <CardContent className="p-5">
                     <div className="flex items-center gap-2 mb-3">
                       <Crown className="h-5 w-5 text-amber-500" />
-                      <h3 className="font-semibold">Go Premium</h3>
+                      <h3 className="font-semibold">{text("Go Premium")}</h3>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Unlock unlimited interests, chat, and AI matching to find your partner faster.
+                      {text("Unlock unlimited interests, chat, and AI matching to find your partner faster.")}
                     </p>
                     <Button variant="gradient" className="w-full" asChild>
                       <Link href="/pricing">
-                        Upgrade Now
+                        {text("Upgrade Now")}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>

@@ -11,6 +11,15 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Reset public users",
+			"type": "shell",
+			"command": "node scripts/reset-public-users.js",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
 		}
 	]
 }

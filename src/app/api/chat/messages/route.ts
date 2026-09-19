@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { Message, Conversation } from "@/models";
 import { requireAuth } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * GET /api/chat/messages?conversationId=xxx&page=1&limit=50
@@ -40,6 +41,17 @@ export async function GET(request: NextRequest) {
     if (!isParticipant) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
+
+    await Promise.all([
+      Message.updateMany(
+        { conversationId, receiverId: user._id, isRead: false },
+        { $set: { isRead: true, readAt: new Date() } }
+      ),
+      Conversation.updateOne(
+        { _id: conversationId, "participantInfo.userId": user._id },
+        { $set: { "participantInfo.$.unreadCount": 0, "participantInfo.$.lastReadAt": new Date() } }
+      ),
+    ]);
 
     const [messages, total] = await Promise.all([
       Message.find({
@@ -176,6 +188,15 @@ export async function POST(request: NextRequest) {
       },
     }, {
       arrayFilters: [{ "elem.userId": receiverId }],
+    });
+
+    await createNotification({
+      userId: receiverId.toString(),
+      type: "message",
+      title: "New message",
+      message: content?.substring(0, 160) || `New ${messageType || "text"} message received.`,
+      link: `/dashboard/messages?conversationId=${conversationId}`,
+      channels: ["inapp"],
     });
 
     return NextResponse.json({ message }, { status: 201 });

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/providers/language-provider";
 import { useAuthStore } from "@/stores/auth-store";
+import { translateLocationLabel } from "@/lib/location-labels";
 
 export type ProfileCardData = {
   userId: string;
@@ -29,13 +30,15 @@ export type ProfileCardData = {
   matchPercentage: number;
 };
 
-function formatLocation(profile: ProfileCardData, translateText: (text: string) => string): string {
-  const locationParts = [profile.area, profile.district, profile.division].filter(Boolean).map((value) => translateText(value ?? ""));
+function formatLocation(profile: ProfileCardData, language: "bn" | "en", translateText: (text: string) => string): string {
+  const locationParts = [profile.area, profile.district, profile.division]
+    .filter(Boolean)
+    .map((value) => translateLocationLabel(value ?? "", language) || translateText(value ?? ""));
   return locationParts.length ? locationParts.join(", ") : translateText("Location not added");
 }
 
-function formatCount(value: number): string {
-  return new Intl.NumberFormat("en", { notation: value >= 1000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value);
+function formatCount(value: number, language: "bn" | "en"): string {
+  return new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", { notation: value >= 1000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value);
 }
 
 export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView, currentUserIsPremium = false }: {
@@ -47,13 +50,13 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
   currentUserIsPremium?: boolean;
 }) {
   const user = useAuthStore((state) => state.user);
-  const { translateText } = useLanguage();
+  const { language, translateText } = useLanguage();
   const isPremiumUser = Boolean(user?.isPremium);
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || translateText("Marriage Media Member");
   const displayName = currentUserIsPremium ? name : (profile.publicId || translateText("ID pending"));
   const shouldShowProfileImage = Boolean(profile.imageUrl);
   const translatedProfession = profile.profession ? translateText(profile.profession) : translateText("Profile shared");
-  const translatedLocation = formatLocation(profile, translateText);
+  const translatedLocation = formatLocation(profile, language, translateText);
 
   return (
     <motion.div
@@ -81,20 +84,20 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
             </div>
           )}
           {profile.isVerified ? <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</span> : null}
-          {profile.isPremium ? <Badge variant="premium" title="Premium subscriber" className="absolute right-3 top-3 z-20 gap-1 px-2 py-1 text-[10px]"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Premium")}</Badge> : null}
+          {profile.isPremium ? <Badge variant="premium" title={translateText("Premium subscriber")} className="absolute right-3 top-3 z-20 gap-1 px-2 py-1 text-[10px]"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Premium")}</Badge> : null}
         </div>
         <div className="space-y-3 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0"><h2 className="truncate text-lg font-semibold text-[#355350] dark:text-foreground">{displayName}</h2><p className="mt-1 text-sm text-[#6f8580]">{profile.age ? `${profile.age} ${translateText("yrs")} · ${translatedProfession}` : translatedProfession}</p></div>
-            {profile.isOnline ? <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-label="Online" /> : null}
+            {profile.isOnline ? <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-label={translateText("Online")} /> : null}
           </div>
           <div className="flex items-center gap-2 text-xs text-[#6f8580]"><MapPin className="h-3.5 w-3.5 shrink-0 text-[#e8897f]" /><span className="truncate">{translatedLocation}</span></div>
           <div className="flex items-center justify-between gap-3 border-t border-[#f0d6d1] pt-3">
-            <span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><Eye className="h-3.5 w-3.5 text-[#61b69e]" />{formatCount(profile.profileViews ?? 0)} {translateText("views")}</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><Eye className="h-3.5 w-3.5 text-[#61b69e]" />{formatCount(profile.profileViews ?? 0, language)} {translateText("views")}</span>
             <div className="flex items-center gap-1">
-              <button type="button" aria-label={profile.isFavorite ? "Remove from favorites" : "Add to favorites"} onClick={(event) => { event.stopPropagation(); if (profile.userId) onFavorite(profile.userId); }} className="flex h-8 w-8 items-center justify-center rounded-full text-[#df7890] transition hover:bg-[#fef0ef]"><Star className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} /></button>
-              {isPremiumUser ? <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#587875] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onMessage?.(profile.userId); }} aria-label={`Message ${name}`}><MessageCircle className="h-4 w-4" /></Button> : null}
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#355350] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onView(profile.userId); }} aria-label={`View ${name}`}><ChevronRight className="h-5 w-5" /></Button>
+              <button type="button" aria-label={translateText(profile.isFavorite ? "Remove from favorites" : "Add to favorites")} onClick={(event) => { event.stopPropagation(); if (profile.userId) onFavorite(profile.userId); }} className="flex h-8 w-8 items-center justify-center rounded-full text-[#df7890] transition hover:bg-[#fef0ef]"><Star className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} /></button>
+              {isPremiumUser ? <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#587875] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onMessage?.(profile.userId); }} aria-label={translateText("Message")}><MessageCircle className="h-4 w-4" /></Button> : null}
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#355350] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onView(profile.userId); }} aria-label={translateText("View profile")}><ChevronRight className="h-5 w-5" /></Button>
             </div>
           </div>
         </div>

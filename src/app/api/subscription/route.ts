@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot subscribe." }, { status: 403 });
 
     const body = await request.json();
     const { plan, paymentMethod, billingInfo, couponCode } = body;
@@ -142,6 +143,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    if (user.role !== "user") return NextResponse.json({ subscription: { isPremium: false, premiumExpiry: null, premiumPlan: null, isActive: false }, payments: [] });
 
     const profile = await Profile.findOne({ userId: user._id }).select("isPremium premiumExpiry premiumPlan").lean();
     const payments = await Payment.find({ userId: user._id }).sort({ createdAt: -1 }).limit(5).lean();

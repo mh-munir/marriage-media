@@ -8,7 +8,7 @@ import { Profile, User } from "@/models";
 import { getActiveSubscription } from "@/lib/profile-access";
 import { normalizeProfileDistricts } from "@/lib/location-normalization";
 
-const FULL_ACCESS_FIELDS = "firstName lastName gender age height weight bloodGroup maritalStatus profileCreatedBy religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues fatherName guardianRelation guardianName guardianMobileNumber fatherProfession motherName permanentAddress presentAddress educationDetails aboutYourself familyAwareOfBiodata informationAccurate truthDeclaration acceptsFalseInformationLiability motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified profileViews showContactInfo createdAt";
+const FULL_ACCESS_FIELDS = "firstName lastName gender age height weight bloodGroup maritalStatus childrenCount profileCreatedBy religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues fatherName guardianRelation guardianName guardianMobileNumber fatherProfession motherName permanentAddress presentAddress permanentLocation educationDetails aboutYourself familyAwareOfBiodata informationAccurate truthDeclaration acceptsFalseInformationLiability motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified profileViews showContactInfo createdAt";
 const FREE_FIELDS = "gender age maritalStatus religion country division district thana union highestEducation profession familyType familyStatus familyValues fatherName fatherProfession motherName motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies partnerPreference partnerPreferences isVerified profileViews createdAt";
 
 export async function GET(
@@ -25,6 +25,8 @@ export async function GET(
     }
 
     if (viewer && userId === viewer._id.toString()) return NextResponse.json({ error: "You cannot view your own public profile here." }, { status: 400 });
+    const profileOwner = await User.findById(userId).select("role").lean();
+    if (!profileOwner || profileOwner.role !== "user") return NextResponse.json({ error: "Profile not found." }, { status: 404 });
 
     const payment = viewer ? await getActiveSubscription(viewer._id) : null;
     const fullAccess = Boolean(payment);
@@ -43,6 +45,10 @@ export async function GET(
       return NextResponse.json({ error: "Profile not found." }, { status: 404 });
     }
 
+    const ownerUser = fullAccess
+      ? await User.findById(userId).select("onboardingData whatsappNumber").lean()
+      : undefined;
+    const onboardingData = ownerUser?.onboardingData;
     const owner = fullAccess && profile.showContactInfo
       ? await User.findById(userId).select("phone").lean()
       : null;
@@ -50,6 +56,16 @@ export async function GET(
     return NextResponse.json({
       profile: {
         ...normalizeProfileDistricts(profile),
+        ...(fullAccess ? {
+          permanentLocation: profile.permanentLocation || onboardingData?.permanentLocation,
+          educationDetails: profile.educationDetails?.length ? profile.educationDetails : onboardingData?.educationDetails,
+          familyAwareOfBiodata: profile.familyAwareOfBiodata || onboardingData?.familyAwareOfBiodata,
+          informationAccurate: profile.informationAccurate || onboardingData?.informationAccurate,
+          truthDeclaration: profile.truthDeclaration || onboardingData?.truthDeclaration,
+          acceptsFalseInformationLiability: profile.acceptsFalseInformationLiability ?? onboardingData?.acceptsFalseInformationLiability,
+        } : {}),
+        ...(onboardingData && typeof onboardingData === "object" ? { habitAnswers: onboardingData.habitAnswers || {} } : {}),
+        ...(fullAccess ? { whatsappNumber: ownerUser?.whatsappNumber || onboardingData?.whatsappNumber || "" } : {}),
         _id: profile._id.toString(),
         contactNumber: owner?.phone || "",
         photos: fullAccess ? profile.photos.map((photo) => ({

@@ -79,7 +79,8 @@ export async function GET(request: NextRequest) {
     const usersWithProfiles = users.map((u) => ({
       ...u,
       profile: profileMap.get(u._id.toString()) || null,
-      subscription: (() => {
+      displayName: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+      subscription: u.role === "user" ? (() => {
         const payment = subscriptionMap.get(u._id.toString());
         if (!payment) return null;
         const expiryDate = payment.expiryDate.toISOString();
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
           isActive: payment.expiryDate > new Date(),
           daysRemaining: Math.max(0, Math.ceil((payment.expiryDate.getTime() - Date.now()) / 86_400_000)),
         };
-      })(),
+      })() : null,
     }));
 
     return NextResponse.json({

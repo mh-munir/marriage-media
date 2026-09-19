@@ -21,6 +21,7 @@ function priceToNumber(value: string): number {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth(request);
+    if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot submit subscription payments." }, { status: 403 });
     const body = (await request.json()) as ManualPaymentBody;
     const senderMobileNumber = body.senderMobileNumber?.replace(/\D/g, "") || "";
     const transactionId = body.transactionId?.trim().toUpperCase() || "";

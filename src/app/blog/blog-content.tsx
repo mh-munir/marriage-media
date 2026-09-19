@@ -101,7 +101,7 @@ export default function BlogContent() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {categories.map((category) => (
-                <button key={category} onClick={() => setSelectedCategory(category)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedCategory === category ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}>{category}</button>
+                <button key={category} onClick={() => setSelectedCategory(category)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedCategory === category ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}>{text(category)}</button>
               ))}
             </div>
           </div>
@@ -128,12 +128,12 @@ export default function BlogContent() {
                     <CardContent className="p-6">
                       <div className="flex items-center gap-3 mb-3">
                         <Badge variant="outline" className="text-xs">{localizedText({ bn: post.categoryBn, en: post.categoryEn }, language, post.category)}</Badge>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{post.slug ? "Article" : "Story"}</div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{text(post.slug ? "Article" : "Story")}</div>
                       </div>
                       <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2">{localizedText({ bn: post.titleBn, en: post.titleEn }, language, post.title)}</h3>
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{localizedText({ bn: post.excerptBn, en: post.excerptEn }, language, post.excerpt)}</p>
                         <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Calendar className="h-3 w-3" />{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : text("Recently published")}</div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Calendar className="h-3 w-3" />{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString(language === "bn" ? "bn-BD" : "en-US", { month: "short", day: "numeric" }) : text("Recently published")}</div>
                         <span className="flex items-center gap-3"><span className="flex items-center gap-1 text-xs text-rose-500"><Heart className="h-3 w-3 fill-current" />{post.likes.toLocaleString()}</span><span className="text-sm text-primary hover:underline font-medium flex items-center gap-1">{text("Read more")}<ArrowRight className="h-3 w-3" /></span></span>
                       </div>
                     </CardContent>

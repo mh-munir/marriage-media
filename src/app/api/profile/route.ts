@@ -111,6 +111,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot have public profiles." }, { status: 403 });
     await removeLegacyAboutMeField();
 
     const profile = await Profile.findOne({ userId: user._id });
@@ -145,6 +146,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot have public profiles." }, { status: 403 });
     await removeLegacyAboutMeField();
 
     const body = await request.json();
@@ -209,6 +211,7 @@ export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
+    if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot have public profiles." }, { status: 403 });
     await removeLegacyAboutMeField();
 
     const body = await request.json();

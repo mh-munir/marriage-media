@@ -138,8 +138,8 @@ export default function SuccessStoriesPage() {
           <div className="grid auto-rows-56 grid-cols-2 gap-4 md:auto-rows-72 md:grid-cols-4">
             {gallery.items.filter((item) => item.imageUrl).map((item, index) => (
               <motion.figure key={`${item.imageUrl}-${index}`} initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} className={`group relative overflow-hidden rounded-2xl ${index === 0 ? "col-span-2 row-span-2" : index === 3 ? "col-span-2" : ""}`}>
-                <button type="button" className="absolute inset-0 z-10 cursor-zoom-in" aria-label={`Open ${item.title || "success story image"} fullscreen`} onClick={() => setSelectedImage({ url: item.imageUrl || "", alt: item.imageAlt || item.title || "Success story", title: item.title, text: item.text })} />
-                <Image src={item.imageUrl || ""} alt={item.imageAlt || item.title || "Success story"} fill className="object-cover transition duration-700 group-hover:scale-105" sizes="100vw" />
+                <button type="button" className="absolute inset-0 z-10 cursor-zoom-in" aria-label={`${text("Open")} ${item.title || text("success story image")} ${text("fullscreen")}`} onClick={() => setSelectedImage({ url: item.imageUrl || "", alt: item.imageAlt || item.title || text("Success story"), title: item.title, text: item.text })} />
+                <Image src={item.imageUrl || ""} alt={item.imageAlt || item.title || text("Success story")} fill className="object-cover transition duration-700 group-hover:scale-105" sizes="100vw" />
                 {item.title || item.text ? <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-5 pb-5 pt-12 text-white"><p className="font-semibold">{localizedField(item as unknown as Record<string, unknown>, "title", language, item.title)}</p><p className="mt-1 text-sm text-white/80">{localizedField(item as unknown as Record<string, unknown>, "text", language, item.text)}</p></figcaption> : null}
               </motion.figure>
             ))}
@@ -186,7 +186,7 @@ export default function SuccessStoriesPage() {
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                             <Calendar className="h-3 w-3" />
-                            {story.publishedAt ? new Date(story.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recently published"}
+                            {story.publishedAt ? new Date(story.publishedAt).toLocaleDateString(language === "bn" ? "bn-BD" : "en-US", { month: "short", day: "numeric", year: "numeric" }) : text("Recently published")}
                           </div>
                         </div>
                       </div>
@@ -201,7 +201,7 @@ export default function SuccessStoriesPage() {
                       <div className="flex items-center justify-between pt-4 border-t border-border">
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Sparkles className="h-3 w-3 text-primary" />
-                          Published from the live blog feed
+                          {text("Published from the live blog feed")}
                         </div>
                         <div className="flex gap-1">
                           {[...Array(5)].map((_, i) => (

@@ -1,7 +1,10 @@
 import type { Types } from "mongoose";
-import { Payment } from "@/models";
+import { Payment, User } from "@/models";
 
 export async function getActiveSubscription(userId: Types.ObjectId | string) {
+  const user = await User.findById(userId).select("role").lean();
+  if (!user || user.role !== "user") return null;
+
   return Payment.findOne({
     userId,
     status: "completed",

@@ -61,6 +61,7 @@ export function Header() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+    const [messageUnreadCount, setMessageUnreadCount] = React.useState(0);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
   const { headerLogoUrl } = useSiteBranding();
@@ -74,6 +75,32 @@ export function Header() {
   React.useEffect(() => {
     if (isAuthenticated) void fetchNotifications(true);
   }, [fetchNotifications, isAuthenticated]);
+
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    let active = true;
+    const loadUnreadMessages = async () => {
+      try {
+        const response = await fetch("/api/chat/conversations", { cache: "no-store" });
+        if (!response.ok) return;
+        const result = await response.json() as { conversations?: Array<{ unreadCount?: number }> };
+        if (active) setMessageUnreadCount((result.conversations || []).reduce((total, conversation) => total + (conversation.unreadCount || 0), 0));
+      } catch {
+        // Keep the last known count while the next refresh retries.
+      }
+    };
+
+    void loadUnreadMessages();
+    const interval = window.setInterval(loadUnreadMessages, 8000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [isAuthenticated]);
 
   const isDashboard = pathname.startsWith("/dashboard");
   const isAdmin = pathname.startsWith("/admin");
@@ -140,7 +167,10 @@ export function Header() {
                     : "text-muted-foreground hover:bg-background hover:text-foreground"
                 )}
               >
-                {translatedLabel(link.href, link.label)}
+                <span className="relative inline-flex items-center gap-1.5">
+                  {translatedLabel(link.href, link.label)}
+                  {link.href === "/dashboard/messages" && messageUnreadCount > 0 ? <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground">{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span> : null}
+                </span>
               </Link>
             ))}
           </nav>
@@ -258,7 +288,10 @@ export function Header() {
                   )}
                 >
                   {link.icon && <link.icon className="h-4 w-4" />}
+                  <span className="flex items-center gap-2">
                     {translatedLabel(link.href, link.label)}
+                    {link.href === "/dashboard/messages" && messageUnreadCount > 0 ? <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold leading-5 text-primary-foreground">{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span> : null}
+                  </span>
                 </Link>
               ))}
               {!isAuthenticated && (
