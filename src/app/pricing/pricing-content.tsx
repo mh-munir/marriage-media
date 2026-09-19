@@ -130,7 +130,16 @@ export default function PricingPage() {
   const benefits = sectionValue(sections.length ? sections : defaults, "benefits", defaults[1]);
   const testimonialsSection = sectionValue(sections.length ? sections : defaults, "testimonials", defaults[2]);
   const faqSection = sectionValue(sections.length ? sections : defaults, "faq", defaults[3]);
-  const managedBenefits = premiumBenefits.map((benefit, index) => ({ ...benefit, title: localizedField((benefits.items[index] || {}) as unknown as Record<string, unknown>, "title", language, benefit.title), description: localizedField((benefits.items[index] || {}) as unknown as Record<string, unknown>, "text", language, benefit.description) }));
+  const managedBenefits = premiumBenefits.map((benefit, index) => {
+    const item = benefits.items[index] || {};
+    const resolvedTitle = localizedField(item as unknown as Record<string, unknown>, "title", language, benefit.title);
+    const resolvedDescription = localizedField(item as unknown as Record<string, unknown>, "text", language, benefit.description);
+    return {
+      ...benefit,
+      title: text(resolvedTitle),
+      description: text(resolvedDescription),
+    };
+  });
 
   const plans = pricingData?.plans ?? [];
   const testimonials = pricingData?.testimonials ?? [];
