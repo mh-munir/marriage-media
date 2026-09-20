@@ -76,8 +76,10 @@ export function Header() {
     if (isAuthenticated) void fetchNotifications(true);
   }, [fetchNotifications, isAuthenticated]);
 
+  const isMessagesRoute = pathname === "/dashboard/messages" || pathname.startsWith("/dashboard/messages?");
+
   React.useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !isMessagesRoute) {
       setMessageUnreadCount(0);
       return;
     }
@@ -88,19 +90,19 @@ export function Header() {
         const response = await fetch("/api/chat/conversations", { cache: "no-store" });
         if (!response.ok) return;
         const result = await response.json() as { conversations?: Array<{ unreadCount?: number }> };
-        if (active) setMessageUnreadCount((result.conversations || []).reduce((total, conversation) => total + (conversation.unreadCount || 0), 0));
+        if (active) {
+          setMessageUnreadCount((result.conversations || []).reduce((total, conversation) => total + (conversation.unreadCount || 0), 0));
+        }
       } catch {
         // Keep the last known count while the next refresh retries.
       }
     };
 
     void loadUnreadMessages();
-    const interval = window.setInterval(loadUnreadMessages, 8000);
     return () => {
       active = false;
-      window.clearInterval(interval);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isMessagesRoute]);
 
   const isDashboard = pathname.startsWith("/dashboard");
   const isAdmin = pathname.startsWith("/admin");

@@ -21,9 +21,12 @@ export async function PATCH(request: NextRequest) {
     const user = await requireAuth(request);
     const body = (await request.json()) as { data?: Record<string, unknown>; step?: number; completed?: boolean; sync?: boolean };
     if (!body.data || typeof body.data !== "object") return NextResponse.json({ error: "Onboarding data is required." }, { status: 400 });
+    const incomingData = { ...body.data } as Record<string, unknown>;
+    delete incomingData.highestEducation;
+    delete incomingData.profession;
     const isSync = body.sync === true;
     const step = isSync ? user.onboardingStep || 1 : Math.min(8, Math.max(1, Number(body.step) || 1));
-    const data = { ...(user.onboardingData || {}), ...body.data };
+    const data = { ...(user.onboardingData || {}), ...incomingData };
     const firstName = typeof data.firstName === "string" ? data.firstName.trim() : "";
     const lastName = typeof data.lastName === "string" ? data.lastName.trim() : "";
     const gender = data.gender === "Male" || data.gender === "Female" ? data.gender : undefined;

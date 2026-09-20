@@ -113,8 +113,6 @@ const blank: D = {
   motherTongue: "Bengali",
   whatsappNumber: "",
   email: "",
-  highestEducation: "",
-  profession: "",
   country: "Bangladesh",
   division: "",
   district: "",
@@ -200,15 +198,19 @@ export default function OnboardingPage() {
     apiClient
       .get<{ data?: D; step?: number }>("/api/auth/onboarding")
       .then((x) => {
+        const cleanOnboardingData = { ...(x.data || {}) } as D;
+        delete cleanOnboardingData.highestEducation;
+        delete cleanOnboardingData.profession;
+
         setData({
           ...blank,
-          ...x.data,
-          photos: x.data?.photos || [],
-          siblings: x.data?.siblings || [],
-          educationDetails: x.data?.educationDetails || blank.educationDetails,
+          ...cleanOnboardingData,
+          photos: cleanOnboardingData.photos || [],
+          siblings: cleanOnboardingData.siblings || [],
+          educationDetails: cleanOnboardingData.educationDetails || blank.educationDetails,
           partnerPreferences: {
             ...blank.partnerPreferences,
-            ...(x.data?.partnerPreferences || {}),
+            ...(cleanOnboardingData.partnerPreferences || {}),
           },
         });
         setStep(x.step || 1);
@@ -477,14 +479,18 @@ export default function OnboardingPage() {
       const selectedHabits = habitOptions.filter(
         (habit) => data.habitAnswers?.[habit] === "Yes",
       );
+      const sanitizedData = { ...data } as D;
+      delete sanitizedData.highestEducation;
+      delete sanitizedData.profession;
+
       await apiClient.patch("/api/auth/onboarding", {
-        data,
+        data: sanitizedData,
         step: final ? 8 : step + 1,
         completed: false,
       });
       if (final) {
         const profilePayload = {
-          ...data,
+          ...sanitizedData,
           numberOfSiblings: Number(data.numberOfSiblings) || 0,
           partnerPreference: data.aboutYourself,
           weight: "",

@@ -96,7 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (hasCheckedSession.current) return;
     if (!hasHydrated) return;
-    if (pathname === "/login" || pathname === "/register" || pathname === "/admin/login") return;
+
+    const isPublicAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/admin/login";
+    const isProtectedRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/payment");
+
+    if (isPublicAuthPage || !isProtectedRoute) {
+      hasCheckedSession.current = true;
+      return;
+    }
+
     hasCheckedSession.current = true;
     void refreshUser();
   }, [hasHydrated, pathname, refreshUser]);

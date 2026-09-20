@@ -78,9 +78,9 @@ export const profileLocationSchema = z.object({
 });
 
 export const profileEducationSchema = z.object({
-  highestEducation: z.string().min(1, "Education level is required"),
+  highestEducation: z.string().optional(),
   institution: z.string().optional(),
-  profession: z.string().min(1, "Profession is required"),
+  profession: z.string().optional(),
   workingWith: z.string().optional(),
   company: z.string().optional(),
   annualIncome: z.string().optional(),

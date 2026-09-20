@@ -73,7 +73,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     login: "লগইন",
     logout: "লগআউট",
     toggleLanguage: "ভাষা পরিবর্তন করুন",
-    registerFree: "বিনামূল্যে নিবন্ধন",
+    registerFree: "বিনামূল্যে পাত্র/পাত্রী খুঁজুন",
     goToDashboard: "ড্যাশবোর্ডে যান",
     seeSuccessStories: "সফলতার গল্প দেখুন",
     profile: "প্রোফাইল",
@@ -125,7 +125,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     login: "Login",
     logout: "Logout",
     toggleLanguage: "Change language",
-    registerFree: "Register Free",
+    registerFree: "Register Free • Find Your Match",
     goToDashboard: "Go to Dashboard",
     seeSuccessStories: "See success stories",
     profile: "Profile",
@@ -298,7 +298,7 @@ const biodataText: Record<string, string> = {
   "Start today": "আজই শুরু করুন",
   "A thoughtful beginning can change everything.": "একটি সুন্দর শুরু সবকিছু বদলে দিতে পারে।",
   "Join a growing community of people looking for a partner, not just another profile.": "শুধু আরেকটি প্রোফাইল নয়, জীবনসঙ্গী খুঁজছেন এমন মানুষের ক্রমবর্ধমান কমিউনিটিতে যোগ দিন।",
-  "Find your match": "আপনার মিল খুঁজে নিন",
+  "Find your match": "পাত্র/পাত্রী খুঁজুন",
   "Company": "কোম্পানি",
   "Support": "সহায়তা",
   "Legal": "আইনি তথ্য",
@@ -403,7 +403,7 @@ const biodataText: Record<string, string> = {
   "Forgot password?": "পাসওয়ার্ড ভুলে গেছেন?",
   "Sign In": "লগইন করুন",
   "Sign in": "লগইন",
-  "Register free": "বিনামূল্যে নিবন্ধন",
+  "Register free": "বিনামূল্যে পাত্র/পাত্রী খুঁজুন",
   "Profile Photos": "প্রোফাইলের ছবি",
   "Profile photo private": "প্রোফাইলের ছবি ব্যক্তিগত",
   "Photos are hidden for privacy.": "গোপনীয়তার জন্য ছবি লুকানো আছে।",
@@ -740,33 +740,40 @@ const biodataText: Record<string, string> = {
 const LanguageContext = React.createContext<LanguageContextValue | undefined>(undefined);
 
 export function LanguageProvider({ children, forcedLanguage }: { children: React.ReactNode; forcedLanguage?: Language }) {
+  const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  const effectiveLanguage = forcedLanguage || (isAdminRoute ? "en" : undefined);
+
   // Keep the first client render identical to the server render. Reading
   // localStorage during state initialization caused the header language to
   // differ while React was hydrating.
-  const [language, setLanguageState] = React.useState<Language>(forcedLanguage || "bn");
+  const [language, setLanguageState] = React.useState<Language>(effectiveLanguage || "bn");
   const [hasHydrated, setHasHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    if (forcedLanguage) {
+    const resolvedLanguage = forcedLanguage || (isAdminRoute ? "en" : undefined);
+    if (resolvedLanguage) {
+      setLanguageState(resolvedLanguage);
       queueMicrotask(() => setHasHydrated(true));
       return;
     }
     const saved = localStorage.getItem("marriage-media-language");
     queueMicrotask(() => {
       if (saved === "en") setLanguageState("en");
+      if (saved === "bn") setLanguageState("bn");
       setHasHydrated(true);
     });
-  }, [forcedLanguage]);
+  }, [forcedLanguage, isAdminRoute]);
 
   React.useEffect(() => {
     if (!hasHydrated) return;
-    if (forcedLanguage) return;
+    if (forcedLanguage || isAdminRoute) return;
     localStorage.setItem("marriage-media-language", language);
     document.documentElement.lang = language;
-  }, [forcedLanguage, hasHydrated, language]);
+  }, [forcedLanguage, hasHydrated, isAdminRoute, language]);
 
   React.useEffect(() => {
     if (!hasHydrated || typeof document === "undefined") return;
+    if (forcedLanguage || isAdminRoute) return;
     const reverseTranslations = new Map(Object.entries(biodataText).map(([english, bengali]) => [bengali, english]));
     const translate = (value: string) => {
       const trimmed = value.trim();
@@ -797,7 +804,7 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
     const observer = new MutationObserver((mutations) => mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => update(node))));
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [hasHydrated, language]);
+  }, [forcedLanguage, hasHydrated, isAdminRoute, language]);
 
   React.useEffect(() => {
     let active = true;
@@ -818,19 +825,21 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
     setLanguageState((current) => (current === "bn" ? "en" : "bn"));
   }, []);
 
+  const resolvedLanguage = (forcedLanguage || (isAdminRoute ? "en" : language)) as Language;
+
   const value = React.useMemo(
     () => ({
-      language,
+      language: resolvedLanguage,
       setLanguage,
       toggleLanguage,
-      t: (key: TranslationKey) => translations[language][key],
+      t: (key: TranslationKey) => translations[resolvedLanguage][key],
       translateText: (text: string) => {
-        if (language === "bn") return biodataText[text] || text;
+        if (resolvedLanguage === "bn") return biodataText[text] || text;
         const englishText = Object.entries(biodataText).find(([, bengali]) => bengali === text)?.[0];
         return englishText || text;
       },
     }),
-    [language, setLanguage, toggleLanguage]
+    [resolvedLanguage, setLanguage, toggleLanguage]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

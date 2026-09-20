@@ -31,8 +31,6 @@ function calculateProfileCompletion(body: Record<string, unknown>) {
     body.country,
     body.division,
     body.district,
-    body.highestEducation,
-    body.profession,
     body.partnerPreference ||
       (body.partnerPreferences && Object.values(body.partnerPreferences).some(Boolean)),
   ];
@@ -54,8 +52,6 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
     ["country", "Country"],
     ["division", "Division"],
     ["district", "District"],
-    ["highestEducation", "Highest Education"],
-    ["profession", "Profession"],
   ] as const;
   const missingFields: string[] = requiredFields
     .filter(([field]) => !String(body[field] || "").trim())

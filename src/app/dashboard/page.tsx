@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ProfileCard } from "@/components/profile-card";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useNotificationStore } from "@/stores/notification-store";
 import { useLanguage } from "@/providers/language-provider";
@@ -87,6 +87,7 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const { translateText: text, language } = useLanguage();
   const router = useRouter();
+  const pathname = usePathname();
   const { unreadCount, fetchNotifications } = useNotificationStore();
   const [profile, setProfile] = React.useState<ProfileSummary | null>(null);
   const [recommendations, setRecommendations] = React.useState<RecommendedMatch[]>([]);
@@ -99,6 +100,8 @@ export default function DashboardPage() {
   }, [fetchNotifications]);
 
   React.useEffect(() => {
+    if (pathname !== "/dashboard") return;
+
     let isMounted = true;
 
     async function loadDashboardData() {
@@ -156,7 +159,7 @@ export default function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [pathname]);
 
   const profileCompletion = profile?.profileCompleted ?? user?.profileCompleted ?? 0;
   const displayName = user?.firstName || user?.email?.split("@")[0] || text("there");

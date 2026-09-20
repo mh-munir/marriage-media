@@ -220,12 +220,12 @@ const ProfileSchema = new Schema<IProfile>(
 
     highestEducation: {
       type: String,
-      required: [true, "Education level is required"],
+      default: "",
     },
     institution: { type: String, default: "" },
     profession: {
       type: String,
-      required: [true, "Profession is required"],
+      default: "",
     },
     workingWith: { type: String, default: "" },
     company: { type: String, default: "" },

@@ -243,7 +243,7 @@ export default function DashboardProfilePage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
-  const [activeSection, setActiveSection] = React.useState("basic");
+  const [activeSection, setActiveSection] = React.useState("all");
   const [error, setError] = React.useState("");
   const [profileExists, setProfileExists] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
@@ -253,15 +253,6 @@ export default function DashboardProfilePage() {
   const [permanentLocationOptions, setPermanentLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const { updateUser } = useAuthStore();
   const { translateText: text } = useLanguage();
-
-  React.useEffect(() => {
-    const activateSectionFromHash = () => {
-      if (window.location.hash === "#expected-partner") setActiveSection("expected-partner");
-    };
-    activateSectionFromHash();
-    window.addEventListener("hashchange", activateSectionFromHash);
-    return () => window.removeEventListener("hashchange", activateSectionFromHash);
-  }, []);
 
   React.useEffect(() => {
     void fetchLocationOptions("divisions").then((divisions) => {
@@ -415,8 +406,6 @@ export default function DashboardProfilePage() {
       profile.country,
       profile.division,
       profile.district,
-      profile.highestEducation,
-      profile.profession,
       Object.values(profile.partnerPreferences).some(Boolean),
     ];
 
@@ -437,8 +426,6 @@ export default function DashboardProfilePage() {
       { value: profile.country, label: "Country" },
       { value: profile.division, label: "Division" },
       { value: profile.district, label: "District" },
-      { value: profile.highestEducation, label: "Highest Education" },
-      { value: profile.profession, label: "Profession" },
     ];
     const missingFields = requiredFields
       .filter(({ value }) => !String(value || "").trim())
@@ -457,7 +444,7 @@ export default function DashboardProfilePage() {
     const missingFields = getMissingRequiredFields();
     if (missingFields.length) {
       setError(`Please complete these fields before saving: ${missingFields.join(", ")}.`);
-      setActiveSection(missingFields.includes("At least 2 profile photos") ? "photos" : "basic");
+      setActiveSection("all");
       return;
     }
 
@@ -595,12 +582,6 @@ export default function DashboardProfilePage() {
     }
   };
 
-  const sections = [
-    { id: "basic", label: text("Basic Info"), icon: User },
-    { id: "photos", label: text("Photos"), icon: Sparkles },
-    { id: "expected-partner", label: text("Expected partner"), icon: Heart },
-  ];
-
   const displayName = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Your Profile";
   const primaryPhotoUrl = profile.photos.find((photo) => photo.isPrimary)?.url;
 
@@ -673,31 +654,7 @@ export default function DashboardProfilePage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-8 lg:grid-cols-4">
-            <div className="lg:col-span-1">
-              <Card className="sticky top-24 border-border/70 bg-background/80 shadow-sm backdrop-blur">
-                <CardContent className="p-2 sm:p-3">
-                  <nav className="space-y-1">
-                    {sections.map((section) => (
-                      <button
-                        key={section.id}
-                        onClick={() => setActiveSection(section.id)}
-                        className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-all ${
-                          activeSection === section.id
-                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                        }`}
-                      >
-                        <section.icon className="h-4 w-4" />
-                        {section.label}
-                      </button>
-                    ))}
-                  </nav>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="min-w-0 lg:col-span-3">
+          <div className="min-w-0">
               {isLoading ? (
                 <Card>
                   <CardContent className="p-8 text-center text-sm text-muted-foreground">
@@ -707,379 +664,286 @@ export default function DashboardProfilePage() {
                 </Card>
               ) : (
                 <div className="space-y-5">
-                  {activeSection === "photos" && (
-                    <Card>
+                  {(activeSection === "all" || activeSection === "basic") && (
+                    <Card id="basic">
                       <CardHeader>
-                        <CardTitle>{text("Profile Photos")}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{text("Upload at least 2 and up to 5 images.")}</p>
+                        <CardTitle>{text("Complete Your Profile")}</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-5">
-                        <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5">
-                          {Array.from({ length: 5 }).map((_, index) => {
-                            const photo = profile.photos[index];
+                      <CardContent className="space-y-8">
+                        <div className="space-y-4">
+                          <h2 className="text-lg font-semibold">{text("Basic Information")}</h2>
 
-                            if (photo) {
-                              return (
+                          {profile.photos.length > 0 ? (
+                            <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5">
+                              {profile.photos.map((photo) => (
                                 <div
                                   key={photo.publicId}
                                   className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted shadow-sm"
                                 >
                                   <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 16vw, 50vw" className="object-cover" />
                                   {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleDeletePhoto(photo.publicId)}
-                                    disabled={deletingPhotoId === photo.publicId}
-                                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-all duration-200 hover:bg-red-600 group-hover:opacity-100 disabled:cursor-not-allowed disabled:bg-red-600/80"
-                                    aria-label="Delete image"
-                                  >
-                                    {deletingPhotoId === photo.publicId ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-4 w-4" />
-                                    )}
-                                  </button>
                                 </div>
-                              );
-                            }
-
-                            return (
-                              <label
-                                key={`empty-slot-${index}`}
-                                className="group flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 text-center transition-colors hover:border-primary/60 hover:bg-muted/70"
-                              >
-                                <input type="file" accept="image/*" className="sr-only" onChange={handleUpload} disabled={isUploading} />
-                                <div className="flex flex-col items-center justify-center gap-1.5 px-2 text-[10px] font-medium text-muted-foreground group-hover:text-primary">
-                                  {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-                                  <span>{isUploading ? `${text("Uploading")}...` : `Upload Photo ${index + 1}`}</span>
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
-                        <p className={`text-sm ${profile.photos.length < 2 ? "text-destructive" : "text-emerald-600"}`}>
-                          {profile.photos.length}/5 images uploaded {profile.photos.length < 2 ? "(minimum 2 required)" : ""}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {activeSection === "basic" && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>{text("Complete Your Profile")}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-8">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <h2 className="text-lg font-semibold">{text("Basic Information")}</h2>
-                            <p className={`text-sm ${profile.photos.length < 2 ? "text-destructive" : "text-emerald-600"}`}>
-                              {profile.photos.length}/5 photos
-                            </p>
-                          </div>
-                          <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5">
-                            {Array.from({ length: 5 }).map((_, index) => {
-                              const photo = profile.photos[index];
-
-                              if (photo) {
-                                return (
-                                  <div
-                                    key={photo.publicId}
-                                    className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted shadow-sm"
-                                  >
-                                    <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 16vw, 50vw" className="object-cover" />
-                                    {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
-                                    <button
-                                      type="button"
-                                      onClick={() => void handleDeletePhoto(photo.publicId)}
-                                      disabled={deletingPhotoId === photo.publicId}
-                                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-all duration-200 hover:bg-red-600 group-hover:opacity-100 disabled:cursor-not-allowed disabled:bg-red-600/80"
-                                      aria-label="Delete image"
-                                    >
-                                      {deletingPhotoId === photo.publicId ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="h-4 w-4" />
-                                      )}
-                                    </button>
-                                  </div>
-                                );
-                              }
-
-                              return (
-                                <label
-                                  key={`empty-slot-${index}`}
-                                  className="group flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 text-center transition-colors hover:border-primary/60 hover:bg-muted/70"
-                                >
-                                  <input type="file" accept="image/*" className="sr-only" onChange={handleUpload} disabled={isUploading} />
-                                  <div className="flex flex-col items-center justify-center gap-1.5 px-2 text-[10px] font-medium text-muted-foreground group-hover:text-primary">
-                                    {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-                                    <span>{isUploading ? `${text("Uploading")}...` : `Upload Photo ${index + 1}`}</span>
-                                  </div>
-                                </label>
-                              );
-                            })}
-                          </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
 
                         <section>
                           <h2 className="mb-4 text-lg font-semibold">{text("Basic Information")}</h2>
-                          <div className="space-y-4">
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <Input
-                            label="First Name"
-                            value={profile.firstName}
-                            onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                          />
-                          <Input
-                            label="Last Name"
-                            value={profile.lastName}
-                            onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                          />
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <Input
-                            label="Email (Optional)"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={profile.email}
-                            onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                          />
-                          <Input
-                            label="Mobile Number"
-                            type="tel"
-                            inputMode="numeric"
-                            pattern="01[3-9][0-9]{8}"
-                            maxLength={11}
-                            value={profile.mobileNumber}
-                            readOnly
-                            placeholder="Registered mobile number"
-                          />
-                          <Input
-                            label={text("WhatsApp/Imo Number")}
-                            type="tel"
-                            inputMode="numeric"
-                            value={profile.whatsappNumber}
-                            onChange={(e) => setProfile({ ...profile, whatsappNumber: `+88${sanitizePhoneNumberInput(e.target.value).replace(/^88/, "").slice(0, 11)}` })}
-                          />
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Blood Group")}</label>
-                            <select value={profile.bloodGroup} onChange={(e) => setProfile({ ...profile, bloodGroup: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm">
-                              <option value="">{text("Select blood group")}</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group} value={group}>{group}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Gender")}</label>
-                            <select
-                              value={profile.gender}
-                              onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              <option value="Male">{text("Male")}</option>
-                              <option value="Female">{text("Female")}</option>
-                            </select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-foreground">{text("Date of Birth")}</label>
-                            <DatePicker
-                              value={profile.dateOfBirth}
-                              onChange={(dateOfBirth) => setProfile({ ...profile, dateOfBirth })}
-                              placeholder="Select date of birth"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Marital Status")}</label>
-                            <select
-                              value={profile.maritalStatus}
-                              onChange={(e) => setProfile({ ...profile, maritalStatus: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              <option value="Never Married">{text("Never Married")}</option>
-                              <option value="Divorced">{text("Divorced")}</option>
-                              <option value="Widowed">{text("Widowed")}</option>
-                              <option value="Awaiting Divorce">{text("Awaiting Divorce")}</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Religion")}</label>
-                            <select
-                              value={profile.religion}
-                              onChange={(e) => setProfile({ ...profile, religion: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              {RELIGIONS.map((r) => (
-                                <option key={r} value={r}>{text(r)}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <Input
-                            label={text("Mother Tongue")}
-                            value={profile.motherTongue}
-                            onChange={(e) => setProfile({ ...profile, motherTongue: e.target.value })}
-                          />
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Height")}</label>
-                            <select
-                              value={profile.height}
-                              onChange={(e) => setProfile({ ...profile, height: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              {HEIGHTS.map((h) => (
-                                <option key={h} value={h}>{text(h)}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Weight")}</label>
-                            <select
-                              value={profile.weight}
-                              onChange={(e) => setProfile({ ...profile, weight: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              {WEIGHTS.map((w) => (
-                                <option key={w} value={w}>{text(w)}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                          </div>
-                        </section>
+                          <div className="space-y-5">
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Input
+                                label="First Name"
+                                value={profile.firstName}
+                                onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+                              />
+                              <Input
+                                label="Last Name"
+                                value={profile.lastName}
+                                onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                              />
+                            </div>
 
-                        <section>
-                          <h2 className="mb-4 text-lg font-semibold">{text("Family Information")}</h2>
-                          <div className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Guardian")}</label>
-                            <select value={profile.guardianRelation} onChange={(e) => setProfile({ ...profile, guardianRelation: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm">
-                              <option value="">{text("Select")}</option><option value="Father">{text("Father")}</option><option value="Mother">{text("Mother")}</option><option value="Brother">{text("Brother")}</option><option value="Sister">{text("Sister")}</option>
-                            </select>
-                          </div>
-                          <Input label={text("Guardian Name")} value={profile.guardianName} onChange={(e) => setProfile({ ...profile, guardianName: e.target.value })} />
-                          <Input label={text("Guardian Mobile Number")} type="tel" inputMode="numeric" pattern="01[3-9][0-9]{8}" maxLength={11} value={profile.guardianMobileNumber} onChange={(e) => setProfile({ ...profile, guardianMobileNumber: sanitizePhoneNumberInput(e.target.value).slice(0, 11) })} />
-                          <Input
-                            label={text("Father's Name")}
-                            value={profile.fatherName}
-                            onChange={(e) => setProfile({ ...profile, fatherName: e.target.value })}
-                          />
-                          <Input label={text("Father's Profession")} value={profile.fatherProfession} onChange={(e) => setProfile({ ...profile, fatherProfession: e.target.value })} />
-                        </div>
-                        <Input
-                          label={text("Mother's Name")}
-                          value={profile.motherName}
-                          onChange={(e) => setProfile({ ...profile, motherName: e.target.value })}
-                        />
-                        <Input label={text("Mother's Profession")} value={profile.motherProfession} onChange={(e) => setProfile({ ...profile, motherProfession: e.target.value })} />
-                        <Input label={text("Brothers and Sisters")} type="number" min={0} max={20} value={profile.numberOfSiblings} onChange={(e) => setProfile({ ...profile, numberOfSiblings: Math.min(20, Math.max(0, Number.parseInt(e.target.value, 10) || 0)) })} />
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Family Type")}</label>
-                            <select
-                              value={profile.familyType}
-                              onChange={(e) => setProfile({ ...profile, familyType: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              <option value="Joint">{text("Joint")}</option>
-                              <option value="Nuclear">{text("Nuclear")}</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Family Status")}</label>
-                            <select
-                              value={profile.familyStatus}
-                              onChange={(e) => setProfile({ ...profile, familyStatus: e.target.value })}
-                              className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                            >
-                              <option value="Middle Class">{text("Middle Class")}</option>
-                              <option value="Upper Middle Class">{text("Upper Middle Class")}</option>
-                              <option value="Rich">{text("Rich")}</option>
-                              <option value="Affluent">{text("Affluent")}</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">{text("Family Values")}</label>
-                          <select
-                            value={profile.familyValues}
-                            onChange={(e) => setProfile({ ...profile, familyValues: e.target.value })}
-                            className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                          >
-                            <option value="Orthodox">{text("Orthodox")}</option>
-                            <option value="Traditional">{text("Traditional")}</option>
-                            <option value="Moderate">{text("Moderate")}</option>
-                            <option value="Liberal">{text("Liberal")}</option>
-                            <option value="Secular">{text("Secular")}</option>
-                          </select>
-                        </div>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <label className="text-sm font-medium text-foreground">{text("Brothers and Sisters")}</label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setProfile({
-                                ...profile,
-                                siblings: [...profile.siblings, { name: "", relation: "Brother" }],
-                              })}
-                            >
-                              Add sibling
-                            </Button>
-                          </div>
-                          {profile.siblings.map((sibling, index) => (
-                            <div key={`sibling-${index}`} className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
-                              <div className="flex justify-end">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  aria-label={`Remove sibling ${index + 1}`}
-                                  onClick={() => setProfile({
-                                    ...profile,
-                                    siblings: profile.siblings.filter((_, itemIndex) => itemIndex !== index),
-                                  })}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Input
+                                label="Email (Optional)"
+                                type="email"
+                                placeholder="you@example.com"
+                                value={profile.email}
+                                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                              />
+                              <Input
+                                label="Mobile Number"
+                                type="tel"
+                                inputMode="numeric"
+                                pattern="01[3-9][0-9]{8}"
+                                maxLength={11}
+                                value={profile.mobileNumber}
+                                readOnly
+                                placeholder="Registered mobile number"
+                              />
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Input
+                                label={text("WhatsApp/Imo Number")}
+                                type="tel"
+                                inputMode="numeric"
+                                value={profile.whatsappNumber}
+                                onChange={(e) => setProfile({ ...profile, whatsappNumber: `+88${sanitizePhoneNumberInput(e.target.value).replace(/^88/, "").slice(0, 11)}` })}
+                              />
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Blood Group")}</label>
+                                <select value={profile.bloodGroup} onChange={(e) => setProfile({ ...profile, bloodGroup: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary">
+                                  <option value="">{text("Select blood group")}</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group} value={group}>{group}</option>)}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="grid gap-4 lg:grid-cols-3">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Gender")}</label>
+                                <select
+                                  value={profile.gender}
+                                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
                                 >
-                                  Remove
-                                </Button>
+                                  <option value="Male">{text("Male")}</option>
+                                  <option value="Female">{text("Female")}</option>
+                                </select>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-foreground">{text("Date of Birth")}</label>
+                                <DatePicker
+                                  value={profile.dateOfBirth}
+                                  onChange={(dateOfBirth) => setProfile({ ...profile, dateOfBirth })}
+                                  placeholder="Select date of birth"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Marital Status")}</label>
+                                <select
+                                  value={profile.maritalStatus}
+                                  onChange={(e) => setProfile({ ...profile, maritalStatus: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  <option value="Never Married">{text("Never Married")}</option>
+                                  <option value="Divorced">{text("Divorced")}</option>
+                                  <option value="Widowed">{text("Widowed")}</option>
+                                  <option value="Awaiting Divorce">{text("Awaiting Divorce")}</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Religion")}</label>
+                                <select
+                                  value={profile.religion}
+                                  onChange={(e) => setProfile({ ...profile, religion: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  {RELIGIONS.map((r) => (
+                                    <option key={r} value={r}>{text(r)}</option>
+                                  ))}
+                                </select>
                               </div>
 
                               <Input
-                                label={`${index + 1}. ${text(sibling.relation)} ${text("Name")}`}
-                                value={sibling.name}
-                                onChange={(e) => setProfile({
-                                  ...profile,
-                                  siblings: profile.siblings.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, name: e.target.value } : item
-                                  ),
-                                })}
-                              />
-
-                              <Input
-                                label={text("Profession / Occupation")}
-                                value={sibling.profession || ""}
-                                onChange={(e) => setProfile({
-                                  ...profile,
-                                  siblings: profile.siblings.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, profession: e.target.value } : item
-                                  ),
-                                })}
+                                label={text("Mother Tongue")}
+                                value={profile.motherTongue}
+                                onChange={(e) => setProfile({ ...profile, motherTongue: e.target.value })}
                               />
                             </div>
-                          ))}
-                          {!profile.siblings.length ? (
-                            <p className="text-sm text-muted-foreground">{text("No brothers or sisters added.")}</p>
-                          ) : null}
-                        </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Height")}</label>
+                                <select
+                                  value={profile.height}
+                                  onChange={(e) => setProfile({ ...profile, height: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  {HEIGHTS.map((h) => (
+                                    <option key={h} value={h}>{text(h)}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Weight")}</label>
+                                <select
+                                  value={profile.weight}
+                                  onChange={(e) => setProfile({ ...profile, weight: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  {WEIGHTS.map((w) => (
+                                    <option key={w} value={w}>{text(w)}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
                           </div>
                         </section>
 
-                        <section>
+                        <section id="family">
+                          <h2 className="mb-4 text-lg font-semibold">{text("Family Information")}</h2>
+                          <div className="space-y-5">
+                            <div className="grid gap-4 md:grid-cols-3">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Guardian")}</label>
+                                <select value={profile.guardianRelation} onChange={(e) => setProfile({ ...profile, guardianRelation: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary">
+                                  <option value="">{text("Select")}</option><option value="Father">{text("Father")}</option><option value="Mother">{text("Mother")}</option><option value="Brother">{text("Brother")}</option><option value="Sister">{text("Sister")}</option>
+                                </select>
+                              </div>
+                              <Input label={text("Guardian Name")} value={profile.guardianName} onChange={(e) => setProfile({ ...profile, guardianName: e.target.value })} />
+                              <Input label={text("Guardian Mobile Number")} type="tel" inputMode="numeric" pattern="01[3-9][0-9]{8}" maxLength={11} value={profile.guardianMobileNumber} onChange={(e) => setProfile({ ...profile, guardianMobileNumber: sanitizePhoneNumberInput(e.target.value).slice(0, 11) })} />
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Input
+                                label={text("Father's Name")}
+                                value={profile.fatherName}
+                                onChange={(e) => setProfile({ ...profile, fatherName: e.target.value })}
+                              />
+                              <Input label={text("Father's Profession")} value={profile.fatherProfession} onChange={(e) => setProfile({ ...profile, fatherProfession: e.target.value })} />
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Input
+                                label={text("Mother's Name")}
+                                value={profile.motherName}
+                                onChange={(e) => setProfile({ ...profile, motherName: e.target.value })}
+                              />
+                              <Input label={text("Mother's Profession")} value={profile.motherProfession} onChange={(e) => setProfile({ ...profile, motherProfession: e.target.value })} />
+                            </div>
+
+                            <Input label={text("Brothers and Sisters")} type="number" min={0} max={20} value={profile.numberOfSiblings} onChange={(e) => setProfile({ ...profile, numberOfSiblings: Math.min(20, Math.max(0, Number.parseInt(e.target.value, 10) || 0)) })} />
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Family Type")}</label>
+                                <select
+                                  value={profile.familyType}
+                                  onChange={(e) => setProfile({ ...profile, familyType: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  <option value="Joint">{text("Joint")}</option>
+                                  <option value="Nuclear">{text("Nuclear")}</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Family Status")}</label>
+                                <select
+                                  value={profile.familyStatus}
+                                  onChange={(e) => setProfile({ ...profile, familyStatus: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  <option value="Middle Class">{text("Middle Class")}</option>
+                                  <option value="Upper Middle Class">{text("Upper Middle Class")}</option>
+                                  <option value="Rich">{text("Rich")}</option>
+                                  <option value="Affluent">{text("Affluent")}</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Family Values")}</label>
+                              <select
+                                value={profile.familyValues}
+                                onChange={(e) => setProfile({ ...profile, familyValues: e.target.value })}
+                                className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                              >
+                                <option value="Orthodox">{text("Orthodox")}</option>
+                                <option value="Traditional">{text("Traditional")}</option>
+                                <option value="Moderate">{text("Moderate")}</option>
+                                <option value="Liberal">{text("Liberal")}</option>
+                                <option value="Secular">{text("Secular")}</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-3">
+                              <label className="text-sm font-medium text-foreground">{text("Brothers and Sisters")}</label>
+
+                              {profile.siblings.length ? (
+                                profile.siblings.map((sibling, index) => (
+                                  <div key={`sibling-${index}`} className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
+                                    <Input
+                                      label={`${index + 1}. ${text(sibling.relation)} ${text("Name")}`}
+                                      value={sibling.name}
+                                      onChange={(e) =>
+                                        setProfile({
+                                          ...profile,
+                                          siblings: profile.siblings.map((item, itemIndex) =>
+                                            itemIndex === index ? { ...item, name: e.target.value } : item
+                                          ),
+                                        })
+                                      }
+                                    />
+
+                                    <Input
+                                      label={text("Profession / Occupation")}
+                                      value={sibling.profession || ""}
+                                      onChange={(e) =>
+                                        setProfile({
+                                          ...profile,
+                                          siblings: profile.siblings.map((item, itemIndex) =>
+                                            itemIndex === index ? { ...item, profession: e.target.value } : item
+                                          ),
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">{text("No brothers or sisters added.")}</p>
+                              )}
+                            </div>
+                          </div>
+                        </section>
+
+                        <section id="location">
                           <h2 className="mb-4 text-lg font-semibold">{text("Location Information")}</h2>
                           <div className="space-y-4">
                         <h3 className="text-lg font-semibold">{text("Present Address")}</h3>
@@ -1217,87 +1081,96 @@ export default function DashboardProfilePage() {
                           </div>
                         </section>
 
-                        <section>
+                        <section id="education">
                           <h2 className="mb-4 text-lg font-semibold">{text("Education & Career")}</h2>
-                          <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">{text("Highest Education")}</label>
-                          <select
-                            value={profile.highestEducation}
-                            onChange={(e) => setProfile({ ...profile, highestEducation: e.target.value })}
-                            className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                          >
-                            {EDUCATION_LEVELS.map((e) => (
-                              <option key={e} value={e}>{text(e)}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <Input
-                          label="Institution"
-                          value={profile.institution}
-                          onChange={(e) => setProfile({ ...profile, institution: e.target.value })}
-                        />
-                        <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">{text("Profession")}</label>
-                          <select
-                            value={profile.profession}
-                            onChange={(e) => setProfile({ ...profile, profession: e.target.value })}
-                            className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                          >
-                            {PROFESSIONS.map((p) => (
-                              <option key={p} value={p}>{text(p)}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <Input
-                          label="Company"
-                          value={profile.company}
-                          onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                        />
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1.5">{text("Annual Income")}</label>
-                          <select
-                            value={profile.annualIncome}
-                            onChange={(e) => setProfile({ ...profile, annualIncome: e.target.value })}
-                            className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
-                          >
-                            {INCOME_RANGES.map((i) => (
-                              <option key={i} value={i}>{text(i)}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-3 sm:col-span-2">
-                          <label className="block text-sm font-medium text-foreground">{text("Education Details")}</label>
-                          {profile.educationDetails.map((education, index) => (
-                            <div className="grid gap-3 sm:grid-cols-3" key={education.level}>
-                              <p className="self-center text-sm font-medium">{education.level}</p>
-                              <Input label="Institute Name" value={education.instituteName} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, instituteName: e.target.value } : item) })} />
-                              <Input label="Year" value={education.year} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, year: e.target.value } : item) })} />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="sm:col-span-2">
-                          <label className="mb-1.5 block text-sm font-medium text-foreground">{text("About Me")}</label>
-                          <textarea className="min-h-28 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" value={profile.aboutYourself} onChange={(e) => setProfile({ ...profile, aboutYourself: e.target.value })} />
-                        </div>
-                        <fieldset className="sm:col-span-2 rounded-xl border border-border p-4">
-                          <legend className="px-1 text-sm font-medium">{text("Your habits")}</legend>
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            {["Exercise", "Reading", "Travel", "Cooking", "Smoking", "Drinking"].map((habit) => (
-                              <div className="rounded-lg border p-3" key={habit}>
-                                <p className="mb-2 text-sm font-medium">{text(habit)}</p>
-                                <div className="flex gap-4 text-sm">
-                                  {["Yes", "No"].map((answer) => (
-                                    <label className="flex items-center gap-1" key={answer}>
-                                      <input type="radio" name={`dashboard-habit-${habit}`} checked={profile.habitAnswers[habit] === answer} onChange={() => setProfile({ ...profile, habitAnswers: { ...profile.habitAnswers, [habit]: answer } })} />
-                                      {text(answer)}
-                                    </label>
+                          <div className="space-y-5">
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Highest Education")}</label>
+                                <select
+                                  value={profile.highestEducation}
+                                  onChange={(e) => setProfile({ ...profile, highestEducation: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  {EDUCATION_LEVELS.map((e) => (
+                                    <option key={e} value={e}>{text(e)}</option>
                                   ))}
-                                </div>
+                                </select>
                               </div>
-                            ))}
-                          </div>
-                        </fieldset>
+                              <Input
+                                label="Institution"
+                                value={profile.institution}
+                                onChange={(e) => setProfile({ ...profile, institution: e.target.value })}
+                              />
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Profession")}</label>
+                                <select
+                                  value={profile.profession}
+                                  onChange={(e) => setProfile({ ...profile, profession: e.target.value })}
+                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                                >
+                                  {PROFESSIONS.map((p) => (
+                                    <option key={p} value={p}>{text(p)}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <Input
+                                label="Company"
+                                value={profile.company}
+                                onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Annual Income")}</label>
+                              <select
+                                value={profile.annualIncome}
+                                onChange={(e) => setProfile({ ...profile, annualIncome: e.target.value })}
+                                className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
+                              >
+                                {INCOME_RANGES.map((i) => (
+                                  <option key={i} value={i}>{text(i)}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="space-y-3">
+                              <label className="block text-sm font-medium text-foreground">{text("Education Details")}</label>
+                              {profile.educationDetails.map((education, index) => (
+                                <div className="grid gap-3 md:grid-cols-[140px_1fr_120px]" key={education.level}>
+                                  <p className="self-center text-sm font-medium">{education.level}</p>
+                                  <Input label="Institute Name" value={education.instituteName} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, instituteName: e.target.value } : item) })} />
+                                  <Input label="Year" value={education.year} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, year: e.target.value } : item) })} />
+                                </div>
+                              ))}
+                            </div>
+
+                            <div id="about-me">
+                              <label className="mb-1.5 block text-sm font-medium text-foreground">{text("About Me")}</label>
+                              <textarea className="min-h-28 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm shadow-sm transition focus:border-primary" value={profile.aboutYourself} onChange={(e) => setProfile({ ...profile, aboutYourself: e.target.value })} />
+                            </div>
+
+                            <fieldset className="rounded-xl border border-border bg-muted/20 p-4">
+                              <legend className="px-1 text-sm font-medium">{text("Your habits")}</legend>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                {["Exercise", "Reading", "Travel", "Cooking", "Smoking", "Drinking"].map((habit) => (
+                                  <div className="rounded-lg border border-border bg-background p-3" key={habit}>
+                                    <p className="mb-2 text-sm font-medium">{text(habit)}</p>
+                                    <div className="flex gap-4 text-sm">
+                                      {["Yes", "No"].map((answer) => (
+                                        <label className="flex items-center gap-1" key={answer}>
+                                          <input type="radio" name={`dashboard-habit-${habit}`} checked={profile.habitAnswers[habit] === answer} onChange={() => setProfile({ ...profile, habitAnswers: { ...profile.habitAnswers, [habit]: answer } })} />
+                                          {text(answer)}
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </fieldset>
                           </div>
                         </section>
 
@@ -1305,7 +1178,7 @@ export default function DashboardProfilePage() {
                     </Card>
                   )}
 
-                  {activeSection === "expected-partner" && (
+                  {(activeSection === "all" || activeSection === "expected-partner") && (
                     <div id="expected-partner" className="scroll-mt-24">
                     <Card>
                       <CardHeader>
@@ -1481,15 +1354,11 @@ export default function DashboardProfilePage() {
                         </>
                       )}
                     </Button>
-                    <Button variant="outline" size="lg" onClick={() => setProfile(createInitialProfile())}>
-                      {text("Reset")}
-                    </Button>
                   </div>
                 </div>
               )}
             </div>
           </div>
-        </div>
       </main>
       <Footer />
     </div>
