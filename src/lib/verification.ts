@@ -5,8 +5,7 @@ import Verification, {
   type IVerificationBadge,
   type IVerification,
 } from "@/models/Verification";
-import { Profile } from "@/models";
-import { sendEmail } from "./email";
+import { Profile, User } from "@/models";
 import { createNotification } from "./notifications";
 import crypto from "crypto";
 
@@ -233,6 +232,11 @@ export async function sendPhoneOTP(
 ): Promise<{ success: boolean; otp?: string; error?: string }> {
   await connectToDatabase();
 
+  const user = await User.findById(userId).select("phone isPhoneVerified").lean();
+  if (user?.isPhoneVerified && user.phone === phone) {
+    return { success: false, error: "This mobile number is already verified." };
+  }
+
   // Rate limit: max 3 OTPs per phone per hour
   const recentOTPs = await Verification.countDocuments({
     userId,
@@ -333,6 +337,8 @@ export async function verifyPhoneOTP(
       },
     },
   });
+
+  await User.findByIdAndUpdate(userId, { $set: { isPhoneVerified: true } });
 
   // Update profile badge
   await updateProfileBadge(userId);

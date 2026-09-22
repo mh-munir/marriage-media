@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { bn } from "date-fns/locale";
 import { CalendarDays } from "lucide-react";

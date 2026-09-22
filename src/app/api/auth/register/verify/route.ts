@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { User } from "@/models";
+import { User, Verification } from "@/models";
 import { generateTokenPair } from "@/lib/security";
 
 export async function POST(request: NextRequest) {
@@ -37,6 +37,23 @@ export async function POST(request: NextRequest) {
     user.registrationOtpExpiry = undefined;
     user.registrationOtpAttempts = 0;
     await user.save();
+
+    // Registration OTP is the account's phone verification as well. Persist it
+    // so the dashboard verification flow does not ask for the same number again.
+    await Verification.findOneAndUpdate(
+      { userId: user._id, type: "phone" },
+      {
+        userId: user._id,
+        type: "phone",
+        value: user.phone || "",
+        status: "approved",
+        contributesToBadge: true,
+        reviewedAt: new Date(),
+        expiresAt: new Date("2100-01-01T00:00:00.000Z"),
+        $push: { timeline: { status: "approved", timestamp: new Date(), note: "Mobile number verified during registration" } },
+      },
+      { upsert: true },
+    );
 
     const tokens = generateTokenPair({ userId: user._id.toString(), email: user.email || "", role: user.role });
     const response = NextResponse.json({ message: "Mobile number verified successfully.", accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });

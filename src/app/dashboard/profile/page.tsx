@@ -8,14 +8,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  User,
   Save,
   Loader2,
   CheckCircle,
-  Heart,
   AlertCircle,
   Sparkles,
-  Trash2,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -246,8 +243,6 @@ export default function DashboardProfilePage() {
   const [activeSection, setActiveSection] = React.useState("all");
   const [error, setError] = React.useState("");
   const [profileExists, setProfileExists] = React.useState(false);
-  const [isUploading, setIsUploading] = React.useState(false);
-  const [deletingPhotoId, setDeletingPhotoId] = React.useState<string | null>(null);
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
   const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const [permanentLocationOptions, setPermanentLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
@@ -487,98 +482,6 @@ export default function DashboardProfilePage() {
       setError(err instanceof Error ? err.message : "Failed to save your profile.");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = "";
-    if (!files.length) return;
-
-    if (profile.photos.length + files.length > 5) {
-      setError("You can upload a maximum of 5 images.");
-      return;
-    }
-
-    setIsUploading(true);
-    setError("");
-    try {
-      const uploaded: ProfileFormData["photos"] = [];
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = await fetch("/api/profile/photos/upload", {
-          method: "POST",
-          body: formData,
-          headers: { Authorization: `Bearer ${useAuthStore.getState().token || ""}` },
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Image upload failed");
-        uploaded.push(result.photo);
-      }
-      const normalizedUploaded = uploaded.map((photo, index) => ({
-        ...photo,
-        isPrimary: profile.photos.length === 0 && index === 0,
-      }));
-      setProfile((current) => ({ ...current, photos: [...current.photos, ...normalizedUploaded] }));
-      const primaryPhoto = normalizedUploaded.find((photo) => photo.isPrimary);
-      if (primaryPhoto) updateUser({ avatar: primaryPhoto.url });
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Image upload failed.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDeletePhoto = async (publicId: string) => {
-    if (deletingPhotoId) return;
-
-    const photoToDelete = profile.photos.find((photo) => photo.publicId === publicId);
-
-    if (!photoToDelete) {
-      setError("Selected photo could not be found.");
-      return;
-    }
-
-    setDeletingPhotoId(publicId);
-    setError("");
-
-    try {
-      const response = await fetch("/api/profile/photos", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${useAuthStore.getState().token || ""}`,
-        },
-        body: JSON.stringify({ publicId }),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to delete photo.");
-
-      const updatedPhotos = profile.photos.filter((photo) => photo.publicId !== publicId);
-
-      if (photoToDelete.isPrimary && updatedPhotos.length > 0) {
-        updatedPhotos[0] = {
-          ...updatedPhotos[0],
-          isPrimary: true,
-        };
-      }
-
-      setProfile((current) => ({
-        ...current,
-        photos: updatedPhotos,
-      }));
-
-      if (photoToDelete.isPrimary) {
-        updateUser({
-          avatar: updatedPhotos[0]?.url || "",
-        });
-      }
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete photo.");
-    } finally {
-      setDeletingPhotoId(null);
     }
   };
 

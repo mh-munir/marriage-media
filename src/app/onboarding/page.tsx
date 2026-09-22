@@ -10,7 +10,6 @@ import { DatePicker } from "@/components/ui/date-picker";
 import {
   EDUCATION_LEVELS,
   HEIGHTS,
-  PROFESSIONS,
   RELIGIONS,
   WEIGHTS,
 } from "@/lib/utils";

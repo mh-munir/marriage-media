@@ -76,13 +76,6 @@ function normalizeProfileId(value: unknown): string {
   return "";
 }
 
-function formatCount(value: number): string {
-  return new Intl.NumberFormat("en", {
-    notation: value >= 1000 ? "compact" : "standard",
-    maximumFractionDigits: 1,
-  }).format(value);
-}
-
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const { translateText: text, language } = useLanguage();

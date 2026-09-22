@@ -40,11 +40,6 @@ export async function POST(request: NextRequest) {
     const {
       type,
       documentUrl,
-      documentPublicId,
-      documentType,
-      documentNumber,
-      selfieUrl,
-      selfiePublicId,
     } = body;
 
     if (!type) {

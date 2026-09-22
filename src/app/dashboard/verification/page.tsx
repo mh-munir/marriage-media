@@ -10,11 +10,6 @@ import {
   ShieldCheck,
   ShieldX,
   Clock,
-  CheckCircle,
-  FileCheck,
-  ScanFace,
-  Camera,
-  Upload,
   X,
   ChevronDown,
   ChevronUp,
@@ -37,7 +32,6 @@ interface TimelineEvent {
   timestamp: string;
   note?: string;
 }
-
 interface Verification {
   _id: string;
   type: string;
@@ -471,4 +465,3 @@ export default function VerificationPage() {
   );
 }
 
-const MIN_VERIFIED_TYPES = 2;

@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
-import { Verification } from "@/models";
+import { User, Verification } from "@/models";
 import { createNotification } from "@/lib/notifications";
 import { validatePhoneNumber } from "@/lib/utils";
 
@@ -39,6 +39,11 @@ export async function POST(request: NextRequest) {
     }
 
     await connectToDatabase();
+
+    const registeredUser = await User.findById(user._id).select("phone isPhoneVerified").lean();
+    if (registeredUser?.isPhoneVerified && registeredUser.phone === phone.replace(/\s/g, "")) {
+      return NextResponse.json({ success: true, alreadyVerified: true, message: "This mobile number is already verified." });
+    }
 
     // Generate OTP
     const otp = generateOTP();
@@ -131,8 +136,9 @@ export async function PUT(request: NextRequest) {
     // Update verification record
     await Verification.findOneAndUpdate(
       { userId: user._id, type: "phone" },
-      { status: "verified", verifiedAt: new Date() }
+      { status: "approved", reviewedAt: new Date(), contributesToBadge: true }
     );
+    await User.findByIdAndUpdate(user._id, { $set: { isPhoneVerified: true } });
 
     // Create notification
     await createNotification({
