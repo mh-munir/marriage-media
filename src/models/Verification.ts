@@ -1,16 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-export type VerificationType =
-  | "profile"
-  | "nid"
-  | "passport"
-  | "face"
-  | "selfie"
-  | "phone"
-  | "email"
-  | "photo"
-  | "identity"
-  | "social";
+export type VerificationType = "profile" | "phone";
 
 export type VerificationStatus =
   | "pending"
@@ -100,7 +90,7 @@ const VerificationSchema = new Schema<IVerification>(
     },
     type: {
       type: String,
-      enum: ["profile", "nid", "passport", "face", "selfie", "phone", "email", "photo", "identity", "social"],
+      enum: ["profile", "phone"],
       required: true,
     },
 

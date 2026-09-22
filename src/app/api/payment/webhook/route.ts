@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
 
         // Update profile premium status
         const planDurations: Record<string, number> = {
-          silver: 30,
-          gold: 30,
-          platinum: 30,
+          basic: 90,
+          gold: 180,
+          premium: 365,
         };
 
         const days = planDurations[plan] || 30;

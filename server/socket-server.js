@@ -19,9 +19,11 @@ if (!JWT_SECRET) {
 
 const MessageSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
 const ConversationSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
+const ProfileSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
 
 const Message = mongoose.models.Message || mongoose.model("Message", MessageSchema);
 const Conversation = mongoose.models.Conversation || mongoose.model("Conversation", ConversationSchema);
+const Profile = mongoose.models.Profile || mongoose.model("Profile", ProfileSchema);
 
 function normalizeId(value) {
   if (!value) return "";
@@ -159,6 +161,24 @@ io.on("connection", (socket) => {
           isRead: created.isRead,
           isDelivered: created.isDelivered,
           createdAt: created.createdAt,
+        };
+      }
+
+      const [senderProfile, receiverProfile] = await Promise.all([
+        Profile.findOne({ userId: senderId }).select("isPremium premiumExpiry").lean(),
+        Profile.findOne({ userId: receiverId }).select("isPremium premiumExpiry").lean(),
+      ]);
+      const now = new Date();
+      const senderIsPremium = Boolean(senderProfile?.isPremium && senderProfile.premiumExpiry && new Date(senderProfile.premiumExpiry) > now);
+      const receiverIsPremium = Boolean(receiverProfile?.isPremium && receiverProfile.premiumExpiry && new Date(receiverProfile.premiumExpiry) > now);
+      if (senderIsPremium && !receiverIsPremium) {
+        message = {
+          ...message,
+          content: "This premium member's message is locked.",
+          fileUrl: "",
+          voiceUrl: "",
+          thumbnailUrl: "",
+          isLocked: true,
         };
       }
 

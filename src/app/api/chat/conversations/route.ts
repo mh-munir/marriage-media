@@ -35,6 +35,8 @@ interface ProfileRecord {
   lastName?: string;
   photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>;
   lastActiveAt?: Date | string;
+  isPremium?: boolean;
+  premiumExpiry?: Date | string;
 }
 
 function toId(value: ObjectIdLike | string | undefined): string {
@@ -63,11 +65,13 @@ export async function GET(request: NextRequest) {
       .map((participant) => toId(participant._id))
       .filter((participantId) => participantId && participantId !== toId(user._id));
 
-    const profiles = (await Profile.find({ userId: { $in: otherUserIds } })
-      .select("userId firstName lastName photos lastActiveAt")
+    const profiles = (await Profile.find({ userId: { $in: [...otherUserIds, toId(user._id)] } })
+      .select("userId firstName lastName photos lastActiveAt isPremium premiumExpiry")
       .lean()) as unknown as ProfileRecord[];
 
     const profileMap = new Map(profiles.map((profile) => [toId(profile.userId), profile]));
+    const viewerProfile = profileMap.get(toId(user._id));
+    const viewerHasActiveSubscription = Boolean(viewerProfile?.isPremium && viewerProfile.premiumExpiry && new Date(viewerProfile.premiumExpiry) > new Date());
 
     const formatted = conversations.map((conversation) => {
       const otherParticipant = conversation.participants.find(
@@ -83,6 +87,8 @@ export async function GET(request: NextRequest) {
       );
       const primaryPhoto = profile?.photos?.find((photo) => photo.isPrimary && photo.isApproved);
       const lastActiveAt = profile?.lastActiveAt ? new Date(profile.lastActiveAt).getTime() : 0;
+      const isPremiumSender = Boolean(profile?.isPremium && profile.premiumExpiry && new Date(profile.premiumExpiry) > new Date());
+      const isLockedPreview = !viewerHasActiveSubscription && isPremiumSender && (participantInfo?.unreadCount || 0) > 0;
 
       return {
         id: toId(conversation._id),
@@ -90,7 +96,7 @@ export async function GET(request: NextRequest) {
         participantName: displayName || "Unknown user",
         participantEmail: otherParticipant?.email || "",
         participantAvatar: primaryPhoto?.url || "",
-        lastMessage: conversation.lastMessagePreview || "",
+        lastMessage: isLockedPreview ? "New message from a premium member" : conversation.lastMessagePreview || "",
         lastMessageType: conversation.lastMessageType || "text",
         lastMessageAt: getDateString(conversation.lastMessageAt || conversation.updatedAt),
         unreadCount: participantInfo?.unreadCount || 0,

@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
-import { User, Profile, Payment, Verification } from "@/models";
+import { User, Profile, Payment, ProfileView, Verification } from "@/models";
 import { requireAdmin } from "@/lib/auth";
 import { sendEmailVerification, sendPhoneOTP, verifyEmailCode, verifyPhoneOTP } from "@/lib/verification";
 import { validatePhoneNumber } from "@/lib/utils";
@@ -61,15 +61,23 @@ export async function GET(request: NextRequest) {
 
     // Attach profile data
     const userIds = users.map((u) => u._id);
-    const [profiles, payments] = await Promise.all([
+    const [profiles, payments, biodataVisits] = await Promise.all([
       Profile.find({ userId: { $in: userIds } }).lean(),
       Payment.find({ userId: { $in: userIds }, status: "completed" })
         .sort({ expiryDate: -1 })
         .select("userId expiryDate metadata plan")
         .lean(),
+      ProfileView.aggregate([
+        { $match: { viewerId: { $in: userIds } } },
+        { $group: { _id: "$viewerId", totalVisits: { $sum: "$viewCount" }, uniqueBiodatas: { $sum: 1 } } },
+      ]),
     ]);
 
     const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+    const biodataVisitMap = new Map(biodataVisits.map((visit) => [visit._id.toString(), {
+      totalVisits: Number(visit.totalVisits || 0),
+      uniqueBiodatas: Number(visit.uniqueBiodatas || 0),
+    }]));
     const subscriptionMap = new Map<string, (typeof payments)[number]>();
     for (const payment of payments) {
       const key = payment.userId.toString();
@@ -80,6 +88,7 @@ export async function GET(request: NextRequest) {
       ...u,
       profile: profileMap.get(u._id.toString()) || null,
       displayName: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+      biodataVisits: biodataVisitMap.get(u._id.toString()) || { totalVisits: 0, uniqueBiodatas: 0 },
       subscription: u.role === "user" ? (() => {
         const payment = subscriptionMap.get(u._id.toString());
         if (!payment) return null;
@@ -250,7 +259,7 @@ export async function PATCH(request: NextRequest) {
       if (!/^\d{6}$/.test(code)) return NextResponse.json({ error: "Enter the 6-digit verification code" }, { status: 400 });
       if (action === "verify-email") {
         const email = String(body.email || "").trim().toLowerCase();
-        const pending = await Verification.findOne({ userId: actor._id, type: "email", status: "pending", value: email }).select("_id").lean();
+        const pending = await Verification.findOne({ userId: actor._id, type: "email" as any, status: "pending", value: email } as any).select("_id").lean();
         if (!pending) return NextResponse.json({ error: "Request a verification code for this email first" }, { status: 400 });
         const result = await verifyEmailCode(actor._id.toString(), code);
         if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });

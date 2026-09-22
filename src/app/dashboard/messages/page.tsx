@@ -50,6 +50,7 @@ interface ChatMessage {
   isRead: boolean;
   isDelivered: boolean;
   createdAt: string;
+  isLocked?: boolean;
 }
 
 function readId(value: unknown): string {
@@ -80,6 +81,7 @@ function mapMessage(raw: Record<string, unknown>): ChatMessage {
     isRead: Boolean(raw.isRead),
     isDelivered: Boolean(raw.isDelivered),
     createdAt: readString(raw, "createdAt") || new Date().toISOString(),
+    isLocked: Boolean(raw.isLocked),
   };
 }
 
@@ -396,7 +398,15 @@ export default function DashboardMessagesPage() {
                                     : "rounded-bl-md border border-border/60 bg-background"
                                 )}
                               >
-                                <p className="wrap-break-word text-sm whitespace-pre-wrap">{message.content}</p>
+                                {message.isLocked ? (
+                                  <div className="space-y-2">
+                                    <p className="select-none blur-sm wrap-break-word text-sm whitespace-pre-wrap">{message.content}</p>
+                                    <p className="text-xs font-medium text-amber-700">Premium message locked</p>
+                                    <Button asChild size="sm" variant="outline" className="h-8 border-amber-300 text-amber-800 hover:bg-amber-50">
+                                      <Link href="/pricing">Buy a subscription to read</Link>
+                                    </Button>
+                                  </div>
+                                ) : <p className="wrap-break-word text-sm whitespace-pre-wrap">{message.content}</p>}
                                 <div
                                   className={cn(
                                     "flex items-center gap-1 mt-1",

@@ -3,7 +3,7 @@ import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
 import { IProfile, Profile } from "@/models";
 import { getCloudinary } from "@/lib/cloudinary";
-import sharp from "sharp";
+import { normalizeProfileImageBuffer } from "@/lib/image-normalization";
 import { UploadApiResponse } from "cloudinary";
 
 export const dynamic = "force-dynamic";
@@ -45,11 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-
-    const compressedBuffer = await sharp(buffer)
-      .resize(800, 800, { fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 80, progressive: true })
-      .toBuffer();
+    const compressedBuffer = await normalizeProfileImageBuffer(buffer);
 
     const timestamp = Date.now();
     const publicIdBase = `profiles/${user._id.toString()}/avatar/${timestamp}`;

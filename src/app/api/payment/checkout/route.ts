@@ -101,13 +101,7 @@ export async function POST(request: NextRequest) {
       userId: user._id,
       amount: plan.price,
       currency: plan.currency,
-      plan: plan.id.includes("monthly")
-        ? "monthly"
-        : plan.id.includes("quarterly")
-          ? "quarterly"
-          : plan.id.includes("yearly")
-            ? "yearly"
-            : "half-yearly",
+      plan: plan.id === "basic" ? "quarterly" : plan.id === "gold" ? "half-yearly" : "yearly",
       planDuration: plan.duration,
       paymentMethod: provider,
       transactionId: result.transactionId,
@@ -121,6 +115,7 @@ export async function POST(request: NextRequest) {
       },
       startDate: new Date(),
       expiryDate: new Date(Date.now() + plan.duration * 24 * 60 * 60 * 1000),
+      metadata: { planId: plan.id },
     });
 
     return NextResponse.json({

@@ -2,14 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Verification } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import {
   getVerificationStatus,
-  submitNIDVerification,
-  submitPassportVerification,
-  submitFaceVerification,
-  submitSelfieVerification,
+  submitProfileVerification,
 } from "@/lib/verification";
 
 /**
@@ -58,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validTypes = ["nid", "passport", "face", "selfie", "photo", "identity"];
+    const validTypes = ["profile", "phone"];
     if (!validTypes.includes(type)) {
       return NextResponse.json(
         { error: `Invalid verification type. Must be one of: ${validTypes.join(", ")}` },
@@ -66,111 +62,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let result: Awaited<ReturnType<typeof submitNIDVerification>>;
+    let result: { verification: any; error?: string };
 
     switch (type) {
-      case "nid":
-        if (!documentUrl || !documentNumber) {
-          return NextResponse.json(
-            { error: "Document URL and NID number are required" },
-            { status: 400 }
-          );
-        }
-        result = await submitNIDVerification(
-          user._id.toString(),
-          documentUrl,
-          documentNumber,
-          documentPublicId
-        );
+      case "profile":
+        result = await submitProfileVerification(user._id.toString(), documentUrl || "profile-review");
         break;
 
-      case "passport":
-        if (!documentUrl || !documentNumber) {
-          return NextResponse.json(
-            { error: "Document URL and passport number are required" },
-            { status: 400 }
-          );
-        }
-        result = await submitPassportVerification(
-          user._id.toString(),
-          documentUrl,
-          documentNumber,
-          documentPublicId
-        );
-        break;
-
-      case "face":
-        if (!selfieUrl) {
-          return NextResponse.json(
-            { error: "Selfie URL is required for face verification" },
-            { status: 400 }
-          );
-        }
-        result = await submitFaceVerification(
-          user._id.toString(),
-          selfieUrl,
-          selfiePublicId
-        );
-        break;
-
-      case "selfie":
-        if (!selfieUrl) {
-          return NextResponse.json(
-            { error: "Selfie URL is required for selfie verification" },
-            { status: 400 }
-          );
-        }
-        result = await submitSelfieVerification(
-          user._id.toString(),
-          selfieUrl,
-          selfiePublicId
-        );
-        break;
-
+      case "phone":
+        return NextResponse.json({ error: "Phone verification must be submitted via /api/verification/phone" }, { status: 400 });
       default:
-        // Legacy support for photo/identity types
-        if (!documentUrl) {
-          return NextResponse.json(
-            { error: "Document URL is required" },
-            { status: 400 }
-          );
-        }
-
-        // Check for existing pending verification
-        const existing = await Verification.findOne({
-          userId: user._id,
-          type,
-          status: "pending",
-        });
-
-        if (existing) {
-          return NextResponse.json(
-            { error: "You already have a pending verification request" },
-            { status: 409 }
-          );
-        }
-
-        const verification = await Verification.create({
-          userId: user._id,
-          type,
-          documentUrl,
-          documentPublicId: documentPublicId || "",
-          documentType: documentType || type,
-          selfieUrl: selfieUrl || "",
-          selfiePublicId: selfiePublicId || "",
-          contributesToBadge: false,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          timeline: [
-            {
-              status: "pending",
-              timestamp: new Date(),
-              note: `${type} verification submitted`,
-            },
-          ],
-        });
-
-        result = { verification };
-        break;
+        return NextResponse.json({ error: "Invalid verification type" }, { status: 400 });
     }
 
     if (result.error) {

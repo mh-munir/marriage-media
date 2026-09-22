@@ -11,7 +11,6 @@ const DEFAULT_ADMIN_PASSWORD = "Admin@12345";
 
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase();
     const body = (await request.json()) as { email?: string; password?: string };
     const email = body.email?.trim().toLowerCase();
     const password = body.password || "";
@@ -20,10 +19,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    let user = await User.findOne({ email }).select("+password");
+    const isDevelopmentBootstrapAdmin =
+      process.env.NODE_ENV !== "production" &&
+      email === (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL) &&
+      password === (process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD);
+
+    let user: any = null;
+
+    try {
+      await connectToDatabase();
+      user = await User.findOne({ email }).select("+password");
+    } catch (dbError) {
+      console.error("Admin login database connection failed:", dbError);
+
+      if (!isDevelopmentBootstrapAdmin) {
+        return NextResponse.json({ error: "Database unavailable. Please try again in a moment." }, { status: 503 });
+      }
+
+      user = {
+        _id: { toString: () => `local-admin-${Date.now()}` },
+        email,
+        password: await bcrypt.hash(password, 12),
+        role: "superadmin",
+        isActive: true,
+        isBlocked: false,
+        isEmailVerified: true,
+        isPhoneVerified: false,
+        avatarUrl: "",
+        profileCompleted: 100,
+        lastLoginAt: new Date(),
+      };
+    }
 
     // Development bootstrap keeps the local admin panel usable on a fresh database.
-    if (!user && process.env.NODE_ENV !== "production" && email === (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL) && password === (process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD)) {
+    if (!user && isDevelopmentBootstrapAdmin) {
       user = await User.create({
         email,
         password: await bcrypt.hash(password, 12),
@@ -36,9 +65,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Keep the local development bootstrap account as the control-room owner.
-    if (user && process.env.NODE_ENV !== "production" && email === (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL) && password === (process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD) && user.role === "admin") {
+    if (user && isDevelopmentBootstrapAdmin && user.role === "admin") {
       user.role = "superadmin";
-      await user.save();
+      if (typeof user.save === "function") {
+        await user.save();
+      }
     }
 
     if (!user || !user.isActive || user.isBlocked || (user.role !== "admin" && user.role !== "superadmin")) {
@@ -56,8 +87,10 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
 
-    user.lastLoginAt = new Date();
-    await user.save();
+    if (typeof user.save === "function") {
+      user.lastLoginAt = new Date();
+      await user.save();
+    }
 
     const response = NextResponse.json({
       user: {

@@ -8,10 +8,9 @@ import { sendPaymentConfirmationEmail } from "@/lib/email";
 import { validatePhoneNumber } from "@/lib/utils";
 
 const PLAN_DURATIONS: Record<string, { days: number; amounts: Record<string, number> }> = {
-  monthly: { days: 30, amounts: { bdt: 1500, usd: 15 } },
-  quarterly: { days: 90, amounts: { bdt: 3500, usd: 35 } },
-  "half-yearly": { days: 180, amounts: { bdt: 6000, usd: 60 } },
-  yearly: { days: 365, amounts: { bdt: 10000, usd: 100 } },
+  basic: { days: 90, amounts: { bdt: 999, usd: 10 } },
+  gold: { days: 180, amounts: { bdt: 1999, usd: 20 } },
+  premium: { days: 365, amounts: { bdt: 2999, usd: 30 } },
 };
 
 // Create subscription payment

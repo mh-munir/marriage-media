@@ -24,6 +24,7 @@ import { HomeHeroStats } from "@/app/home-hero-stats";
 import { useTheme } from "@/components/theme-provider";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { useLanguage } from "@/providers/language-provider";
+import { translateLocationLabel } from "@/lib/location-labels";
 import type { HomeProfile } from "@/lib/home-data";
 
 const image = {
@@ -39,8 +40,20 @@ const image = {
 
 export default function HomePage() {
   const { page, loading } = useSitePage("home");
-  const { t, translateText } = useLanguage();
+  const { t, translateText, language } = useLanguage();
   const { resolvedTheme } = useTheme();
+
+  const formatLocationText = (value: string | null | undefined) => {
+    const normalized = value?.trim();
+    if (!normalized) return translateText("Location not added");
+    return translateLocationLabel(normalized, language) || translateText(normalized) || normalized;
+  };
+
+  const formatMemberProfession = (value: string | null | undefined) => {
+    const normalized = value?.trim();
+    if (!normalized) return translateText("Profession not added");
+    return translateText(normalized) || normalized;
+  };
 
   const steps = [
     { icon: Search, number: "01", title: t("tellStory"), text: t("homeDescription") },
@@ -251,7 +264,7 @@ export default function HomePage() {
                           <div className="min-w-0">
                             <p className="truncate text-lg font-semibold text-[#355350]">{member.publicId}</p>
                             <p className="mt-1 text-sm text-[#6f8580]">
-                              {member.age ? `${member.age} • ${member.profession}` : member.profession}
+                              {member.age ? `${member.age} • ${formatMemberProfession(member.profession)}` : formatMemberProfession(member.profession)}
                             </p>
                           </div>
                           {member.isPremium ? (
@@ -263,7 +276,7 @@ export default function HomePage() {
 
                         <div className="flex items-center gap-2 text-xs text-[#6f8580]">
                           <MapPin className="h-3.5 w-3.5 text-[#e8897f]" />
-                          <span className="truncate">{member.location}</span>
+                          <span className="truncate">{formatLocationText(member.location)}</span>
                         </div>
 
                         <div className="flex items-center justify-between border-t border-[#f0d6d1] pt-3">

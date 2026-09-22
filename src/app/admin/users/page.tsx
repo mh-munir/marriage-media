@@ -46,6 +46,7 @@ interface AdminUser {
     isVerified?: boolean;
   } | null;
   subscription?: { plan: string; expiryDate: string; isActive: boolean; daysRemaining: number } | null;
+  biodataVisits?: { totalVisits: number; uniqueBiodatas: number };
 }
 
 export function AdminUsersPage({ initialView = "members" }: { initialView?: "members" | "admin-team" }) {
@@ -308,6 +309,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <th className="px-6 py-3">Subscription</th>
                   <th className="px-6 py-3">Role</th>
                   <th className="px-6 py-3">Trust</th>
+                  <th className="px-6 py-3">Biodata visits</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Joined</th>
                 </tr>
@@ -317,7 +319,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-slate-500"
-                      colSpan={6}
+                      colSpan={7}
                     >
                       Loading {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"}...
                     </td>
@@ -326,14 +328,14 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-red-600"
-                      colSpan={6}
+                      colSpan={7}
                     >
                       {error}
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-10 text-center text-slate-500" colSpan={6}>
+                    <td className="px-6 py-10 text-center text-slate-500" colSpan={7}>
                       No {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"} found.
                     </td>
                   </tr>
@@ -405,6 +407,14 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                             </Badge>
                           ) : null}
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isAdminTeam ? <span className="text-xs text-slate-400">—</span> : (
+                          <div>
+                            <p className="font-medium text-slate-800">{user.biodataVisits?.totalVisits || 0} total</p>
+                            <p className="text-xs text-slate-500">{user.biodataVisits?.uniqueBiodatas || 0} unique</p>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {user.isBlocked ? (

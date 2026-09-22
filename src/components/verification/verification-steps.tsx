@@ -3,11 +3,7 @@
 import * as React from "react";
 import {
   Phone,
-  Mail,
-  CreditCard,
   FileCheck,
-  ScanFace,
-  Camera,
   Check,
   Clock,
   XCircle,
@@ -17,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-type VerificationStepType = "phone" | "email" | "nid" | "passport" | "face" | "selfie";
+type VerificationStepType = "phone" | "profile";
 
 interface VerificationStep {
   type: VerificationStepType;
@@ -46,42 +42,14 @@ const STEPS_CONFIG: Omit<VerificationStep, "status">[] = [
     label: "Phone Verification",
     description: "Verify your phone number via OTP",
     icon: Phone,
-    trustWeight: 10,
+    trustWeight: 50,
   },
   {
-    type: "email",
-    label: "Email Verification",
-    description: "Confirm your email address",
-    icon: Mail,
-    trustWeight: 5,
-  },
-  {
-    type: "nid",
-    label: "NID Verification",
-    description: "Upload your National ID card",
-    icon: CreditCard,
-    trustWeight: 30,
-  },
-  {
-    type: "passport",
-    label: "Passport Verification",
-    description: "Upload your passport",
+    type: "profile",
+    label: "Profile Verification",
+    description: "Submit your profile for admin review",
     icon: FileCheck,
-    trustWeight: 25,
-  },
-  {
-    type: "face",
-    label: "Face Verification",
-    description: "AI face match between your photo and selfie",
-    icon: ScanFace,
-    trustWeight: 15,
-  },
-  {
-    type: "selfie",
-    label: "Selfie Match",
-    description: "Upload a live selfie for identity confirmation",
-    icon: Camera,
-    trustWeight: 10,
+    trustWeight: 50,
   },
 ];
 

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Message, Conversation } from "@/models";
+import { Message, Conversation, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { createNotification } from "@/lib/notifications";
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       ),
     ]);
 
-    const [messages, total] = await Promise.all([
+    const [messages, total, viewerProfile] = await Promise.all([
       Message.find({
         conversationId,
         deletedFor: { $ne: user._id },
@@ -68,10 +68,29 @@ export async function GET(request: NextRequest) {
         conversationId,
         deletedFor: { $ne: user._id },
       }),
+      Profile.findOne({ userId: user._id }).select("isPremium premiumExpiry").lean(),
     ]);
 
+    const viewerHasActiveSubscription = Boolean(
+      viewerProfile?.isPremium && viewerProfile.premiumExpiry && new Date(viewerProfile.premiumExpiry) > new Date()
+    );
+    const senderIds = [...new Set(messages.map((item) => item.senderId.toString()).filter((id) => id !== user._id.toString()))];
+    const senderProfiles = await Profile.find({ userId: { $in: senderIds } })
+      .select("userId isPremium premiumExpiry")
+      .lean();
+    const lockedSenderIds = new Set(senderProfiles
+      .filter((profile) => profile.isPremium && profile.premiumExpiry && new Date(profile.premiumExpiry) > new Date())
+      .map((profile) => profile.userId.toString()));
+
+    const visibleMessages = messages.reverse().map((item) => {
+      const isLocked = !viewerHasActiveSubscription && item.senderId.toString() !== user._id.toString() && lockedSenderIds.has(item.senderId.toString());
+      return isLocked
+        ? { ...item, content: "This premium member's message is locked.", fileUrl: "", voiceUrl: "", thumbnailUrl: "", isLocked: true }
+        : { ...item, isLocked: false };
+    });
+
     return NextResponse.json({
-      messages: messages.reverse(),
+      messages: visibleMessages,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (error: unknown) {
@@ -149,6 +168,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const [senderProfile, receiverProfile] = await Promise.all([
+      Profile.findOne({ userId: user._id }).select("isPremium premiumExpiry").lean(),
+      Profile.findOne({ userId: receiverId }).select("isPremium premiumExpiry").lean(),
+    ]);
+    const senderIsPremium = Boolean(senderProfile?.isPremium && senderProfile.premiumExpiry && new Date(senderProfile.premiumExpiry) > new Date());
+    const receiverIsPremium = Boolean(receiverProfile?.isPremium && receiverProfile.premiumExpiry && new Date(receiverProfile.premiumExpiry) > new Date());
+    const isLockedForReceiver = senderIsPremium && !receiverIsPremium;
+
     const message = await Message.create({
       conversationId,
       senderId: user._id,
@@ -180,7 +207,7 @@ export async function POST(request: NextRequest) {
 
     await Conversation.findByIdAndUpdate(conversationId, {
       lastMessage: message._id,
-      lastMessagePreview: previewText,
+      lastMessagePreview: isLockedForReceiver ? "New message from a premium member" : previewText,
       lastMessageType: messageType || "text",
       lastMessageAt: new Date(),
       $inc: {
@@ -194,7 +221,7 @@ export async function POST(request: NextRequest) {
       userId: receiverId.toString(),
       type: "message",
       title: "New message",
-      message: content?.substring(0, 160) || `New ${messageType || "text"} message received.`,
+      message: isLockedForReceiver ? "A premium member sent you a message. Upgrade to read it." : content?.substring(0, 160) || `New ${messageType || "text"} message received.`,
       link: `/dashboard/messages?conversationId=${conversationId}`,
       channels: ["inapp"],
     });

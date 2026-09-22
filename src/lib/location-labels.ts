@@ -25,7 +25,24 @@ export function registerLocationLabels(labels: Record<string, string>): void {
 
 export function translateLocationLabel(value: string, language: "bn" | "en"): string {
   if (language !== "bn") return value;
-  return bengaliLocationLabels[value]
-    || bengaliLocationLabels[value.toLowerCase().replace(/[^a-z0-9]/g, "")]
-    || value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+
+  const parts = trimmed
+    .split(/,|\||\//)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length > 1) {
+    return parts
+      .map((part) => bengaliLocationLabels[part]
+        || bengaliLocationLabels[part.toLowerCase().replace(/[^a-z0-9]/g, "")]
+        || part)
+      .join(", ");
+  }
+
+  return bengaliLocationLabels[trimmed]
+    || bengaliLocationLabels[trimmed.toLowerCase().replace(/[^a-z0-9]/g, "")]
+    || trimmed;
 }
