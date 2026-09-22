@@ -154,18 +154,31 @@ export async function sendEmailVerification(
 
 export async function verifyEmailCode(
   userId: string,
-  code: string
+  code: string,
+  expectedEmail?: string
 ): Promise<{ success: boolean; error?: string }> {
   await connectToDatabase();
 
-  const verification = await Verification.findOne({
+  const matchQuery: Record<string, unknown> = {
     userId,
     type: "email" as any,
     status: "pending",
-  } as any).select("+verificationCode +codeExpiresAt");
+  };
+
+  if (expectedEmail) {
+    matchQuery.value = expectedEmail.trim().toLowerCase();
+  }
+
+  const verification = await Verification.findOne(matchQuery as any)
+    .select("+verificationCode +codeExpiresAt");
 
   if (!verification) {
-    return { success: false, error: "No pending email verification found." };
+    return {
+      success: false,
+      error: expectedEmail
+        ? "No pending email verification found for this email address."
+        : "No pending email verification found.",
+    };
   }
 
   if (verification.codeExpiresAt && new Date() > verification.codeExpiresAt) {

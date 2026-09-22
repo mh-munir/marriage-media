@@ -58,7 +58,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [createForm, setCreateForm] = React.useState({ email: "", phone: "", password: "", firstName: "", lastName: "" });
-  const [profileForm, setProfileForm] = React.useState({ firstName: "", lastName: "", email: "" });
+  const [profileForm, setProfileForm] = React.useState({ firstName: "", lastName: "", email: "", password: "" });
   const [emailCode, setEmailCode] = React.useState("");
   const [developmentOtp, setDevelopmentOtp] = React.useState("");
   const [actionMessage, setActionMessage] = React.useState("");
@@ -136,7 +136,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
         setProfileForm({
           firstName: loadedSuperadmin.firstName || "",
           lastName: loadedSuperadmin.lastName || "",
-          email: loadedSuperadmin.email || "",
+          email: loadedSuperadmin.email || "", password: "",
         });
       }
       setError(response.ok ? "" : data.error || "Could not load users");
@@ -168,7 +168,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
     setActionLoading(true);
     setActionError("");
     setActionMessage("");
-    const response = await adminFetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send-email", email: profileForm.email }) });
+    const response = await adminFetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send-superadmin-change-otp" }) });
     const data = await response.json();
     setActionLoading(false);
     if (!response.ok) setActionError(data.error || "Could not send verification code");
@@ -178,31 +178,22 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
     }
   }
 
-  async function verifyEmail() {
-    setActionLoading(true);
-    setActionError("");
-    setActionMessage("");
-    const response = await adminFetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify-email", email: profileForm.email, code: emailCode }) });
-    const data = await response.json();
-    setActionLoading(false);
-    if (!response.ok) setActionError(data.error || "Could not verify contact");
-    else {
-      setActionMessage("Email verified successfully.");
-      setUsers((current) => current.map((account) => account.role === "superadmin" ? { ...account, email: profileForm.email, isEmailVerified: true } : account));
-    }
-  }
-
   async function saveSuperadmin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!currentUser) return;
     setActionLoading(true);
     setActionError("");
     setActionMessage("");
-    const response = await adminFetch("/api/admin/users", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: currentUser.id, firstName: profileForm.firstName, lastName: profileForm.lastName }) });
+    const response = await adminFetch("/api/admin/users", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: currentUser.id, firstName: profileForm.firstName, lastName: profileForm.lastName, email: profileForm.email, password: profileForm.password, changeOtp: emailCode }) });
     const data = await response.json();
     setActionLoading(false);
     if (!response.ok) setActionError(data.error || "Could not update superadmin details");
-    else setActionMessage("Superadmin details updated.");
+    else {
+      setProfileForm((current) => ({ ...current, password: "" }));
+      setEmailCode("");
+      setActionMessage("Superadmin details updated securely.");
+      await refreshUser();
+    }
   }
 
   return (
@@ -243,9 +234,10 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
               <form className="grid gap-3 sm:grid-cols-2" onSubmit={saveSuperadmin}>
                 <Input label="First name" value={profileForm.firstName} onChange={(event) => setProfileForm((current) => ({ ...current, firstName: event.target.value }))} required />
                 <Input label="Last name" value={profileForm.lastName} onChange={(event) => setProfileForm((current) => ({ ...current, lastName: event.target.value }))} required />
-                <div className="sm:col-span-2 flex gap-2"><Input className="flex-1" label="Email" type="email" value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} /><button type="button" className="mt-6 inline-flex h-11 items-center gap-1 rounded-xl border px-3 text-xs" onClick={() => void requestVerification()} disabled={actionLoading}><Send className="h-3.5 w-3.5" />Send OTP</button></div>
-                <div className="sm:col-span-2 flex gap-2"><Input className="flex-1" label="Email OTP" inputMode="numeric" value={emailCode} onChange={(event) => setEmailCode(event.target.value)} /><button type="button" className="mt-6 inline-flex h-11 items-center gap-1 rounded-xl border px-3 text-xs" onClick={() => void verifyEmail()} disabled={actionLoading}><MailCheck className="h-3.5 w-3.5" />Verify email</button></div>
-                <div className="sm:col-span-2 flex justify-end"><button className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700" disabled={actionLoading}><Save className="h-4 w-4" />Save names</button></div>
+                <div className="sm:col-span-2 flex gap-2"><Input className="flex-1" label="New email" type="email" value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} /><button type="button" className="mt-6 inline-flex h-11 items-center gap-1 rounded-xl border px-3 text-xs" onClick={() => void requestVerification()} disabled={actionLoading}><Send className="h-3.5 w-3.5" />Send OTP</button></div>
+                <Input className="sm:col-span-2" label="New password" type="password" minLength={8} placeholder="At least 8 characters" value={profileForm.password} onChange={(event) => setProfileForm((current) => ({ ...current, password: event.target.value }))} />
+                <div className="sm:col-span-2"><Input label="OTP sent to your current email" inputMode="numeric" value={emailCode} onChange={(event) => setEmailCode(event.target.value)} /></div>
+                <div className="sm:col-span-2 flex justify-end"><button className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700" disabled={actionLoading}><MailCheck className="h-4 w-4" /><Save className="h-4 w-4" />Save securely</button></div>
               </form>
               {actionMessage ? <p className="text-sm text-emerald-600">{actionMessage}</p> : null}
               {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
@@ -306,10 +298,8 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
               <thead className="border-y bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-6 py-3">Member</th>
-                  <th className="px-6 py-3">Subscription</th>
                   <th className="px-6 py-3">Role</th>
                   <th className="px-6 py-3">Trust</th>
-                  <th className="px-6 py-3">Biodata visits</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Joined</th>
                 </tr>
@@ -319,7 +309,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-slate-500"
-                      colSpan={7}
+                      colSpan={5}
                     >
                       Loading {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"}...
                     </td>
@@ -328,14 +318,14 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-red-600"
-                      colSpan={7}
+                      colSpan={5}
                     >
                       {error}
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-10 text-center text-slate-500" colSpan={7}>
+                    <td className="px-6 py-10 text-center text-slate-500" colSpan={5}>
                       No {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"} found.
                     </td>
                   </tr>
@@ -355,18 +345,6 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                               : "No profile"}
                         </p>
                         <p className="text-xs text-slate-500">{user.email || "No email"} · {user.phone || "No phone"}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        {user.subscription?.isActive ? (
-                          <div className="space-y-1">
-                            <Badge className="capitalize bg-amber-100 text-amber-800">{user.subscription.plan}</Badge>
-                            <p className="text-xs text-slate-500">
-                              Expires {new Date(user.subscription.expiryDate).toLocaleDateString()} · {user.subscription.daysRemaining} days left
-                            </p>
-                          </div>
-                        ) : user.subscription ? (
-                          <span className="text-xs text-slate-500">{user.subscription.plan} expired</span>
-                        ) : <span className="text-xs text-slate-500">Free</span>}
                       </td>
                       <td className="px-6 py-4">
                         <Badge
@@ -407,14 +385,6 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                             </Badge>
                           ) : null}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {isAdminTeam ? <span className="text-xs text-slate-400">—</span> : (
-                          <div>
-                            <p className="font-medium text-slate-800">{user.biodataVisits?.totalVisits || 0} total</p>
-                            <p className="text-xs text-slate-500">{user.biodataVisits?.uniqueBiodatas || 0} unique</p>
-                          </div>
-                        )}
                       </td>
                       <td className="px-6 py-4">
                         {user.isBlocked ? (

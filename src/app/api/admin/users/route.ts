@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
     const actor = await requireAdmin(request);
 
     const body = await request.json();
-    const { userId, ...updates } = body;
+    const { userId, changeOtp, ...updates } = body as { userId?: string; changeOtp?: string; [key: string]: unknown };
 
     if (!userId) {
       return NextResponse.json(
@@ -143,9 +143,6 @@ export async function PUT(request: NextRequest) {
       if (actor.role !== "superadmin" || actor._id.toString() !== userId) {
         return NextResponse.json({ error: "Only the superadmin can edit this account" }, { status: 403 });
       }
-      if (!target.isEmailVerified) {
-        return NextResponse.json({ error: "Verify the superadmin email before editing details" }, { status: 403 });
-      }
     } else if (target.role === "admin") {
       if (actor.role !== "superadmin") {
         return NextResponse.json({ error: "Only the superadmin can edit admin accounts" }, { status: 403 });
@@ -154,19 +151,43 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "This account cannot be edited here" }, { status: 403 });
     }
 
+    const nextEmail = typeof updates.email === "string" ? updates.email.trim().toLowerCase() : "";
+    const emailChanged = Boolean(nextEmail && nextEmail !== String(actor.email || "").toLowerCase());
     const password = typeof updates.password === "string" ? updates.password : "";
     if (password && (actor.role !== "superadmin" || password.length < 8)) {
       return NextResponse.json({ error: "Only the superadmin can set a password of at least 8 characters" }, { status: 400 });
     }
 
+    if (target.role === "superadmin" && (emailChanged || password)) {
+      if (nextEmail && !/^\S+@\S+\.\S+$/.test(nextEmail)) {
+        return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
+      }
+      if (!/^\d{6}$/.test(String(changeOtp || ""))) {
+        return NextResponse.json({ error: "Enter the OTP sent to your current superadmin email" }, { status: 400 });
+      }
+      if (emailChanged) {
+        const emailInUse = await User.exists({ email: nextEmail, _id: { $ne: actor._id } });
+        if (emailInUse) return NextResponse.json({ error: "This email is already in use" }, { status: 409 });
+      }
+
+      const currentEmail = String(actor.email || "").trim().toLowerCase();
+      if (!currentEmail) {
+        return NextResponse.json({ error: "Your superadmin account has no email address on file" }, { status: 400 });
+      }
+
+      const result = await verifyEmailCode(actor._id.toString(), String(changeOtp), currentEmail);
+      if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
     const allowedUpdates = {
       firstName: updates.firstName,
       lastName: updates.lastName,
-      email: updates.email,
+      email: emailChanged ? nextEmail : undefined,
       phone: updates.phone,
       isActive: actor.role === "superadmin" ? updates.isActive : undefined,
       isBlocked: actor.role === "superadmin" ? updates.isBlocked : undefined,
       ...(password ? { password: await bcrypt.hash(password, 12) } : {}),
+      ...(target.role === "superadmin" && (emailChanged || password) ? { isEmailVerified: true } : {}),
     };
     const cleanUpdates = Object.fromEntries(Object.entries(allowedUpdates).filter(([, value]) => value !== undefined));
 
@@ -238,6 +259,14 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json() as { action?: string; email?: string; phone?: string; code?: string };
     const action = body.action;
+    if (action === "send-superadmin-change-otp") {
+      const email = String(actor.email || "").trim().toLowerCase();
+      if (!email) return NextResponse.json({ error: "Your superadmin account has no email address" }, { status: 400 });
+      const result = await sendEmailVerification(actor._id.toString(), email);
+      return result.success
+        ? NextResponse.json({ message: "OTP sent to the current superadmin email", ...(result.otp ? { otp: result.otp } : {}) })
+        : NextResponse.json({ error: result.error }, { status: 429 });
+    }
     if (action === "send-email") {
       const email = String(body.email || "").trim().toLowerCase();
       if (!/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
