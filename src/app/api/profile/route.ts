@@ -70,9 +70,8 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
     missingFields.push("Guardian details (with a valid 11 digit mobile number)");
   }
   const partnerPreferences = body.partnerPreferences;
-  const requiredPartnerFields = ["age", "height", "weight", "maritalStatus", "religion", "highestEducation", "annualIncome", "country", "division", "district", "familyType", "familyStatus", "familyValues"];
-  if (!partnerPreferences || typeof partnerPreferences !== "object" || requiredPartnerFields.some((field) => !String((partnerPreferences as Record<string, unknown>)[field] || "").trim())) {
-    missingFields.push("Every Expected Partner field");
+  if (!partnerPreferences || typeof partnerPreferences !== "object" || !String((partnerPreferences as Record<string, unknown>).religion || "").trim()) {
+    missingFields.push("Expected Partner religion");
   }
   if (!["Yes", "No"].includes(String(body.familyAwareOfBiodata)) || !["Yes", "No"].includes(String(body.informationAccurate)) || !["Yes", "No"].includes(String(body.truthDeclaration)) || body.acceptsFalseInformationLiability !== true) missingFields.push("All declarations");
   return missingFields;

@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { formatLocationValue } from "@/lib/location-labels";
 import { useLanguage } from "@/providers/language-provider";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -97,16 +98,36 @@ type PublicProfile = {
   profileViews: number;
 };
 
+function formatBanglaHeight(value: string): string {
+  const match = value.trim().match(/^(\d+)'(\d+)"\s*\((\d+)\s*cm\)$/i);
+  if (!match) return value;
+
+  const [, feet, inches, cm] = match;
+  const toBanglaDigits = (input: string) => input.replace(/[0-9]/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
+
+  return `${toBanglaDigits(feet)} ফুট ${toBanglaDigits(inches)} ইঞ্চি (${toBanglaDigits(cm)} সে.মি.)`;
+}
+
 function Detail({ label, value, isPremiumField = false, currentUserIsPremium = true }: { label: string; value?: string | number; isPremiumField?: boolean; currentUserIsPremium?: boolean }) {
-  const { translateText } = useLanguage();
+  const { language, translateText } = useLanguage();
 
   if (value === undefined || value === "" || value === 0) return null;
   if (isPremiumField && !currentUserIsPremium) return null;
 
+  const isLocationField = ["Country", "Division", "District", "Thana", "Union", "Area"].includes(label);
+  const displayValue = typeof value === "string"
+    ? (() => {
+        if (isLocationField) return formatLocationValue(value, language, translateText);
+        if (label === "Height" && language === "bn") return formatBanglaHeight(value);
+        if (label === "Nationality" && language === "bn") return formatLocationValue(value, language, translateText);
+        return translateText(value);
+      })()
+    : value;
+
   return (
     <div className="grid grid-cols-[minmax(112px,34%)_1fr] gap-2 border-b border-[#d9a0a6]/45 py-1.5 text-xs leading-5 sm:text-sm">
       <dt className="font-semibold text-[#8d3d49]">{translateText(label)}</dt>
-      <dd className="min-w-0 wrap-break-word text-[#4c3d40]">{typeof value === "string" ? translateText(value) : value}</dd>
+      <dd className="min-w-0 wrap-break-word text-[#4c3d40]">{displayValue}</dd>
     </div>
   );
 }

@@ -83,22 +83,36 @@ const partnerHeightRanges = [
   "5'10\"-6'0\"",
   "6'1\"-6'3\"",
 ];
+const heightLabels: Record<string, string> = {
+  "4'10\" (147 cm)": "৪'১০\" (১৪৭ সেমি)",
+  "4'11\" (150 cm)": "৪'১১\" (১৫০ সেমি)",
+  "5'0\" (152 cm)": "৫'০\" (১৫২ সেমি)",
+  "5'1\" (155 cm)": "৫'১\" (১৫৫ সেমি)",
+  "5'2\" (157 cm)": "৫'২\" (১৫৭ সেমি)",
+  "5'3\" (160 cm)": "৫'৩\" (১৬০ সেমি)",
+  "5'4\" (163 cm)": "৫'৪\" (১৬৩ সেমি)",
+  "5'5\" (165 cm)": "৫'৫\" (১৬৫ সেমি)",
+  "5'6\" (168 cm)": "৫'৬\" (১৬৮ সেমি)",
+  "5'7\" (170 cm)": "৫'৭\" (১৭০ সেমি)",
+  "5'8\" (173 cm)": "৫'৮\" (১৭৩ সেমি)",
+  "5'9\" (175 cm)": "৫'৯\" (১৭৫ সেমি)",
+  "5'10\" (178 cm)": "৫'১০\" (১৭৮ সেমি)",
+  "5'11\" (180 cm)": "৫'১১\" (১৮০ সেমি)",
+  "6'0\" (183 cm)": "৬'০\" (১৮৩ সেমি)",
+  "6'1\" (185 cm)": "৬'১\" (১৮৫ সেমি)",
+  "6'2\" (188 cm)": "৬'২\" (১৮৮ সেমি)",
+  "6'3\" (191 cm)": "৬'৩\" (১৯১ সেমি)",
+};
+const partnerHeightLabels: Record<string, string> = {
+  "4'10\"-5'0\"": "৪'১০\" - ৫'০\"",
+  "5'1\"-5'3\"": "৫'১\" - ৫'৩\"",
+  "5'4\"-5'6\"": "৫'৪\" - ৫'৬\"",
+  "5'7\"-5'9\"": "৫'৭\" - ৫'৯\"",
+  "5'10\"-6'0\"": "৫'১০\" - ৬'০\"",
+  "6'1\"-6'3\"": "৬'১\" - ৬'৩\"",
+};
 const partnerAgeRanges = ["18-25", "26-30", "31-35", "36-40", "41-50", "51+"];
-const requiredPartnerFields = [
-  "age",
-  "height",
-  "weight",
-  "maritalStatus",
-  "religion",
-  "highestEducation",
-  "annualIncome",
-  "country",
-  "division",
-  "district",
-  "familyType",
-  "familyStatus",
-  "familyValues",
-];
+const requiredPartnerFields = ["religion"];
 const blank: D = {
   firstName: "",
   lastName: "",
@@ -178,6 +192,7 @@ export default function OnboardingPage() {
     [deletingPhotoId, setDeletingPhotoId] = React.useState<string | null>(null),
     [error, setError] = React.useState("");
   const { language, translateText: text } = useLanguage();
+  const [professionOptions, setProfessionOptions] = React.useState<Array<{ value: string; label: string }>>([]);
   const emptyLocations = {
     divisions: [] as string[],
     districts: [] as string[],
@@ -188,6 +203,8 @@ export default function OnboardingPage() {
   const [locations, setLocations] = React.useState(emptyLocations);
   const [permanentLocations, setPermanentLocations] =
     React.useState(emptyLocations);
+  const [partnerOptionMap, setPartnerOptionMap] = React.useState<Record<string, Array<{ value: string; label: string }>>>({});
+  const locationCache = React.useRef<Record<string, { options: string[]; labels: Record<string, string> }>>({});
   const {
     division: permanentDivision,
     district: permanentDistrict,
@@ -228,18 +245,62 @@ export default function OnboardingPage() {
     params: string = "",
     target: "current" | "permanent" = "current",
   ) => {
+    const cacheKey = `${target}:${level}:${params}`;
+    if (locationCache.current[cacheKey]) {
+      const cached = locationCache.current[cacheKey];
+      registerLocationLabels(cached.labels || {});
+      const key = level as "divisions" | "districts" | "thanas" | "unions";
+      const setter = target === "current" ? setLocations : setPermanentLocations;
+      setter((v) => ({
+        ...v,
+        [key]: cached.options || [],
+        labels: { ...v.labels, ...(cached.labels || {}) },
+      }));
+      return;
+    }
+
     const result = await fetch(`/api/locations?level=${level}${params}`, {
-      cache: "no-store",
+      cache: "force-cache",
     }).then((r) => r.json());
-    registerLocationLabels(result.labels || {});
+    const payload = {
+      options: result.options || [],
+      labels: result.labels || {},
+    };
+    locationCache.current[cacheKey] = payload;
+    registerLocationLabels(payload.labels || {});
     const key = level as "divisions" | "districts" | "thanas" | "unions";
     const setter = target === "current" ? setLocations : setPermanentLocations;
     setter((v) => ({
       ...v,
-      [key]: result.options || [],
-      labels: { ...v.labels, ...(result.labels || {}) },
+      [key]: payload.options || [],
+      labels: { ...v.labels, ...(payload.labels || {}) },
     }));
   };
+  React.useEffect(() => {
+    async function loadProfessionOptions() {
+      try {
+        const response = await fetch(`/api/options/professions?lang=${language === "bn" ? "bn" : "en"}`, { cache: "force-cache" });
+        const data = await response.json();
+        setProfessionOptions(data.options || []);
+      } catch {
+        setProfessionOptions([]);
+      }
+    }
+
+    async function loadPartnerOptions() {
+      try {
+        const response = await fetch(`/api/options/partner?lang=${language === "bn" ? "bn" : "en"}`, { cache: "force-cache" });
+        const data = await response.json();
+        setPartnerOptionMap(data.options || {});
+      } catch {
+        setPartnerOptionMap({});
+      }
+    }
+
+    void loadProfessionOptions();
+    void loadPartnerOptions();
+  }, [language]);
+
   React.useEffect(() => {
     void loadLocations("divisions");
   }, []);
@@ -367,6 +428,31 @@ export default function OnboardingPage() {
       </select>
     </label>
   );
+  const dynamicSelect = (
+    label: string,
+    k: string,
+    category: string,
+    includeAny: boolean = true,
+  ) => {
+    const options = partnerOptionMap[category] || [];
+    return (
+      <label className="text-sm font-medium">
+        {text(label)}
+        <select
+          className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3"
+          value={readField(k)}
+          onChange={(e) => writeField(k, e.target.value)}
+        >
+          {includeAny ? <option value="">{language === "bn" ? "যেকোনো" : "Any"}</option> : <option value="">{text("Select")}</option>}
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  };
   const siblings = Array.isArray(data.siblings) ? data.siblings : [];
   const siblingCount = (relation: "Brother" | "Sister") =>
     siblings.filter((s: any) => s.relation === relation).length;
@@ -460,9 +546,9 @@ export default function OnboardingPage() {
       return text("Upload at least one photo.");
     if (
       step === 7 &&
-      requiredPartnerFields.some(
-        (field) => !String(data.partnerPreferences?.[field] || "").trim(),
-      )
+      requiredPartnerFields
+        .filter((field) => field !== "annualIncome")
+        .some((field) => !String(data.partnerPreferences?.[field] || "").trim())
     )
       return text("Please complete every expected partner field.");
     if (step === 8 && !data.acceptsFalseInformationLiability)
@@ -560,9 +646,9 @@ export default function OnboardingPage() {
     setDeletingPhotoId(publicId);
     setError("");
     try {
-      await apiClient.request("/api/profile/photos", {
+      const safePublicId = encodeURIComponent(publicId);
+      await apiClient.request(`/api/profile/photos?publicId=${safePublicId}`, {
         method: "DELETE",
-        body: JSON.stringify({ publicId }),
       });
       const remaining = data.photos.filter(
         (photo: any) => photo.publicId !== publicId,
@@ -675,7 +761,7 @@ export default function OnboardingPage() {
                   "O+",
                   "O-",
                 ])}
-                {select("Height", "height", [...HEIGHTS])}
+                {select("Height", "height", [...HEIGHTS], heightLabels)}
                 {select("Marital Status", "maritalStatus", [
                   "Never Married",
                   "Married",
@@ -697,6 +783,21 @@ export default function OnboardingPage() {
                   />
                 ) : null}
                 {select("Religion", "religion", [...RELIGIONS])}
+                <label className="text-sm font-medium">
+                  {text("Profession")}
+                  <select
+                    className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3"
+                    value={data.profession || ""}
+                    onChange={(e) => put("profession", e.target.value)}
+                  >
+                    <option value="">{text("Select")}</option>
+                    {professionOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 {input("Mother Tongue", "motherTongue")}
               </div>
             )}
@@ -1130,27 +1231,12 @@ export default function OnboardingPage() {
             )}
             {step === 7 && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {select("Age", "partnerPreferences.age", partnerAgeRanges)}
-                {select(
-                  "Height",
-                  "partnerPreferences.height",
-                  partnerHeightRanges,
-                )}
-                {select("Weight", "partnerPreferences.weight", [...WEIGHTS])}
-                {select("Marital Status", "partnerPreferences.maritalStatus", [
-                  "Never Married",
-                  "Divorced",
-                  "Widowed",
-                  "Awaiting Divorce",
-                ])}
-                {select("Religion", "partnerPreferences.religion", [
-                  ...RELIGIONS,
-                ])}
-                {select(
-                  "Highest Education",
-                  "partnerPreferences.highestEducation",
-                  [...EDUCATION_LEVELS],
-                )}
+                {dynamicSelect("Age", "partnerPreferences.age", "age")}
+                {dynamicSelect("Height", "partnerPreferences.height", "height")}
+                {dynamicSelect("Weight", "partnerPreferences.weight", "weight")}
+                {dynamicSelect("Marital Status", "partnerPreferences.maritalStatus", "maritalStatus")}
+                {dynamicSelect("Religion", "partnerPreferences.religion", "religion")}
+                {dynamicSelect("Highest Education", "partnerPreferences.highestEducation", "highestEducation")}
                 <Input
                   label={text("Annual Income")}
                   placeholder={text("Example: 50,000-100,000")}
@@ -1161,7 +1247,6 @@ export default function OnboardingPage() {
                       e.target.value,
                     )
                   }
-                  required
                 />
                 <Input
                   label={text("Country")}

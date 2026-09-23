@@ -24,6 +24,11 @@ type LocationNode = {
 
 type LocationDataset = { divisions?: LocationNode[] };
 
+let datasetPromise: Promise<LocationDataset> | null = null;
+let bengaliLabelsPromise: Promise<Map<string, string>> | null = null;
+
+const SECONDARY_UNION_CACHE = new Map<string, Promise<string[]>>();
+
 type SecondaryRecord = { id?: string; upazilla_id?: string; name?: string };
 
 type SecondaryExport = { type?: string; data?: SecondaryRecord[] };
@@ -36,20 +41,36 @@ function names(nodes: LocationNode[] | undefined): string[] {
     .filter((name): name is string => Boolean(name));
 }
 
-async function getBengaliLabels(): Promise<Map<string, string>> {
-  const responses = await Promise.all(
-    BENGALI_SOURCE_URLS.map((url) => fetch(url, { next: { revalidate: 86400 } }))
-  );
-  const labels = new Map<string, string>();
-  for (const response of responses) {
-    if (!response.ok) continue;
-    const exports = (await response.json()) as BengaliLocationExport[];
-    const records = exports.find((item) => item.type === "table")?.data || [];
-    for (const record of records) {
-      if (record.name && record.bn_name) labels.set(normalized(record.name), record.bn_name);
-    }
+async function getCachedDataset(): Promise<LocationDataset> {
+  if (!datasetPromise) {
+    datasetPromise = fetch(DATASET_URL, { next: { revalidate: 86400 } }).then(async (response) => {
+      if (!response.ok) throw new Error("Location dataset unavailable.");
+      return (await response.json()) as LocationDataset;
+    });
   }
-  return labels;
+
+  return datasetPromise;
+}
+
+async function getBengaliLabels(): Promise<Map<string, string>> {
+  if (!bengaliLabelsPromise) {
+    bengaliLabelsPromise = Promise.all(
+      BENGALI_SOURCE_URLS.map((url) => fetch(url, { next: { revalidate: 86400 } }))
+    ).then(async (responses) => {
+      const labels = new Map<string, string>();
+      for (const response of responses) {
+        if (!response.ok) continue;
+        const exports = (await response.json()) as BengaliLocationExport[];
+        const records = exports.find((item) => item.type === "table")?.data || [];
+        for (const record of records) {
+          if (record.name && record.bn_name) labels.set(normalized(record.name), record.bn_name);
+        }
+      }
+      return labels;
+    });
+  }
+
+  return bengaliLabelsPromise;
 }
 
 function displayName(value: string, bengaliLabels: Map<string, string>): string {
@@ -73,31 +94,40 @@ function findByName(nodes: LocationNode[] | undefined, name: string | null): Loc
 }
 
 async function getSecondaryUnionOptions(thanaName: string): Promise<string[]> {
-  const [upazilaResponse, unionResponse] = await Promise.all([
-    fetch(SECONDARY_UPAZILAS_URL, { next: { revalidate: 86400 } }),
-    fetch(SECONDARY_UNIONS_URL, { next: { revalidate: 86400 } }),
-  ]);
-  if (!upazilaResponse.ok || !unionResponse.ok) return [];
+  const cacheKey = normalized(thanaName);
+  const cached = SECONDARY_UNION_CACHE.get(cacheKey);
+  if (cached) return cached;
 
-  const upazilaExport = (await upazilaResponse.json()) as SecondaryExport[];
-  const unionExport = (await unionResponse.json()) as SecondaryExport[];
-  const upazilas = upazilaExport.find((item) => item.type === "table")?.data || [];
-  const unions = unionExport.find((item) => item.type === "table")?.data || [];
-  const upazila = upazilas.find((item) => item.name && normalized(item.name) === normalized(thanaName));
-  let upazilaId = upazila?.id;
+  const task = (async () => {
+    const [upazilaResponse, unionResponse] = await Promise.all([
+      fetch(SECONDARY_UPAZILAS_URL, { cache: "force-cache" }),
+      fetch(SECONDARY_UNIONS_URL, { cache: "force-cache" }),
+    ]);
+    if (!upazilaResponse.ok || !unionResponse.ok) return [];
 
-  // Newer upazilas may not yet have their own union rows in the legacy source.
-  // Reuse the source's same-name union parent group in that case.
-  if (upazilaId && !unions.some((item) => item.upazilla_id === upazilaId)) {
-    upazilaId = unions.find(
-      (item) => item.name && normalized(item.name) === normalized(thanaName)
-    )?.upazilla_id;
-  }
+    const upazilaExport = (await upazilaResponse.json()) as SecondaryExport[];
+    const unionExport = (await unionResponse.json()) as SecondaryExport[];
+    const upazilas = upazilaExport.find((item) => item.type === "table")?.data || [];
+    const unions = unionExport.find((item) => item.type === "table")?.data || [];
+    const upazila = upazilas.find((item) => item.name && normalized(item.name) === normalized(thanaName));
+    let upazilaId = upazila?.id;
 
-  if (!upazilaId) return [];
-  return unions
-    .filter((item) => item.upazilla_id === upazilaId && item.name)
-    .map((item) => normalizeDistrictName(item.name as string));
+    // Newer upazilas may not yet have their own union rows in the legacy source.
+    // Reuse the source's same-name union parent group in that case.
+    if (upazilaId && !unions.some((item) => item.upazilla_id === upazilaId)) {
+      upazilaId = unions.find(
+        (item) => item.name && normalized(item.name) === normalized(thanaName)
+      )?.upazilla_id;
+    }
+
+    if (!upazilaId) return [];
+    return unions
+      .filter((item) => item.upazilla_id === upazilaId && item.name)
+      .map((item) => normalizeDistrictName(item.name as string));
+  })();
+
+  SECONDARY_UNION_CACHE.set(cacheKey, task);
+  return task;
 }
 
 export async function GET(request: NextRequest) {
@@ -112,9 +142,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "A valid location level is required." }, { status: 400 });
     }
 
-    const response = await fetch(DATASET_URL, { cache: "no-store" });
-    if (!response.ok) throw new Error("Location dataset unavailable.");
-    const dataset = (await response.json()) as LocationDataset;
+    const dataset = await getCachedDataset();
     const divisions = dataset.divisions || [];
     const bengaliLabels = await getBengaliLabels();
 

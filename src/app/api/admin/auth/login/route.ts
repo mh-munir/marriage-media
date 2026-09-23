@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
         email,
         password: await bcrypt.hash(password, 12),
         role: "superadmin",
+        roleMutationAllowed: true,
         isActive: true,
         isBlocked: false,
         isEmailVerified: true,
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
     // Keep the local development bootstrap account as the control-room owner.
     if (user && isDevelopmentBootstrapAdmin && user.role === "admin") {
       user.role = "superadmin";
+      user.roleMutationAllowed = true;
       if (typeof user.save === "function") {
         await user.save();
       }

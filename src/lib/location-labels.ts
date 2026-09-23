@@ -46,3 +46,21 @@ export function translateLocationLabel(value: string, language: "bn" | "en"): st
     || bengaliLocationLabels[trimmed.toLowerCase().replace(/[^a-z0-9]/g, "")]
     || trimmed;
 }
+
+export function formatLocationValue(
+  value: string | number | null | undefined,
+  language: "bn" | "en",
+  fallbackTranslate?: (text: string) => string,
+): string {
+  if (value === null || value === undefined) return "";
+
+  const text = String(value).trim();
+  if (!text) return "";
+
+  if (language !== "bn") return text;
+
+  const translated = translateLocationLabel(text, language);
+  if (translated !== text) return translated;
+
+  return fallbackTranslate ? fallbackTranslate(text) : text;
+}

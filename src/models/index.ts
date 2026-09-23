@@ -26,6 +26,7 @@ export { default as SavedSearch } from "./SavedSearch";
 export { default as Counter } from "./Counter";
 export { default as SitePage } from "./SitePage";
 export { default as SiteBranding } from "./SiteBranding";
+export { default as LookupOption } from "./LookupOption";
 
 export type { IUser } from "./User";
 export type { IProfile } from "./Profile";

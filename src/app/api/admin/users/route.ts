@@ -235,6 +235,7 @@ export async function POST(request: NextRequest) {
       phone,
       password: await bcrypt.hash(password, 12),
       role: "admin",
+      roleMutationAllowed: true,
       firstName: String(body.firstName || "").trim(),
       lastName: String(body.lastName || "").trim(),
       isActive: true,

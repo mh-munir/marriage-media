@@ -23,7 +23,6 @@ export async function PATCH(request: NextRequest) {
     if (!body.data || typeof body.data !== "object") return NextResponse.json({ error: "Onboarding data is required." }, { status: 400 });
     const incomingData = { ...body.data } as Record<string, unknown>;
     delete incomingData.highestEducation;
-    delete incomingData.profession;
     const isSync = body.sync === true;
     const step = isSync ? user.onboardingStep || 1 : Math.min(8, Math.max(1, Number(body.step) || 1));
     const data = { ...(user.onboardingData || {}), ...incomingData };
@@ -48,9 +47,9 @@ export async function PATCH(request: NextRequest) {
     if (!isSync && step >= 6 && (!data.habitAnswers || typeof data.habitAnswers !== "object" || requiredHabits.some((habit) => !["Yes", "No"].includes(String((data.habitAnswers as Record<string, unknown>)[habit]))))) {
       return NextResponse.json({ error: "Please answer Yes or No for every habit." }, { status: 400 });
     }
-    const requiredPartnerFields = ["age", "height", "weight", "maritalStatus", "religion", "highestEducation", "annualIncome", "country", "division", "district", "familyType", "familyStatus", "familyValues"];
+    const requiredPartnerFields = ["religion"];
     if (!isSync && step >= 8 && (!data.partnerPreferences || requiredPartnerFields.some((field) => !String((data.partnerPreferences as Record<string, unknown>)[field] || "").trim()))) {
-      return NextResponse.json({ error: "Please complete every expected partner field." }, { status: 400 });
+      return NextResponse.json({ error: "Please select a religion preference for the expected partner." }, { status: 400 });
     }
     await User.findByIdAndUpdate(user._id, { $set: { onboardingData: data, ...(isSync ? {} : { onboardingStep: step }), ...(firstName ? { firstName } : {}), ...(lastName ? { lastName } : {}), ...(gender ? { gender } : {}), ...(whatsappNumber ? { whatsappNumber } : {}), ...(body.completed ? { onboardingCompleted: true } : {}) } });
     return NextResponse.json({ data, step });

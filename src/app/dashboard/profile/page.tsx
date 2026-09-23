@@ -55,10 +55,7 @@ interface ProfileFormData {
   thana: string;
   union: string;
   area: string;
-  highestEducation: string;
-  institution: string;
   profession: string;
-  company: string;
   annualIncome: string;
   familyType: string;
   familyStatus: string;
@@ -132,10 +129,7 @@ const createInitialProfile = (): ProfileFormData => ({
   thana: "",
   union: "",
   area: "",
-  highestEducation: EDUCATION_LEVELS[0],
-  institution: "",
   profession: PROFESSIONS[0],
-  company: "",
   annualIncome: INCOME_RANGES[0],
   familyType: "Nuclear",
   familyStatus: "Middle Class",
@@ -190,6 +184,64 @@ const createInitialProfile = (): ProfileFormData => ({
   photos: [],
 });
 
+const mergeProfileFormData = (
+  profileData: Partial<ProfileFormData> | null | undefined,
+  onboardingData: Partial<ProfileFormData> | null | undefined,
+  mobileNumber?: string,
+): ProfileFormData => {
+  const base = createInitialProfile();
+  const mergedProfile = {
+    ...base,
+    ...(profileData || {}),
+    ...(onboardingData || {}),
+    email: profileData?.email || onboardingData?.email || base.email,
+    mobileNumber: mobileNumber || profileData?.mobileNumber || onboardingData?.mobileNumber || base.mobileNumber,
+    whatsappNumber: profileData?.whatsappNumber || onboardingData?.whatsappNumber || base.whatsappNumber,
+    firstName: profileData?.firstName || onboardingData?.firstName || base.firstName,
+    lastName: profileData?.lastName || onboardingData?.lastName || base.lastName,
+    gender: profileData?.gender || onboardingData?.gender || base.gender,
+    dateOfBirth: formatDateForInput(profileData?.dateOfBirth || onboardingData?.dateOfBirth),
+    habitAnswers: {
+      ...base.habitAnswers,
+      ...(onboardingData?.habitAnswers || {}),
+      ...(profileData?.habitAnswers || {}),
+    },
+    partnerPreferences: {
+      ...base.partnerPreferences,
+      ...(onboardingData?.partnerPreferences || {}),
+      ...(profileData?.partnerPreferences || {}),
+      country: profileData?.partnerPreferences?.country || onboardingData?.partnerPreferences?.country || base.partnerPreferences.country,
+    },
+    permanentLocation: {
+      ...base.permanentLocation,
+      ...(onboardingData?.permanentLocation || {}),
+      ...(profileData?.permanentLocation || {}),
+    },
+    educationDetails: Array.isArray(profileData?.educationDetails) && profileData.educationDetails.length
+      ? profileData.educationDetails
+      : Array.isArray(onboardingData?.educationDetails) && onboardingData.educationDetails.length
+        ? onboardingData.educationDetails
+        : base.educationDetails,
+    photos: Array.isArray(profileData?.photos) ? profileData.photos : Array.isArray(onboardingData?.photos) ? onboardingData.photos : base.photos,
+    siblings: Array.isArray(profileData?.siblings) ? profileData.siblings : Array.isArray(onboardingData?.siblings) ? onboardingData.siblings : base.siblings,
+    hobbies: Array.isArray(profileData?.hobbies) ? profileData.hobbies : Array.isArray(onboardingData?.hobbies) ? onboardingData.hobbies : base.hobbies,
+  };
+
+  return {
+    ...base,
+    ...mergedProfile,
+    partnerPreferences: {
+      ...base.partnerPreferences,
+      ...mergedProfile.partnerPreferences,
+      country: mergedProfile.partnerPreferences.country || "Bangladesh",
+    },
+    permanentLocation: {
+      ...base.permanentLocation,
+      ...mergedProfile.permanentLocation,
+    },
+  };
+};
+
 const PARTNER_HEIGHT_RANGES = [
   { value: "4'10\"-5'0\"", label: "4'10\" - 5'0\"" },
   { value: "5'1\"-5'3\"", label: "5'1\" - 5'3\"" },
@@ -228,12 +280,20 @@ const emptyLocationOptions: LocationOptions = {
   unions: [],
 };
 
+const locationOptionsCache = new Map<string, string[]>();
+
 async function fetchLocationOptions(level: LocationLevel, params: Record<string, string> = {}) {
   const query = new URLSearchParams({ level, ...params });
-  const response = await fetch(`/api/locations?${query.toString()}`, { cache: "no-store" });
+  const cacheKey = `${level}:${query.toString()}`;
+  const cached = locationOptionsCache.get(cacheKey);
+  if (cached) return cached;
+
+  const response = await fetch(`/api/locations?${query.toString()}`, { cache: "force-cache" });
   if (!response.ok) throw new Error("Unable to load location options.");
   const data = (await response.json()) as { options?: string[] };
-  return data.options || [];
+  const options = data.options || [];
+  locationOptionsCache.set(cacheKey, options);
+  return options;
 }
 
 export default function DashboardProfilePage() {
@@ -246,8 +306,23 @@ export default function DashboardProfilePage() {
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
   const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const [permanentLocationOptions, setPermanentLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
+  const [professionOptions, setProfessionOptions] = React.useState<Array<{ value: string; label: string }>>([]);
   const { updateUser } = useAuthStore();
-  const { translateText: text } = useLanguage();
+  const { language, translateText: text } = useLanguage();
+
+  React.useEffect(() => {
+    async function loadProfessionOptions() {
+      try {
+        const response = await fetch(`/api/options/professions?lang=${language === "bn" ? "bn" : "en"}`, { cache: "force-cache" });
+        const data = await response.json();
+        setProfessionOptions(data.options || []);
+      } catch {
+        setProfessionOptions([]);
+      }
+    }
+
+    void loadProfessionOptions();
+  }, [language]);
 
   React.useEffect(() => {
     void fetchLocationOptions("divisions").then((divisions) => {
@@ -330,47 +405,17 @@ export default function DashboardProfilePage() {
         const profileData = response.profile;
 
         if (profileData) {
-          setProfile({
-            ...createInitialProfile(),
-            ...(response.onboarding || {}),
-            ...profileData,
-            mobileNumber: response.mobileNumber || "",
-            whatsappNumber: response.whatsappNumber || profileData.whatsappNumber || response.onboarding?.whatsappNumber || "",
-            habitAnswers: response.onboarding?.habitAnswers || profileData.habitAnswers || {},
-            partnerPreferences: {
-              ...createInitialProfile().partnerPreferences,
-              ...(response.onboarding?.partnerPreferences || {}),
-              ...(profileData.partnerPreferences || {}),
-              country: profileData.partnerPreferences?.country || "Bangladesh",
-            },
-            permanentLocation: {
-              ...createInitialProfile().permanentLocation,
-              ...(response.onboarding?.permanentLocation || {}),
-              ...(profileData.permanentLocation || {}),
-            },
-            dateOfBirth: formatDateForInput(profileData.dateOfBirth),
-          });
+          setProfile(
+            mergeProfileFormData(profileData as Partial<ProfileFormData>, response.onboarding as Partial<ProfileFormData>, response.mobileNumber || "")
+          );
           updateUser({
             avatar: profileData.photos?.find((photo) => photo.isPrimary)?.url || "",
           });
           setProfileExists(true);
         } else {
-          setProfile((current) => ({
-            ...current,
-            ...response.onboarding,
-            firstName: response.onboarding?.firstName || current.firstName,
-            lastName: response.onboarding?.lastName || current.lastName,
-            gender: response.onboarding?.gender || current.gender,
-            mobileNumber: response.mobileNumber || current.mobileNumber,
-            partnerPreferences: {
-              ...current.partnerPreferences,
-              ...(response.onboarding?.partnerPreferences || {}),
-            },
-            permanentLocation: {
-              ...current.permanentLocation,
-              ...(response.onboarding?.permanentLocation || {}),
-            },
-          }));
+          setProfile(
+            mergeProfileFormData(null, response.onboarding as Partial<ProfileFormData>, response.mobileNumber || "")
+          );
           setProfileExists(false);
         }
       } catch (err) {
@@ -458,17 +503,9 @@ export default function DashboardProfilePage() {
       await apiClient.patch('/api/auth/onboarding', { data: payload, sync: true });
 
       const savedProfile = response.profile;
-      setProfile({
-        ...createInitialProfile(),
-        ...savedProfile,
-        mobileNumber: profile.mobileNumber,
-        partnerPreferences: {
-          ...createInitialProfile().partnerPreferences,
-          ...(savedProfile.partnerPreferences || {}),
-          country: savedProfile.partnerPreferences?.country || "Bangladesh",
-        },
-        dateOfBirth: formatDateForInput(savedProfile.dateOfBirth),
-      });
+      setProfile(
+        mergeProfileFormData(savedProfile as Partial<ProfileFormData>, {} as Partial<ProfileFormData>, profile.mobileNumber)
+      );
       setProfileExists(true);
       updateUser({
         firstName: savedProfile.firstName,
@@ -987,44 +1024,11 @@ export default function DashboardProfilePage() {
                         <section id="education">
                           <h2 className="mb-4 text-lg font-semibold">{text("Education & Career")}</h2>
                           <div className="space-y-5">
-                            <div className="grid gap-4 md:grid-cols-2">
-                              <div>
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Highest Education")}</label>
-                                <select
-                                  value={profile.highestEducation}
-                                  onChange={(e) => setProfile({ ...profile, highestEducation: e.target.value })}
-                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
-                                >
-                                  {EDUCATION_LEVELS.map((e) => (
-                                    <option key={e} value={e}>{text(e)}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <Input
-                                label="Institution"
-                                value={profile.institution}
-                                onChange={(e) => setProfile({ ...profile, institution: e.target.value })}
-                              />
-                            </div>
-
-                            <div className="grid gap-4 md:grid-cols-2">
-                              <div>
-                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Profession")}</label>
-                                <select
-                                  value={profile.profession}
-                                  onChange={(e) => setProfile({ ...profile, profession: e.target.value })}
-                                  className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary"
-                                >
-                                  {PROFESSIONS.map((p) => (
-                                    <option key={p} value={p}>{text(p)}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <Input
-                                label="Company"
-                                value={profile.company}
-                                onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                              />
+                            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4">
+                              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{text("Profession")}</p>
+                              <p className="text-base font-medium text-foreground">
+                                {profile.profession || text("Not added")}
+                              </p>
                             </div>
 
                             <div>

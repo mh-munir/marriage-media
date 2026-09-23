@@ -15,8 +15,9 @@ export async function DELETE(request: NextRequest) {
     await connectToDatabase();
     const user = await requireAuth(request);
 
+    const queryPublicId = request.nextUrl.searchParams.get("publicId") || "";
     const body = (await request.json().catch(() => ({}))) as { publicId?: unknown };
-    const publicId = typeof body.publicId === "string" ? body.publicId.trim() : "";
+    const publicId = typeof body.publicId === "string" ? body.publicId.trim() : queryPublicId.trim();
 
     if (!publicId) {
       return jsonError("A valid photo id is required.", 400);
