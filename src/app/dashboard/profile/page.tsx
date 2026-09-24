@@ -76,6 +76,8 @@ interface ProfileFormData {
   permanentAddress: string;
   presentAddress: string;
   bloodGroup: string;
+  complexion: string;
+  maritalStatusDate: string;
   permanentLocation: { country: string; division: string; district: string; thana: string; union: string; area: string };
   aboutYourself: string;
   educationDetails: Array<{ level: "SSC" | "HSC" | "Graduation" | "Other"; instituteName: string; year: string }>;
@@ -89,6 +91,8 @@ interface ProfileFormData {
     age: string;
     height: string;
     weight: string;
+    bloodGroup: string;
+    complexion: string;
     maritalStatus: string;
     religion: string;
     highestEducation: string;
@@ -150,6 +154,8 @@ const createInitialProfile = (): ProfileFormData => ({
   permanentAddress: "",
   presentAddress: "",
   bloodGroup: "",
+  complexion: "",
+  maritalStatusDate: "",
   permanentLocation: { country: "Bangladesh", division: "", district: "", thana: "", union: "", area: "" },
   aboutYourself: "",
   educationDetails: ["SSC", "HSC", "Graduation", "Other"].map((level) => ({ level: level as "SSC" | "HSC" | "Graduation" | "Other", instituteName: "", year: "" })),
@@ -163,6 +169,8 @@ const createInitialProfile = (): ProfileFormData => ({
     age: "",
     height: "",
     weight: "",
+    bloodGroup: "",
+    complexion: "",
     maritalStatus: "",
     religion: "",
     highestEducation: "",
@@ -201,6 +209,7 @@ const mergeProfileFormData = (
     lastName: profileData?.lastName || onboardingData?.lastName || base.lastName,
     gender: profileData?.gender || onboardingData?.gender || base.gender,
     dateOfBirth: formatDateForInput(profileData?.dateOfBirth || onboardingData?.dateOfBirth),
+    maritalStatusDate: formatDateForInput(profileData?.maritalStatusDate || onboardingData?.maritalStatusDate),
     habitAnswers: {
       ...base.habitAnswers,
       ...(onboardingData?.habitAnswers || {}),
@@ -313,7 +322,7 @@ export default function DashboardProfilePage() {
   React.useEffect(() => {
     async function loadProfessionOptions() {
       try {
-        const response = await fetch(`/api/options/professions?lang=${language === "bn" ? "bn" : "en"}`, { cache: "force-cache" });
+        const response = await fetch(`/api/options/professions?lang=${language === "bn" ? "bn" : "en"}`, { cache: "no-store" });
         const data = await response.json();
         setProfessionOptions(data.options || []);
       } catch {
@@ -678,6 +687,12 @@ export default function DashboardProfilePage() {
                                   <option value="">{text("Select blood group")}</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group} value={group}>{group}</option>)}
                                 </select>
                               </div>
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Complexion")}</label>
+                                <select value={profile.complexion} onChange={(e) => setProfile({ ...profile, complexion: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary">
+                                  <option value="">{text("Select")}</option>{["Fair", "Bright", "Wheatish", "Dusky", "Dark"].map((value) => <option key={value} value={value}>{text(value)}</option>)}
+                                </select>
+                              </div>
                             </div>
 
                             <div className="grid gap-4 lg:grid-cols-3">
@@ -715,6 +730,12 @@ export default function DashboardProfilePage() {
                                   <option value="Awaiting Divorce">{text("Awaiting Divorce")}</option>
                                 </select>
                               </div>
+                              {["Divorced", "Awaiting Divorce"].includes(profile.maritalStatus) ? (
+                                <div className="space-y-1.5">
+                                  <label className="text-sm font-medium text-foreground">{text("Separation/Divorce Date")}</label>
+                                  <DatePicker value={profile.maritalStatusDate} onChange={(maritalStatusDate) => setProfile({ ...profile, maritalStatusDate })} placeholder={text("Select separation/divorce date")} />
+                                </div>
+                              ) : null}
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2">
@@ -1063,7 +1084,7 @@ export default function DashboardProfilePage() {
                             <fieldset className="rounded-xl border border-border bg-muted/20 p-4">
                               <legend className="px-1 text-sm font-medium">{text("Your habits")}</legend>
                               <div className="grid gap-3 sm:grid-cols-2">
-                                {["Exercise", "Reading", "Travel", "Cooking", "Smoking", "Drinking"].map((habit) => (
+                                {["Exercise", "Reading", "Travel", "Cooking"].map((habit) => (
                                   <div className="rounded-lg border border-border bg-background p-3" key={habit}>
                                     <p className="mb-2 text-sm font-medium">{text(habit)}</p>
                                     <div className="flex gap-4 text-sm">
@@ -1135,6 +1156,18 @@ export default function DashboardProfilePage() {
                             </select>
                           </div>
                           <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Blood Group")}</label>
+                            <select value={profile.partnerPreferences.bloodGroup} onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, bloodGroup: e.target.value } })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm">
+                              <option value="">{text("Any")}</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((group) => <option key={group} value={group}>{group}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Complexion")}</label>
+                            <select value={profile.partnerPreferences.complexion} onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, complexion: e.target.value } })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm">
+                              <option value="">{text("Any")}</option>{["Fair", "Bright", "Wheatish", "Dusky", "Dark"].map((value) => <option key={value} value={value}>{text(value)}</option>)}
+                            </select>
+                          </div>
+                          <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Marital Status")}</label>
                             <select
                               value={profile.partnerPreferences.maritalStatus}
@@ -1200,7 +1233,7 @@ export default function DashboardProfilePage() {
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyType: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">{text("Any family type")}</option>
+                              <option value="">{text("Any")}</option>
                               <option value="Joint">{text("Joint")}</option>
                               <option value="Nuclear">{text("Nuclear")}</option>
                             </select>
@@ -1212,7 +1245,7 @@ export default function DashboardProfilePage() {
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyStatus: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">{text("Any family status")}</option>
+                              <option value="">{text("Any")}</option>
                               <option value="Middle Class">{text("Middle Class")}</option>
                               <option value="Upper Middle Class">{text("Upper Middle Class")}</option>
                               <option value="Rich">{text("Rich")}</option>
@@ -1226,7 +1259,7 @@ export default function DashboardProfilePage() {
                               onChange={(e) => setProfile({ ...profile, partnerPreferences: { ...profile.partnerPreferences, familyValues: e.target.value } })}
                               className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                             >
-                              <option value="">{text("Any family values")}</option>
+                              <option value="">{text("Any")}</option>
                               <option value="Orthodox">{text("Orthodox")}</option>
                               <option value="Traditional">{text("Traditional")}</option>
                               <option value="Moderate">{text("Moderate")}</option>

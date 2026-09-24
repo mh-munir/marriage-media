@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest) {
     if (!isSync && step >= 5 && (!Array.isArray(data.educationDetails) || !(data.educationDetails as Record<string, unknown>[]).some((entry) => String(entry.instituteName || "").trim() || String(entry.year || "").trim()))) {
       return NextResponse.json({ error: "Complete at least one education field." }, { status: 400 });
     }
-    const requiredHabits = ["Exercise", "Reading", "Travel", "Cooking", "Smoking", "Drinking"];
+    const requiredHabits = ["Exercise", "Reading", "Travel", "Cooking"];
     if (!isSync && step >= 6 && (!data.habitAnswers || typeof data.habitAnswers !== "object" || requiredHabits.some((habit) => !["Yes", "No"].includes(String((data.habitAnswers as Record<string, unknown>)[habit]))))) {
       return NextResponse.json({ error: "Please answer Yes or No for every habit." }, { status: 400 });
     }

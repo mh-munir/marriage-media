@@ -35,6 +35,18 @@ const DEFAULT_PARTNER_OPTIONS = {
     { value: "90-100 kg", label: "90-100 kg", labelBn: "৯০-১০০ কেজি" },
     { value: "100+ kg", label: "100+ kg", labelBn: "১০০+ কেজি" },
   ],
+  bloodGroup: [
+    ANY_OPTION,
+    ...["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((value) => ({ value, label: value, labelBn: value })),
+  ],
+  complexion: [
+    ANY_OPTION,
+    { value: "Fair", label: "Fair", labelBn: "ফর্সা" },
+    { value: "Bright", label: "Bright", labelBn: "উজ্জ্বল শ্যামলা" },
+    { value: "Wheatish", label: "Wheatish", labelBn: "শ্যামলা" },
+    { value: "Dusky", label: "Dusky", labelBn: "গাঢ় শ্যামলা" },
+    { value: "Dark", label: "Dark", labelBn: "কালো" },
+  ],
   maritalStatus: [
     ANY_OPTION,
     { value: "Never Married", label: "Never Married", labelBn: "অবিবাহিত" },
@@ -98,17 +110,33 @@ export async function GET(request: NextRequest) {
       const category = `partner.${key}`;
       const existing = categories.filter((option) => option.category === category);
       if (existing.length > 0) {
-        seeded[key] = existing.map((item) => ({
-          value: String(item.value),
-          label: lang === "bn" ? String(item.labelBn || item.label) : String(item.label),
-          labelBn: String(item.labelBn || item.label),
-        }));
+        const existingOptions = existing
+          .filter((item) => String(item.value).toLowerCase() !== "any")
+          .map((item) => {
+            const value = String(item.value);
+            const defaultOption = DEFAULT_PARTNER_OPTIONS[key].find((option) => option.value === value);
+            return {
+              value,
+              label: lang === "bn"
+                ? String(defaultOption?.labelBn || item.labelBn || item.label)
+                : String(defaultOption?.label || item.label),
+              labelBn: String(defaultOption?.labelBn || item.labelBn || item.label),
+            };
+          });
+        seeded[key] = [
+          {
+            value: ANY_OPTION.value,
+            label: lang === "bn" ? ANY_OPTION.labelBn : ANY_OPTION.label,
+            labelBn: ANY_OPTION.labelBn,
+          },
+          ...existingOptions,
+        ];
         continue;
       }
 
       const defaults = DEFAULT_PARTNER_OPTIONS[key];
       await LookupOption.insertMany(
-        defaults.map((option, index) => ({
+        defaults.filter((option) => option.value).map((option, index) => ({
           category,
           value: option.value,
           label: option.label,

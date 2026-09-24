@@ -72,8 +72,6 @@ const habitOptions = [
   "Reading",
   "Travel",
   "Cooking",
-  "Smoking",
-  "Drinking",
 ];
 const partnerHeightRanges = [
   "4'10\"-5'0\"",
@@ -120,9 +118,12 @@ const blank: D = {
   dateOfBirth: "",
   height: "",
   bloodGroup: "",
+  complexion: "",
   maritalStatus: "Never Married",
+  maritalStatusDate: "",
   childrenCount: "",
   religion: "Islam",
+  institution: "",
   motherTongue: "Bengali",
   whatsappNumber: "",
   email: "",
@@ -178,6 +179,8 @@ const blank: D = {
     familyType: "",
     familyStatus: "",
     familyValues: "",
+    bloodGroup: "",
+    complexion: "",
   },
   familyAwareOfBiodata: "",
   informationAccurate: "",
@@ -190,7 +193,8 @@ export default function OnboardingPage() {
     [step, setStep] = React.useState(1),
     [busy, setBusy] = React.useState(true),
     [deletingPhotoId, setDeletingPhotoId] = React.useState<string | null>(null),
-    [error, setError] = React.useState("");
+    [error, setError] = React.useState(""),
+    [missingFields, setMissingFields] = React.useState<string[]>([]);
   const { language, translateText: text } = useLanguage();
   const [professionOptions, setProfessionOptions] = React.useState<Array<{ value: string; label: string }>>([]);
   const emptyLocations = {
@@ -279,7 +283,7 @@ export default function OnboardingPage() {
   React.useEffect(() => {
     async function loadProfessionOptions() {
       try {
-        const response = await fetch(`/api/options/professions?lang=${language === "bn" ? "bn" : "en"}`, { cache: "force-cache" });
+        const response = await fetch(`/api/options/professions?lang=${language === "bn" ? "bn" : "en"}`, { cache: "no-store" });
         const data = await response.json();
         setProfessionOptions(data.options || []);
       } catch {
@@ -352,7 +356,12 @@ export default function OnboardingPage() {
         "permanent",
       );
   }, [permanentDivision, permanentDistrict, permanentThana]);
-  const put = (k: string, v: any) => setData((x) => ({ ...x, [k]: v }));
+  const put = (k: string, v: any) => {
+    setData((x) => ({ ...x, [k]: v }));
+    setMissingFields((fields) => fields.filter((field) => field !== k && !field.startsWith(`${k}.`) && !(k === "permanentLocation" && field.startsWith("permanent."))));
+  };
+  const fieldError = (k: string) =>
+    missingFields.includes(k) ? text("This field is required") : undefined;
   const readField = (k: string) =>
     k.startsWith("partnerPreferences.")
       ? data.partnerPreferences[k.slice(19)]
@@ -375,6 +384,7 @@ export default function OnboardingPage() {
             ? translateLocationLabel(data[k] || "", language)
             : data[k] || ""
       }
+      error={fieldError(k)}
       onChange={(e) =>
         put(
           k,
@@ -400,6 +410,7 @@ export default function OnboardingPage() {
       pattern="01[3-9][0-9]{8}"
       maxLength={11}
       value={data[k] || ""}
+      error={fieldError(k)}
       onChange={(e) => put(k, e.target.value.replace(/\D/g, "").slice(0, 11))}
       required
     />
@@ -426,6 +437,7 @@ export default function OnboardingPage() {
           </option>
         ))}
       </select>
+      {fieldError(k) ? <p className="mt-1 text-xs text-destructive">{fieldError(k)}</p> : null}
     </label>
   );
   const dynamicSelect = (
@@ -435,6 +447,7 @@ export default function OnboardingPage() {
     includeAny: boolean = true,
   ) => {
     const options = partnerOptionMap[category] || [];
+    const hasAnyOption = options.some((option) => option.value === "");
     return (
       <label className="text-sm font-medium">
         {text(label)}
@@ -443,7 +456,8 @@ export default function OnboardingPage() {
           value={readField(k)}
           onChange={(e) => writeField(k, e.target.value)}
         >
-          {includeAny ? <option value="">{language === "bn" ? "যেকোনো" : "Any"}</option> : <option value="">{text("Select")}</option>}
+          {includeAny && !hasAnyOption ? <option value="">{language === "bn" ? "যেকোনো" : "Any"}</option> : null}
+          {!includeAny ? <option value="">{text("Select")}</option> : null}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -473,21 +487,52 @@ export default function OnboardingPage() {
   const setSiblingField = (
     relation: "Brother" | "Sister",
     index: number,
-    field: "name" | "profession",
+    fieldName: "name" | "profession",
     value: string,
   ) => {
     let seen = 0;
+    setMissingFields((fields) => fields.filter((field) => field !== `sibling.${relation}.${index}.${fieldName}`));
     put(
       "siblings",
       siblings.map((s: any) => {
         if (s.relation !== relation) return s;
-        const updated = seen === index ? { ...s, [field]: value } : s;
+        const updated = seen === index ? { ...s, [fieldName]: value } : s;
         seen++;
         return updated;
       }),
     );
   };
   const invalid = () => {
+    const fieldLabels: Record<string, string> = {
+      firstName: "First Name",
+      lastName: "Last Name",
+      gender: "Gender",
+      dateOfBirth: "Date of Birth",
+      height: "Height",
+      bloodGroup: "Blood Group",
+      complexion: "Complexion",
+      maritalStatus: "Marital Status",
+      religion: "Religion",
+      profession: "Profession",
+      institution: "Institution/Organization Name",
+      motherTongue: "Mother Tongue",
+      whatsappNumber: "WhatsApp/Imo Number",
+      guardianRelation: "Guardian",
+      guardianName: "Guardian Name",
+      guardianMobileNumber: "Guardian Mobile Number",
+      fatherName: "Father Name",
+      fatherProfession: "Father's Profession",
+      motherName: "Mother Name",
+      motherProfession: "Mother's Profession",
+      country: "Country",
+      division: "Division",
+      district: "District",
+      thana: "Thana",
+      union: "Union",
+      area: "Area",
+      maritalStatusDate: "Separation/Divorce Date",
+      aboutYourself: "About Yourself",
+    };
     const need: Record<number, string[]> = {
       1: [
         "firstName",
@@ -495,8 +540,12 @@ export default function OnboardingPage() {
         "gender",
         "dateOfBirth",
         "height",
+        "bloodGroup",
+        "complexion",
         "maritalStatus",
         "religion",
+        "profession",
+        "institution",
         "motherTongue",
         "whatsappNumber",
       ],
@@ -505,13 +554,28 @@ export default function OnboardingPage() {
         "guardianName",
         "guardianMobileNumber",
         "fatherName",
+        "fatherProfession",
         "motherName",
+        "motherProfession",
       ],
       3: ["country", "division", "district", "thana", "union", "area"],
       8: ["familyAwareOfBiodata", "informationAccurate", "truthDeclaration"],
     };
-    if (need[step]?.some((k) => !data[k]))
-      return text("Please complete all required fields in this step.");
+    const missingFields = (need[step] || []).filter((k) => !String(data[k] || "").trim());
+    if (step === 2) {
+      siblings.forEach((sibling: any, index: number) => {
+        if (!String(sibling.name || "").trim()) missingFields.push(`sibling.${sibling.relation}.${index}.name`);
+        if (!String(sibling.profession || "").trim()) missingFields.push(`sibling.${sibling.relation}.${index}.profession`);
+      });
+    }
+    if (step === 1 && ["Divorced", "Awaiting Divorce"].includes(data.maritalStatus) && !String(data.maritalStatusDate || "").trim()) {
+      missingFields.push("maritalStatusDate");
+    }
+    if (step === 5 && !String(data.aboutYourself || "").trim()) missingFields.push("aboutYourself");
+    if (missingFields.length) {
+      setMissingFields(missingFields);
+      return `${text("Please complete these fields")}: ${missingFields.map((field) => text(fieldLabels[field] || field)).join(", ")}`;
+    }
     if (
       step === 1 &&
       data.maritalStatus !== "Never Married" &&
@@ -520,17 +584,25 @@ export default function OnboardingPage() {
       return text("Please enter the number of children.");
     if (step === 1 && !/^\+88\d{11}$/.test(data.whatsappNumber))
       return text("WhatsApp/Imo number must be exactly 11 digits.");
-    if (
-      (step === 3 && !data.permanentLocation?.country) ||
-      (step === 3 && !data.permanentLocation?.division) ||
-      (step === 3 && !data.permanentLocation?.district) ||
-      (step === 3 && !data.permanentLocation?.thana) ||
-      (step === 3 && !data.permanentLocation?.union) ||
-      (step === 3 && !data.permanentLocation?.area)
-    )
-      return text("Please complete all location fields.");
-    if (step === 2 && !/^01[3-9][0-9]{8}$/.test(data.guardianMobileNumber))
+    if (step === 3) {
+      const missingPermanentFields = ["country", "division", "district", "thana", "union", "area"]
+        .filter((field) => !String(data.permanentLocation?.[field] || "").trim());
+      if (missingPermanentFields.length) {
+        const permanentKeys = missingPermanentFields.map((field) => `permanent.${field}`);
+        setMissingFields(permanentKeys);
+        return `${text("Please complete these fields")}: ${text("Permanent Address")}, ${missingPermanentFields.map((field) => text(fieldLabels[field])).join(", ")}`;
+      }
+    }
+    if (step === 2 && !/^01[3-9][0-9]{8}$/.test(data.guardianMobileNumber)) {
+      setMissingFields((fields) => [...new Set([...fields, "guardianMobileNumber"])]);
       return text("Enter an 11-digit guardian mobile number.");
+    }
+    if (
+      step === 2 &&
+      siblings.length > 0 &&
+      siblings.some((sibling: any) => !String(sibling.name || "").trim() || !String(sibling.profession || "").trim())
+    )
+      return text("Please complete every sibling field.");
     if (
       step === 4 &&
       !data.educationDetails.some(
@@ -542,8 +614,12 @@ export default function OnboardingPage() {
       return text("Complete at least one education field.");
     if (step === 5 && habitOptions.some((habit) => !data.habitAnswers?.[habit]))
       return text("Please answer Yes or No for every habit.");
-    if (step === 6 && data.photos.length < 1)
+    if (step === 5 && !String(data.aboutYourself || "").trim())
+      return text("Please write something about yourself.");
+    if (step === 6 && data.photos.length < 1) {
+      setMissingFields(["photos"]);
       return text("Upload at least one photo.");
+    }
     if (
       step === 7 &&
       requiredPartnerFields
@@ -566,7 +642,6 @@ export default function OnboardingPage() {
       );
       const sanitizedData = { ...data } as D;
       delete sanitizedData.highestEducation;
-      delete sanitizedData.profession;
 
       await apiClient.patch("/api/auth/onboarding", {
         data: sanitizedData,
@@ -584,8 +659,6 @@ export default function OnboardingPage() {
           familyValues: "Moderate",
           languages: [data.motherTongue],
           diet: "No Preference",
-          smoke: data.habitAnswers.Smoking,
-          drink: data.habitAnswers.Drinking,
           hobbies: selectedHabits,
         };
         const existingProfile = await apiClient.get<{ profile?: unknown }>(
@@ -749,6 +822,7 @@ export default function OnboardingPage() {
                       onChange={(value) => put("dateOfBirth", value)}
                       placeholder={text("Select date of birth")}
                     />
+                    {fieldError("dateOfBirth") ? <p className="mt-1 text-xs text-destructive">{fieldError("dateOfBirth")}</p> : null}
                   </div>
                 </label>
                 {select("Blood Group", "bloodGroup", [
@@ -757,10 +831,11 @@ export default function OnboardingPage() {
                   "B+",
                   "B-",
                   "AB+",
-                  "AB- ",
+                  "AB-",
                   "O+",
                   "O-",
                 ])}
+                {select("Complexion", "complexion", ["Fair", "Bright", "Wheatish", "Dusky", "Dark"])}
                 {select("Height", "height", [...HEIGHTS], heightLabels)}
                 {select("Marital Status", "maritalStatus", [
                   "Never Married",
@@ -770,17 +845,28 @@ export default function OnboardingPage() {
                   "Awaiting Divorce",
                 ])}
                 {data.maritalStatus !== "Never Married" ? (
-                  <Input
-                    label={text("Number of Children")}
-                    type="text"
-                    inputMode="numeric"
-                    value={String(data.childrenCount || "")}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, "");
-                      put("childrenCount", value === "" ? "" : String(Math.min(20, Number.parseInt(value, 10) || 0)));
-                    }}
-                    required
-                  />
+                  <>
+                    <Input
+                      label={text("Number of Children")}
+                      type="text"
+                      inputMode="numeric"
+                      value={String(data.childrenCount || "")}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        put("childrenCount", value === "" ? "" : String(Math.min(20, Number.parseInt(value, 10) || 0)));
+                      }}
+                      required
+                    />
+                    {["Divorced", "Awaiting Divorce"].includes(data.maritalStatus) ? (
+                      <label className="text-sm font-medium">
+                        {text("Separation/Divorce Date")}
+                        <div className="mt-1">
+                          <DatePicker value={data.maritalStatusDate} onChange={(value) => put("maritalStatusDate", value)} placeholder={text("Select separation/divorce date")} />
+                          {fieldError("maritalStatusDate") ? <p className="mt-1 text-xs text-destructive">{fieldError("maritalStatusDate")}</p> : null}
+                        </div>
+                      </label>
+                    ) : null}
+                  </>
                 ) : null}
                 {select("Religion", "religion", [...RELIGIONS])}
                 <label className="text-sm font-medium">
@@ -798,6 +884,7 @@ export default function OnboardingPage() {
                     ))}
                   </select>
                 </label>
+                {input("Institution/Organization Name", "institution")}
                 {input("Mother Tongue", "motherTongue")}
               </div>
             )}
@@ -852,6 +939,7 @@ export default function OnboardingPage() {
                         >
                           <Input
                             label={`${index + 1}. ${text("Brother")} ${text("Name")}`}
+                            error={fieldError(`sibling.Brother.${index}.name`)}
                             value={
                               siblings.filter(
                                 (s: any) => s.relation === "Brother",
@@ -868,6 +956,7 @@ export default function OnboardingPage() {
                           />
                           <Input
                             label={text("Profession / Occupation")}
+                            error={fieldError(`sibling.Brother.${index}.profession`)}
                             placeholder={text(
                               "Example: Student, Business, Service",
                             )}
@@ -923,6 +1012,7 @@ export default function OnboardingPage() {
                         >
                           <Input
                             label={`${index + 1}. ${text("Sister")} ${text("Name")}`}
+                            error={fieldError(`sibling.Sister.${index}.name`)}
                             value={
                               siblings.filter(
                                 (s: any) => s.relation === "Sister",
@@ -939,6 +1029,7 @@ export default function OnboardingPage() {
                           />
                           <Input
                             label={text("Profession / Occupation")}
+                            error={fieldError(`sibling.Sister.${index}.profession`)}
                             placeholder={text(
                               "Example: Student, Business, Service",
                             )}
@@ -985,6 +1076,7 @@ export default function OnboardingPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Input
                       label={text("Country")}
+                      error={fieldError("permanent.country")}
                       value={
                         language === "bn"
                           ? translateLocationLabel(
@@ -1025,6 +1117,7 @@ export default function OnboardingPage() {
                           </option>
                         ))}
                       </select>
+                      {fieldError("permanent.division") ? <p className="mt-1 text-xs text-destructive">{fieldError("permanent.division")}</p> : null}
                     </label>
                     <label className="text-sm font-medium">
                       {text("District")}
@@ -1047,6 +1140,7 @@ export default function OnboardingPage() {
                           </option>
                         ))}
                       </select>
+                      {fieldError("permanent.district") ? <p className="mt-1 text-xs text-destructive">{fieldError("permanent.district")}</p> : null}
                     </label>
                     <label className="text-sm font-medium">
                       {text("Thana")}
@@ -1068,6 +1162,7 @@ export default function OnboardingPage() {
                           </option>
                         ))}
                       </select>
+                      {fieldError("permanent.thana") ? <p className="mt-1 text-xs text-destructive">{fieldError("permanent.thana")}</p> : null}
                     </label>
                     <label className="text-sm font-medium">
                       {text("Union")}
@@ -1088,9 +1183,11 @@ export default function OnboardingPage() {
                           </option>
                         ))}
                       </select>
+                      {fieldError("permanent.union") ? <p className="mt-1 text-xs text-destructive">{fieldError("permanent.union")}</p> : null}
                     </label>
                     <Input
                       label={text("Area")}
+                      error={fieldError("permanent.area")}
                       value={data.permanentLocation.area}
                       onChange={(e) =>
                         put("permanentLocation", {
@@ -1146,6 +1243,7 @@ export default function OnboardingPage() {
                   value={data.aboutYourself}
                   onChange={(e) => put("aboutYourself", e.target.value)}
                 />
+                {fieldError("aboutYourself") ? <p className="text-xs text-destructive">{fieldError("aboutYourself")}</p> : null}
                 <fieldset>
                   <legend className="mb-3 text-sm font-semibold">
                     {text("Your habits")}
@@ -1203,6 +1301,7 @@ export default function OnboardingPage() {
                     onChange={(e) => upload(e.target.files?.[0])}
                   />
                 </label>
+                {missingFields.includes("photos") ? <p className="mt-1 text-xs text-destructive">{text("At least one photo is required")}</p> : null}
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {data.photos.map((p: any) => (
                     <div
@@ -1234,6 +1333,8 @@ export default function OnboardingPage() {
                 {dynamicSelect("Age", "partnerPreferences.age", "age")}
                 {dynamicSelect("Height", "partnerPreferences.height", "height")}
                 {dynamicSelect("Weight", "partnerPreferences.weight", "weight")}
+                {dynamicSelect("Blood Group", "partnerPreferences.bloodGroup", "bloodGroup")}
+                {dynamicSelect("Complexion", "partnerPreferences.complexion", "complexion")}
                 {dynamicSelect("Marital Status", "partnerPreferences.maritalStatus", "maritalStatus")}
                 {dynamicSelect("Religion", "partnerPreferences.religion", "religion")}
                 {dynamicSelect("Highest Education", "partnerPreferences.highestEducation", "highestEducation")}
@@ -1274,23 +1375,9 @@ export default function OnboardingPage() {
                   }
                   required
                 />
-                {select("Family Type", "partnerPreferences.familyType", [
-                  "Joint",
-                  "Nuclear",
-                ])}
-                {select("Family Status", "partnerPreferences.familyStatus", [
-                  "Middle Class",
-                  "Upper Middle Class",
-                  "Rich",
-                  "Affluent",
-                ])}
-                {select("Family Values", "partnerPreferences.familyValues", [
-                  "Orthodox",
-                  "Traditional",
-                  "Moderate",
-                  "Liberal",
-                  "Secular",
-                ])}
+                {dynamicSelect("Family Type", "partnerPreferences.familyType", "familyType")}
+                {dynamicSelect("Family Status", "partnerPreferences.familyStatus", "familyStatus")}
+                {dynamicSelect("Family Values", "partnerPreferences.familyValues", "familyValues")}
               </div>
             )}
             {step === 8 && (

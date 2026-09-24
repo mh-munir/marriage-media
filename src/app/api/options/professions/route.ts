@@ -27,6 +27,9 @@ const DEFAULT_PROFESSIONS = [
   { value: "Other", label: "Other", labelBn: "অন্যান্য" },
 ] as const;
 
+const normalizeProfessionText = (value: unknown) =>
+  String(value || "").normalize("NFKC").replace(/[়]/g, "").replace(/\s+/g, "").toLowerCase();
+
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
@@ -53,10 +56,25 @@ export async function GET(request: NextRequest) {
     const options = (await LookupOption.find({ category: "profession", isActive: true })
       .sort({ sortOrder: 1, label: 1 })
       .lean())
-      .map((item) => ({
-        value: item.value,
-        label: lang === "bn" ? item.labelBn || item.label : item.label,
-      }));
+      .map((item) => {
+        const defaultProfession = DEFAULT_PROFESSIONS.find(
+          (profession) =>
+            profession.value === item.value ||
+            profession.label === item.label ||
+            profession.labelBn === item.label ||
+            profession.labelBn === item.labelBn ||
+            normalizeProfessionText(profession.labelBn) === normalizeProfessionText(item.value) ||
+            normalizeProfessionText(profession.labelBn) === normalizeProfessionText(item.label) ||
+            normalizeProfessionText(profession.labelBn) === normalizeProfessionText(item.labelBn),
+        );
+        return {
+          value: defaultProfession?.value || item.value,
+          label: lang === "bn"
+            ? defaultProfession?.labelBn || item.labelBn || item.label
+            : defaultProfession?.label || item.label,
+        };
+      })
+      .filter((option, index, optionsList) => optionsList.findIndex((candidate) => candidate.value === option.value) === index);
 
     return NextResponse.json({ options });
   } catch (error) {

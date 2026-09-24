@@ -336,10 +336,10 @@ const biodataText: Record<string, string> = {
   "Institute Name": "প্রতিষ্ঠানের নাম",
   "Year": "বছর",
   "Your habits": "আপনার অভ্যাস",
-  "Exercise": "ব্যায়াম",
-  "Reading": "বই পড়া",
-  "Travel": "ভ্রমণ",
-  "Cooking": "রান্না",
+  "Exercise": "আপনি কি নিয়মিত নামাজ পড়েন?",
+  "Reading": "আপনি কি ইসলামিক বই পড়েন?",
+  "Travel": "আপনি কি হালাল-হারাম মেনে চলেন?",
+  "Cooking": "আপনি কি মাহরাম এবং গায়রে মাহরাম মেনে চলেন?",
   "Smoking": "ধূমপান",
   "Drinking": "মদ্যপান",
   "Please complete all location fields.": "ঠিকানার সব তথ্য পূরণ করুন।",
@@ -355,6 +355,11 @@ const biodataText: Record<string, string> = {
   "Loading...": "লোড হচ্ছে...",
   "Please log in.": "অনুগ্রহ করে লগইন করুন।",
   "Please complete all required fields in this step.": "এই ধাপের সব বাধ্যতামূলক তথ্য পূরণ করুন।",
+  "Please complete these fields": "এই তথ্যগুলো পূরণ করুন",
+  "This field is required": "এই তথ্যটি আবশ্যক",
+  "At least one photo is required": "কমপক্ষে একটি ছবি আপলোড করা আবশ্যক",
+  "Please complete every sibling field.": "ভাই-বোনের প্রতিটি তথ্য পূরণ করুন।",
+  "Please write something about yourself.": "নিজের সম্পর্কে কিছু লিখুন।",
   "Permanent Address Division and District are required.": "স্থায়ী ঠিকানার বিভাগ ও জেলা নির্বাচন করুন।",
   "Enter an 11-digit guardian mobile number.": "অভিভাবকের ১১ সংখ্যার মোবাইল নম্বর দিন।",
   "Upload at least one photo.": "কমপক্ষে একটি ছবি আপলোড করুন।",
@@ -461,7 +466,17 @@ const biodataText: Record<string, string> = {
   "Languages": "ভাষা",
   "Nationality": "জাতীয়তা",
   "Blood Group": "রক্তের গ্রুপ",
+  "Complexion": "গায়ের রং",
+  "Fair": "ফর্সা",
+  "Bright": "উজ্জ্বল শ্যামলা",
+  "Wheatish": "শ্যামলা",
+  "Dusky": "গাঢ় শ্যামলা",
+  "Dark": "কালো",
+  "Separation/Divorce Date": "বিচ্ছেদ/তালাকের তারিখ",
+  "Select separation/divorce date": "বিচ্ছেদ/তালাকের তারিখ নির্বাচন করুন",
+  "Institution/Organization Name": "প্রতিষ্ঠান/সংস্থার নাম",
   "Select blood group": "রক্তের গ্রুপ নির্বাচন করুন",
+  "Any": "যেকোনো",
   "Email": "ইমেইল",
   "Contact Number": "কন্টাক্ট নম্বর",
   "Working With": "যে প্রতিষ্ঠানে কাজ করছেন",
@@ -747,6 +762,13 @@ const biodataText: Record<string, string> = {
   "বাড়ি/গ্রাম/রোডসহ বর্তমান ঠিকানা": "Present address including house/village/road",
 };
 
+const englishHabitText: Record<string, string> = {
+  Exercise: "Do you pray regularly?",
+  Reading: "Do you read Islamic books?",
+  Travel: "Do you follow halal and haram?",
+  Cooking: "Do you observe mahram and non-mahram boundaries?",
+};
+
 const LanguageContext = React.createContext<LanguageContextValue | undefined>(undefined);
 
 export function LanguageProvider({ children, forcedLanguage }: { children: React.ReactNode; forcedLanguage?: Language }) {
@@ -845,6 +867,7 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
       t: (key: TranslationKey) => translations[resolvedLanguage][key],
       translateText: (text: string) => {
         if (resolvedLanguage === "bn") return biodataText[text] || text;
+        if (englishHabitText[text]) return englishHabitText[text];
         const englishText = Object.entries(biodataText).find(([, bengali]) => bengali === text)?.[0];
         return englishText || text;
       },

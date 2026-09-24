@@ -14,7 +14,9 @@ export interface IProfile extends Document {
   height: string;
   weight: string;
   bloodGroup?: string;
+  complexion?: string;
   maritalStatus: "Never Married" | "Married" | "Divorced" | "Widowed" | "Awaiting Divorce";
+  maritalStatusDate?: Date;
   childrenCount?: number;
   profileCreatedBy: "Self" | "Parent" | "Sibling" | "Relative" | "Friend";
 
@@ -189,11 +191,13 @@ const ProfileSchema = new Schema<IProfile>(
       enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", ""],
       default: "",
     },
+    complexion: { type: String, default: "" },
     maritalStatus: {
       type: String,
       enum: ["Never Married", "Married", "Divorced", "Widowed", "Awaiting Divorce"],
       required: [true, "Marital status is required"],
     },
+    maritalStatusDate: { type: Date },
     childrenCount: { type: Number, min: 0, max: 20, default: 0 },
     profileCreatedBy: {
       type: String,
@@ -287,6 +291,8 @@ const ProfileSchema = new Schema<IProfile>(
       height: { type: String, default: "" },
       weight: { type: String, default: "" },
       maritalStatus: { type: String, default: "" },
+      bloodGroup: { type: String, default: "" },
+      complexion: { type: String, default: "" },
       religion: { type: String, default: "" },
       highestEducation: { type: String, default: "" },
       annualIncome: { type: String, default: "" },

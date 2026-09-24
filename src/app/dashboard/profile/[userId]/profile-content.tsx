@@ -24,7 +24,9 @@ type PublicProfile = {
   height: string;
   weight: string;
   bloodGroup?: string;
+  complexion?: string;
   maritalStatus: string;
+  maritalStatusDate?: string;
   childrenCount?: number;
   profileCreatedBy: string;
   religion: string;
@@ -91,6 +93,8 @@ type PublicProfile = {
     familyType?: string;
     familyStatus?: string;
     familyValues?: string;
+    bloodGroup?: string;
+    complexion?: string;
   };
   photos: PublicPhoto[];
   isPremium: boolean;
@@ -273,6 +277,8 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Height" value={profile.height} />
                 <Detail label="Weight" value={profile.weight} />
                 <Detail label="Blood Group" value={profile.bloodGroup} />
+                <Detail label="Complexion" value={profile.complexion} />
+                <Detail label="Separation/Divorce Date" value={profile.maritalStatusDate ? new Date(profile.maritalStatusDate).toLocaleDateString() : undefined} />
               </DetailsCard>
               <DetailsCard title={translateText("Contact Details")}>
                 <Detail label="Email" value={currentUserIsPremium ? profile.email : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
@@ -345,14 +351,18 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Diet" value={profile.diet} />
                 <Detail label="Smoking" value={profile.smoke} />
                 <Detail label="Drinking" value={profile.drink} />
-                <Detail label="Hobbies" value={profile.hobbies?.join(", ")} />
-                {Object.entries(profile.habitAnswers || {}).map(([habit, answer]) => <Detail key={habit} label={habit} value={answer} />)}
+                <Detail label="Hobbies" value={profile.hobbies?.map((hobby) => translateText(hobby)).join(", ")} />
+                {["Exercise", "Reading", "Travel", "Cooking"].map((habit) => (
+                  <Detail key={habit} label={translateText(habit)} value={profile.habitAnswers?.[habit]} />
+                ))}
               </DetailsCard>
               <DetailsCard title={translateText("Expected Partner")}>
                 <Detail label="Preference" value={profile.partnerPreference} />
                 <Detail label="Age" value={profile.partnerPreferences?.age} />
                 <Detail label="Height" value={profile.partnerPreferences?.height} />
                 <Detail label="Weight" value={profile.partnerPreferences?.weight} />
+                <Detail label="Blood Group" value={profile.partnerPreferences?.bloodGroup} />
+                <Detail label="Complexion" value={profile.partnerPreferences?.complexion} />
                 <Detail label="Marital Status" value={profile.partnerPreferences?.maritalStatus} />
                 <Detail label="Religion" value={profile.partnerPreferences?.religion} />
                 <Detail label="Highest Education" value={profile.partnerPreferences?.highestEducation} />

@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { bn } from "date-fns/locale";
 import { CalendarDays } from "lucide-react";
@@ -23,13 +24,14 @@ interface DatePickerProps {
 
 export function DatePicker({ value, onChange, placeholder = "Pick a date", disabled }: DatePickerProps) {
   const { language } = useLanguage();
+  const [open, setOpen] = React.useState(false);
   const calendarLocale = language === "bn" ? bn : undefined;
   const selectedDate = value ? parseISO(value) : undefined;
   const validDate = selectedDate && isValid(selectedDate) ? selectedDate : undefined;
   const currentYear = new Date().getFullYear();
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -52,7 +54,10 @@ export function DatePicker({ value, onChange, placeholder = "Pick a date", disab
         <Calendar
           mode="single"
           selected={validDate}
-          onSelect={(date) => onChange(date ? format(date, "yyyy-MM-dd") : "")}
+          onSelect={(date) => {
+            onChange(date ? format(date, "yyyy-MM-dd") : "");
+            if (date) setOpen(false);
+          }}
           disabled={{ after: new Date() }}
           defaultMonth={validDate}
           locale={calendarLocale}
