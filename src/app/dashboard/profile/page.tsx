@@ -56,6 +56,7 @@ interface ProfileFormData {
   union: string;
   area: string;
   profession: string;
+  institution: string;
   annualIncome: string;
   familyType: string;
   familyStatus: string;
@@ -77,6 +78,8 @@ interface ProfileFormData {
   presentAddress: string;
   bloodGroup: string;
   complexion: string;
+  hasMajorHealthIssue: string;
+  majorHealthIssueDetails: string;
   maritalStatusDate: string;
   permanentLocation: { country: string; division: string; district: string; thana: string; union: string; area: string };
   aboutYourself: string;
@@ -134,6 +137,7 @@ const createInitialProfile = (): ProfileFormData => ({
   union: "",
   area: "",
   profession: PROFESSIONS[0],
+  institution: "",
   annualIncome: INCOME_RANGES[0],
   familyType: "Nuclear",
   familyStatus: "Middle Class",
@@ -155,6 +159,8 @@ const createInitialProfile = (): ProfileFormData => ({
   presentAddress: "",
   bloodGroup: "",
   complexion: "",
+  hasMajorHealthIssue: "",
+  majorHealthIssueDetails: "",
   maritalStatusDate: "",
   permanentLocation: { country: "Bangladesh", division: "", district: "", thana: "", union: "", area: "" },
   aboutYourself: "",
@@ -209,6 +215,10 @@ const mergeProfileFormData = (
     lastName: profileData?.lastName || onboardingData?.lastName || base.lastName,
     gender: profileData?.gender || onboardingData?.gender || base.gender,
     dateOfBirth: formatDateForInput(profileData?.dateOfBirth || onboardingData?.dateOfBirth),
+    profession: profileData?.profession || onboardingData?.profession || base.profession,
+    institution: profileData?.institution || onboardingData?.institution || base.institution,
+    hasMajorHealthIssue: profileData?.hasMajorHealthIssue || onboardingData?.hasMajorHealthIssue || base.hasMajorHealthIssue,
+    majorHealthIssueDetails: profileData?.majorHealthIssueDetails || onboardingData?.majorHealthIssueDetails || base.majorHealthIssueDetails,
     maritalStatusDate: formatDateForInput(profileData?.maritalStatusDate || onboardingData?.maritalStatusDate),
     habitAnswers: {
       ...base.habitAnswers,
@@ -469,6 +479,9 @@ export default function DashboardProfilePage() {
       { value: profile.gender, label: "Gender" },
       { value: profile.dateOfBirth, label: "Date of Birth" },
       { value: profile.height, label: "Height" },
+      { value: profile.bloodGroup, label: "Blood Group" },
+      { value: profile.complexion, label: "Complexion" },
+      { value: profile.hasMajorHealthIssue, label: "Health condition answer" },
       { value: profile.maritalStatus, label: "Marital Status" },
       { value: profile.religion, label: "Religion" },
       { value: profile.motherTongue, label: "Mother Tongue" },
@@ -480,10 +493,14 @@ export default function DashboardProfilePage() {
       .filter(({ value }) => !String(value || "").trim())
       .map(({ label }) => label);
 
+    if (profile.hasMajorHealthIssue === "Yes" && !profile.majorHealthIssueDetails.trim()) {
+      missingFields.push("Physical problem or major illness details");
+    }
+
     if (!Object.values(profile.partnerPreferences).some((value) => String(value || "").trim())) {
       missingFields.push("At least one Expected Partner preference");
     }
-    if (profile.photos.length < 2) missingFields.push("At least 2 profile photos");
+    if (profile.photos.length < 1) missingFields.push("At least 1 profile photo");
     return missingFields;
   };
 
@@ -692,6 +709,18 @@ export default function DashboardProfilePage() {
                                 <select value={profile.complexion} onChange={(e) => setProfile({ ...profile, complexion: e.target.value })} className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm shadow-sm transition focus:border-primary">
                                   <option value="">{text("Select")}</option>{["Fair", "Bright", "Wheatish", "Dusky", "Dark"].map((value) => <option key={value} value={value}>{text(value)}</option>)}
                                 </select>
+                              </div>
+                              <div className="md:col-span-2">
+                                <p className="mb-2 text-sm font-medium text-foreground">{text("Do you have any physical problem or major illness?")}</p>
+                                <div className="flex gap-5 text-sm">
+                                  {["Yes", "No"].map((answer) => (
+                                    <label className="flex items-center gap-1" key={answer}>
+                                      <input type="radio" name="profile-health-condition" checked={profile.hasMajorHealthIssue === answer} onChange={() => setProfile({ ...profile, hasMajorHealthIssue: answer, majorHealthIssueDetails: answer === "No" ? "" : profile.majorHealthIssueDetails })} />
+                                      {text(answer)}
+                                    </label>
+                                  ))}
+                                </div>
+                                {profile.hasMajorHealthIssue === "Yes" ? <Input label={text("Please specify the physical problem or illness")} value={profile.majorHealthIssueDetails} onChange={(e) => setProfile({ ...profile, majorHealthIssueDetails: e.target.value })} /> : null}
                               </div>
                             </div>
 
@@ -1051,6 +1080,11 @@ export default function DashboardProfilePage() {
                                 {profile.profession || text("Not added")}
                               </p>
                             </div>
+                            <Input
+                              label={text("Institution/Organization Name")}
+                              value={profile.institution}
+                              onChange={(e) => setProfile({ ...profile, institution: e.target.value })}
+                            />
 
                             <div>
                               <label className="mb-1.5 block text-sm font-medium text-foreground">{text("Annual Income")}</label>

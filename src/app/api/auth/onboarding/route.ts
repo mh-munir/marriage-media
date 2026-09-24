@@ -3,13 +3,22 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
-import { User } from "@/models";
+import { Profile, User } from "@/models";
 
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     const user = await requireAuth(request);
-    return NextResponse.json({ data: user.onboardingData || {}, step: user.onboardingStep || 1, completed: user.onboardingCompleted });
+    const onboardingData = { ...(user.onboardingData || {}) } as Record<string, unknown>;
+    const profile = await Profile.findOne({ userId: user._id })
+      .select("profession institution hasMajorHealthIssue majorHealthIssueDetails")
+      .lean();
+    for (const field of ["profession", "institution", "hasMajorHealthIssue", "majorHealthIssueDetails"]) {
+      if (!String(onboardingData[field] || "").trim() && profile?.[field as keyof typeof profile]) {
+        onboardingData[field] = profile[field as keyof typeof profile];
+      }
+    }
+    return NextResponse.json({ data: onboardingData, step: user.onboardingStep || 1, completed: user.onboardingCompleted });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to load onboarding." }, { status: 401 });
   }

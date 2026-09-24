@@ -15,6 +15,8 @@ export interface IProfile extends Document {
   weight: string;
   bloodGroup?: string;
   complexion?: string;
+  hasMajorHealthIssue: "Yes" | "No";
+  majorHealthIssueDetails?: string;
   maritalStatus: "Never Married" | "Married" | "Divorced" | "Widowed" | "Awaiting Divorce";
   maritalStatusDate?: Date;
   childrenCount?: number;
@@ -192,6 +194,8 @@ const ProfileSchema = new Schema<IProfile>(
       default: "",
     },
     complexion: { type: String, default: "" },
+    hasMajorHealthIssue: { type: String, enum: ["Yes", "No"], required: [true, "Health condition answer is required"] },
+    majorHealthIssueDetails: { type: String, default: "", maxlength: 1000 },
     maritalStatus: {
       type: String,
       enum: ["Never Married", "Married", "Divorced", "Widowed", "Awaiting Divorce"],

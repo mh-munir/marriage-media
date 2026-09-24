@@ -119,6 +119,8 @@ const blank: D = {
   height: "",
   bloodGroup: "",
   complexion: "",
+  hasMajorHealthIssue: "",
+  majorHealthIssueDetails: "",
   maritalStatus: "Never Married",
   maritalStatusDate: "",
   childrenCount: "",
@@ -220,7 +222,6 @@ export default function OnboardingPage() {
       .then((x) => {
         const cleanOnboardingData = { ...(x.data || {}) } as D;
         delete cleanOnboardingData.highestEducation;
-        delete cleanOnboardingData.profession;
 
         setData({
           ...blank,
@@ -511,6 +512,8 @@ export default function OnboardingPage() {
       height: "Height",
       bloodGroup: "Blood Group",
       complexion: "Complexion",
+      hasMajorHealthIssue: "Do you have any physical problem or major illness?",
+      majorHealthIssueDetails: "Please specify the physical problem or illness",
       maritalStatus: "Marital Status",
       religion: "Religion",
       profession: "Profession",
@@ -542,6 +545,7 @@ export default function OnboardingPage() {
         "height",
         "bloodGroup",
         "complexion",
+        "hasMajorHealthIssue",
         "maritalStatus",
         "religion",
         "profession",
@@ -570,6 +574,9 @@ export default function OnboardingPage() {
     }
     if (step === 1 && ["Divorced", "Awaiting Divorce"].includes(data.maritalStatus) && !String(data.maritalStatusDate || "").trim()) {
       missingFields.push("maritalStatusDate");
+    }
+    if (step === 1 && data.hasMajorHealthIssue === "Yes" && !String(data.majorHealthIssueDetails || "").trim()) {
+      missingFields.push("majorHealthIssueDetails");
     }
     if (step === 5 && !String(data.aboutYourself || "").trim()) missingFields.push("aboutYourself");
     if (missingFields.length) {
@@ -886,6 +893,8 @@ export default function OnboardingPage() {
                 </label>
                 {input("Institution/Organization Name", "institution")}
                 {input("Mother Tongue", "motherTongue")}
+                {yn("Do you have any physical problem or major illness?", "hasMajorHealthIssue")}
+                {data.hasMajorHealthIssue === "Yes" ? input("Please specify the physical problem or illness", "majorHealthIssueDetails") : null}
               </div>
             )}
             {step === 2 && (

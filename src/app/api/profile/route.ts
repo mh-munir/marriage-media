@@ -48,6 +48,7 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
     ["height", "Height"],
     ["bloodGroup", "Blood Group"],
     ["complexion", "Complexion"],
+    ["hasMajorHealthIssue", "Health condition answer"],
     ["maritalStatus", "Marital Status"],
     ["religion", "Religion"],
     ["motherTongue", "Mother Tongue"],
@@ -71,6 +72,7 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
   if (!String(permanentLocation?.country || "").trim() || !String(permanentLocation?.thana || "").trim() || !String(permanentLocation?.union || "").trim() || !String(permanentLocation?.area || "").trim()) missingFields.push("Complete Permanent Address");
   if (!Array.isArray(body.educationDetails) || !(body.educationDetails as Record<string, unknown>[]).some((entry) => String(entry.instituteName || "").trim() || String(entry.year || "").trim())) missingFields.push("At least one Education field");
   if (!String(body.aboutYourself || "").trim()) missingFields.push("About Yourself");
+  if (String(body.hasMajorHealthIssue) === "Yes" && !String(body.majorHealthIssueDetails || "").trim()) missingFields.push("Physical problem or major illness details");
   if (Array.isArray(body.siblings) && body.siblings.length > 0 && (body.siblings as Record<string, unknown>[]).some((sibling) => !String(sibling.name || "").trim() || !String(sibling.profession || "").trim())) missingFields.push("Complete sibling details");
   const requiredHabits = ["Exercise", "Reading", "Travel", "Cooking"];
   if (!body.habitAnswers || typeof body.habitAnswers !== "object" || requiredHabits.some((habit) => !["Yes", "No"].includes(String((body.habitAnswers as Record<string, unknown>)[habit])))) missingFields.push("Yes/No answer for every habit");

@@ -476,6 +476,8 @@ const biodataText: Record<string, string> = {
   "Select separation/divorce date": "বিচ্ছেদ/তালাকের তারিখ নির্বাচন করুন",
   "Institution/Organization Name": "প্রতিষ্ঠান/সংস্থার নাম",
   "Select blood group": "রক্তের গ্রুপ নির্বাচন করুন",
+  "Do you have any physical problem or major illness?": "আপনার কোনো শারীরিক সমস্যা/শরীরে কোনো বড় রোগ আছে কি?",
+  "Please specify the physical problem or illness": "কী ধরনের শারীরিক সমস্যা বা বড় রোগ আছে তা উল্লেখ করুন",
   "Any": "যেকোনো",
   "Email": "ইমেইল",
   "Contact Number": "কন্টাক্ট নম্বর",

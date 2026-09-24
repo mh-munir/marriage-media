@@ -25,6 +25,8 @@ type PublicProfile = {
   weight: string;
   bloodGroup?: string;
   complexion?: string;
+  hasMajorHealthIssue?: string;
+  majorHealthIssueDetails?: string;
   maritalStatus: string;
   maritalStatusDate?: string;
   childrenCount?: number;
@@ -278,6 +280,8 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Weight" value={profile.weight} />
                 <Detail label="Blood Group" value={profile.bloodGroup} />
                 <Detail label="Complexion" value={profile.complexion} />
+                <Detail label="Do you have any physical problem or major illness?" value={profile.hasMajorHealthIssue} />
+                {profile.hasMajorHealthIssue === "Yes" ? <Detail label="Please specify the physical problem or illness" value={profile.majorHealthIssueDetails} /> : null}
                 <Detail label="Separation/Divorce Date" value={profile.maritalStatusDate ? new Date(profile.maritalStatusDate).toLocaleDateString() : undefined} />
               </DetailsCard>
               <DetailsCard title={translateText("Contact Details")}>
