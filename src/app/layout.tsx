@@ -9,7 +9,15 @@ const monetagScriptUrl = process.env.NEXT_PUBLIC_MONETAG_SCRIPT_URL;
 
 export async function generateMetadata(): Promise<Metadata> {
   const metadata = await getPageMetadata("home");
-  return { ...metadata, metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000") };
+  return {
+    ...metadata,
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+    icons: {
+      icon: "/api/site-branding/favicon",
+      shortcut: "/api/site-branding/favicon",
+      apple: "/api/site-branding/favicon",
+    },
+  };
 }
 
 export default function RootLayout({
@@ -22,7 +30,6 @@ export default function RootLayout({
       <body>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="icon" href="/api/site-branding/favicon" />
         <ThemeInit />
         <MonetagScript src={monetagScriptUrl} />
         <Providers>{children}</Providers>

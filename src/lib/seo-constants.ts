@@ -1,10 +1,10 @@
 export const SITE_CONFIG = {
-  name: "Marriage Media",
-  title: "Marriage Media - Find Your Perfect Life Partner",
+  name: "Halal Biye Bangladesh",
+  title: "Halal Biye Bangladesh | MetroMonitor",
   description:
-    "Marriage Media is Bangladesh's most trusted matrimony platform. Find your perfect life partner with advanced matching, verified profiles, and AI-powered recommendations.",
+    "Halal Biye Bangladesh by MetroMonitor is Bangladesh's trusted halal matrimony platform. Find your perfect life partner with verified profiles and meaningful matching.",
   shortDescription:
-    "Bangladesh's most trusted matrimony platform. Find your perfect life partner today.",
+    "Bangladesh's trusted halal matrimony platform. Find your perfect life partner today.",
   url: "https://marriagemedia.com",
   ogImage: "https://marriagemedia.com/og-image.png",
   logo: "https://marriagemedia.com/logo.png",
@@ -58,9 +58,9 @@ export interface PageMetadata {
 
 export const PAGE_SEO: Record<string, PageMetadata> = {
   home: {
-    title: "Marriage Media - Find Your Perfect Life Partner",
+    title: "Halal Biye Bangladesh | MetroMonitor",
     description:
-      "Marriage Media is Bangladesh's most trusted matrimony platform. Find your perfect life partner with advanced AI matching, verified profiles, and secure communication. Join 50,000+ singles today.",
+      "Halal Biye Bangladesh by MetroMonitor is Bangladesh's trusted halal matrimony platform. Find your perfect life partner with advanced AI matching, verified profiles, and secure communication.",
     keywords: [
       "matrimony bangladesh",
       "marriage partner bangladesh",
@@ -71,9 +71,9 @@ export const PAGE_SEO: Record<string, PageMetadata> = {
     ],
   },
   about: {
-    title: "About Us - Marriage Media",
+    title: "About Us - Halal Biye Bangladesh",
     description:
-      "Learn about Marriage Media, Bangladesh's most trusted matrimony platform. Discover our mission to bring families together through AI-powered matchmaking and verified profiles.",
+      "Learn about Halal Biye Bangladesh by MetroMonitor, Bangladesh's trusted halal matrimony platform. Discover our mission to bring families together through thoughtful matching and verified profiles.",
     keywords: [
       "about marriage media",
       "matrimony platform bangladesh",
@@ -82,9 +82,9 @@ export const PAGE_SEO: Record<string, PageMetadata> = {
     ],
   },
   pricing: {
-    title: "Pricing Plans - Marriage Media",
+    title: "Pricing Plans - Halal Biye Bangladesh",
     description:
-      "Choose from Free, Premium, and Gold plans at Marriage Media. Get unlimited access to profiles, AI matching, and priority support. Affordable matrimony plans for every budget.",
+      "Choose from Free, Premium, and Gold plans at Halal Biye Bangladesh. Get access to profiles, AI matching, and priority support with affordable plans for every budget.",
     keywords: [
       "matrimony pricing",
       "marriage media plans",
@@ -93,9 +93,9 @@ export const PAGE_SEO: Record<string, PageMetadata> = {
     ],
   },
   contact: {
-    title: "Contact Us - Marriage Media",
+    title: "Contact Us - Halal Biye Bangladesh",
     description:
-      "Get in touch with Marriage Media. Our support team is here to help you with registration, profile, payments, and any questions about finding your perfect match.",
+      "Get in touch with Halal Biye Bangladesh by MetroMonitor. Our support team is here to help with registrations, profiles, payments, and finding your perfect match.",
     keywords: [
       "contact marriage media",
       "matrimony support",
@@ -104,9 +104,9 @@ export const PAGE_SEO: Record<string, PageMetadata> = {
     ],
   },
   blog: {
-    title: "Blog - Marriage Media",
+    title: "Blog - Halal Biye Bangladesh",
     description:
-      "Read the latest articles about marriage, relationships, dating tips, and matrimony advice on the Marriage Media blog. Expert insights for your journey to finding love.",
+      "Read the latest articles on marriage, relationships, halal dating, and matrimony advice on the Halal Biye Bangladesh blog. Expert insights for your journey to finding love.",
     keywords: [
       "marriage blog",
       "relationship advice",
@@ -116,9 +116,9 @@ export const PAGE_SEO: Record<string, PageMetadata> = {
     ],
   },
   successStories: {
-    title: "Success Stories - Marriage Media",
+    title: "Success Stories - Halal Biye Bangladesh",
     description:
-      "Read inspiring love stories from couples who found their perfect match on Marriage Media. Real testimonials from happy families across Bangladesh.",
+      "Read inspiring love stories from couples who found their perfect match on Halal Biye Bangladesh. Real testimonials from happy families across Bangladesh.",
     keywords: [
       "success stories",
       "happy couples",

@@ -87,7 +87,7 @@ export default function BlogContent() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-3xl mx-auto">
             <Badge variant="secondary" className="mb-4"><BookOpen className="h-3.5 w-3.5 mr-1" />{text("Blog")}</Badge>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">Marriage Media <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">{text("Blog")}</span></h1>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">Halal Biye Bangladesh <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">{text("Blog")}</span></h1>
             <p className="text-lg text-muted-foreground">{text("Tips, stories, and insights to help you on your journey.")}</p>
           </motion.div>
         </div>

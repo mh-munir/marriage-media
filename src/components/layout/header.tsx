@@ -54,6 +54,7 @@ const dashboardLinks: NavLink[] = [
 export function Header() {
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [isPageReady, setIsPageReady] = React.useState(false);
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
@@ -65,6 +66,19 @@ export function Header() {
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
   const { headerLogoUrl } = useSiteBranding();
+  const hasHeaderLogo = typeof headerLogoUrl === "string" && headerLogoUrl.trim().length > 0;
+
+  React.useEffect(() => {
+    const markPageReady = () => setIsPageReady(true);
+
+    if (document.readyState === "complete") {
+      markPageReady();
+      return;
+    }
+
+    window.addEventListener("load", markPageReady, { once: true });
+    return () => window.removeEventListener("load", markPageReady);
+  }, []);
 
   React.useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -108,6 +122,10 @@ export function Header() {
   const isAdmin = pathname.startsWith("/admin");
   const links = isDashboard || isAdmin ? dashboardLinks : publicLinks;
 
+  if (!isPageReady) {
+    return <div className="h-18 w-full sm:h-21" aria-hidden="true" />;
+  }
+
   const translatedLabel = (href: string, fallback: string) => {
     const keyByHref = {
       "/": "home",
@@ -128,9 +146,9 @@ export function Header() {
 
   return (
     <header
-      className="fixed left-0 right-0 top-0 z-50 px-3 pt-4 transition-all duration-300 sm:px-6"
+      className="fixed left-0 right-0 top-0 z-50 px-0 pt-3 transition-all duration-300 sm:px-6 sm:pt-4"
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto w-full max-w-none sm:max-w-7xl">
         <div
           className={cn(
             "grid grid-cols-[1fr_auto] items-center rounded-full px-3 transition-all duration-300 sm:px-5 md:grid-cols-[1fr_auto_1fr]",
@@ -140,20 +158,30 @@ export function Header() {
           )}
         >
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-2 sm:gap-3" aria-label="Marriage Media home">
-            {headerLogoUrl ? (
-              <Image src={headerLogoUrl} alt="Marriage Media" width={176} height={40} className="h-8 max-w-28 rounded-md object-contain object-left sm:h-10 sm:max-w-44" unoptimized />
-            ) : (
-              <>
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-primary/10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105 sm:h-10 sm:w-10">
-                  <Heart className="h-4 w-4 text-primary sm:h-5 sm:w-5" fill="currentColor" />
-                </div>
-                <span className="hidden font-serif text-lg font-semibold tracking-tight sm:block sm:text-xl">
-                  Marriage <span className="text-primary">Media</span>
-                </span>
-              </>
-            )}
-          </Link>
+          {hasHeaderLogo ? (
+            <Link href="/" className="group flex items-center gap-2 sm:gap-3" aria-label="Halal Biye Bangladesh home">
+              <Image
+                src={headerLogoUrl}
+                alt="Halal Biye Bangladesh"
+                width={176}
+                height={40}
+                priority
+                loading="eager"
+                fetchPriority="high"
+                className="h-9 w-auto max-w-30 shrink-0 rounded-md object-contain object-left sm:h-12 sm:max-w-45 md:h-16 md:max-w-55"
+                sizes="(max-width: 640px) 120px, (max-width: 1024px) 180px, 220px"
+                unoptimized
+              />
+            </Link>
+          ) : (
+            <div
+              className="flex items-center justify-start"
+              aria-label="Loading logo"
+              aria-busy="true"
+            >
+              <div className="h-9 w-28 animate-pulse rounded-md bg-muted/80 sm:h-12 sm:w-44 md:h-16 md:w-56" />
+            </div>
+          )}
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-1 rounded-full border border-border/50 bg-muted/70 p-1.5 shadow-sm backdrop-blur md:flex" aria-label="Primary navigation">

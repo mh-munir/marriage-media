@@ -40,7 +40,7 @@ export function getSecurityHeaders(): Record<string, string> {
     "X-Frame-Options": "DENY",
     "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
+    "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), interest-cohort=(), unload=(self)",
     "X-DNS-Prefetch-Control": "on",
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Resource-Policy": "same-origin",

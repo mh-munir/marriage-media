@@ -11,7 +11,7 @@ const pages = {
   },
   help: {
     title: "Help Center",
-    description: "Find help with your Marriage Media account.",
+    description: "Find help with your Halal Biye Bangladesh account.",
     sections: ["For registration, profile, safety or subscription support, contact support@marriagemedia.com. Please include the phone number on your account and a short description of the issue."],
   },
   safety: {
@@ -21,22 +21,22 @@ const pages = {
   },
   report: {
     title: "Report Abuse",
-    description: "Help us keep Marriage Media respectful and safe.",
+    description: "Help us keep Halal Biye Bangladesh respectful and safe.",
     sections: ["Use the report controls on a profile or conversation, or email support@marriagemedia.com with the profile details and reason for your report. Do not send passwords or payment credentials."],
   },
   faq: {
     title: "Frequently Asked Questions",
-    description: "Quick answers about using Marriage Media.",
+    description: "Quick answers about using Halal Biye Bangladesh.",
     sections: ["You can create an account with your mobile number, complete your profile from Dashboard > Profile, and manage your subscription from Pricing. Contact support if a request fails unexpectedly."],
   },
   privacy: {
     title: "Privacy Policy",
-    description: "How Marriage Media handles your information.",
+    description: "How Halal Biye Bangladesh handles your information.",
     sections: ["We use account and profile information to provide matching, messaging, safety and support features. We limit access to authorised systems and do not ask for passwords by email. Contact support@marriagemedia.com for privacy questions."],
   },
   terms: {
     title: "Terms & Conditions",
-    description: "The rules for using Marriage Media.",
+    description: "The rules for using Halal Biye Bangladesh.",
     sections: ["Use accurate information, keep your account secure, and treat other members respectfully. Do not impersonate people, harass members, upload unlawful content or use the service for fraud. We may restrict accounts that violate these rules."],
   },
   refund: {
@@ -47,7 +47,7 @@ const pages = {
   cookie: {
     title: "Cookie Policy",
     description: "How cookies help the site work.",
-    sections: ["Marriage Media uses essential cookies for authentication, security and preferences. Disabling essential cookies may prevent login and account features from working correctly."],
+    sections: ["Halal Biye Bangladesh uses essential cookies for authentication, security and preferences. Disabling essential cookies may prevent login and account features from working correctly."],
   },
   features: {
     title: "Premium Features",
@@ -85,7 +85,7 @@ export default async function InformationPage({ params }: { params: Promise<{ sl
               <Heart className="h-5 w-5 text-white" fill="white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-primary">MarriageMedia</p>
+              <p className="text-sm font-semibold text-primary">Halal Biye Bangladesh</p>
               <h1 className="text-3xl font-bold tracking-tight">{page.title}</h1>
             </div>
           </div>

@@ -239,7 +239,7 @@ export default function AboutPage() {
             <Badge variant="secondary" className="mb-4">
               {text("Our Team")}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">{text("Meet the People Behind Marriage Media")}</h2>
+            <h2 className="text-3xl font-bold mb-4">{text("Meet the People Behind Halal Biye Bangladesh")}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               {text("A passionate team dedicated to helping you find your perfect match.")}
             </p>

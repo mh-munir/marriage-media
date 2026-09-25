@@ -34,25 +34,34 @@ const footerLinks = {
 };
 
 export function Footer() {
-  const { translateText: text } = useLanguage();
+  const { language, translateText: text } = useLanguage();
   const { footerLogoUrl } = useSiteBranding();
   return (
     <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Main Footer */}
-        <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-10 py-12 md:grid-cols-2 lg:grid-cols-[1.6fr_repeat(4,minmax(0,1fr))] lg:items-start">
           {/* Brand */}
-          <div className="col-span-2 md:col-span-4 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
+          <div className="lg:pt-1">
+            <Link href="/" className="flex items-center justify-start gap-2">
               {footerLogoUrl ? (
-                <Image src={footerLogoUrl} alt="Marriage Media" width={208} height={48} className="h-12 max-w-52 rounded-md object-contain object-left" unoptimized />
+                <Image
+                  src={footerLogoUrl}
+                  alt="Halal Biye Bangladesh"
+                  width={320}
+                  height={80}
+                  className="h-12 w-auto max-w-40 rounded-md object-contain object-left sm:h-14 sm:max-w-48"
+                  style={{ width: "auto", height: "auto" }}
+                  unoptimized
+                />
               ) : (
                 <>
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
                     <Heart className="h-5 w-5 text-white" fill="white" />
                   </div>
                   <span className="text-xl font-bold tracking-tight">
-                    Marriage<span className="text-primary">Media</span>
+                    Halal Biye
+                    <span className="text-primary"> Bangladesh</span>
                   </span>
                 </>
               )}
@@ -61,25 +70,39 @@ export function Footer() {
               {text("Bangladesh's most trusted matrimony platform. Find your perfect life partner with advanced matching and verified profiles.")}
             </p>
             <div className="space-y-2">
-              <a href="mailto:support@marriagemedia.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+              <a href="mailto:islamicmarriagemediia@gmail.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                 <Mail className="h-4 w-4" />
-                support@marriagemedia.com
+                islamicmarriagemediia@gmail.com
               </a>
-              <a href="tel:+8801700000000" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+              <a href="tel:+8801813720574" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                 <Phone className="h-4 w-4" />
-                +880 1700-000000
+                +8801813-720574
               </a>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                {text("Dhaka, Bangladesh")}
+              <a href="tel:+8801613247341" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                <Phone className="h-4 w-4" />
+                +8801613-247341
+              </a>
+              <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {language === "bn" ? (
+                    <>কেন্দ্রীয় বাস টার্মিনাল, পৌরসভা, কক্সবাজার</>
+                  ) : (
+                    <>
+                      Central Bus Terminal, Paurashava,
+                      <br />
+                      Cox&apos;s Bazar
+                    </>
+                  )}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Company */}
-          <div>
-            <h3 className="text-sm font-semibold mb-4">{text("Company")}</h3>
-            <ul className="space-y-2.5">
+          <div className="pt-1 mt-0 md:mt-8">
+            <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">{text("Company")}</h3>
+            <ul>
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -91,9 +114,9 @@ export function Footer() {
           </div>
 
           {/* Support */}
-          <div>
-            <h3 className="text-sm font-semibold mb-4">{text("Support")}</h3>
-            <ul className="space-y-2.5">
+          <div className="pt-1 mt-0 md:mt-8">
+            <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">{text("Support")}</h3>
+            <ul>
               {footerLinks.support.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -105,9 +128,9 @@ export function Footer() {
           </div>
 
           {/* Legal */}
-          <div>
-            <h3 className="text-sm font-semibold mb-4">{text("Legal")}</h3>
-            <ul className="space-y-2.5">
+          <div className="pt-1 mt-0 md:mt-8">
+            <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">{text("Legal")}</h3>
+            <ul>
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -119,9 +142,9 @@ export function Footer() {
           </div>
 
           {/* Premium */}
-          <div>
-            <h3 className="text-sm font-semibold mb-4">{text("Premium")}</h3>
-            <ul className="space-y-2.5">
+          <div className="pt-1 mt-0 md:mt-8">
+            <h3 className="mb-4 text-sm font-semibold tracking-wide text-foreground">{text("Premium")}</h3>
+            <ul>
               {footerLinks.premium.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
