@@ -16,7 +16,9 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Mail,
   Search,
+  Globe2,
   Settings2,
   ShieldCheck,
   UserCog,
@@ -36,14 +38,14 @@ const navItems = [
   { href: "/admin/payments", label: "Manual payments", icon: CreditCard },
   { href: "/admin/photos", label: "Photo moderation", icon: ImageIcon },
   { href: "/admin/media", label: "Media library", icon: Images },
+  { href: "/admin/contact-messages", label: "Contact messages", icon: Mail },
   { href: "/admin/security", label: "Security center", icon: ShieldCheck },
 ];
 
 const insightItems = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/pricing", label: "Pricing plans", icon: Settings2 },
-  { href: "/admin/branding", label: "Logo & branding", icon: ImageIcon },
   { href: "/admin/cms", label: "Content & CMS", icon: Settings2 },
+  { href: "/admin/seo", label: "SEO settings", icon: Globe2 },
   { href: "/admin/audit", label: "Audit trail", icon: Activity },
 ];
 

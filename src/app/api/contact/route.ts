@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import connectToDatabase from "@/lib/mongodb";
+import { ContactMessage } from "@/models";
 
 /**
  * POST /api/contact
@@ -8,10 +10,10 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json() as Partial<Record<"name" | "email" | "subject" | "message", string>>;
     const { name, email, subject, message } = body;
 
-    if (!name || !email || !subject || !message) {
+    if (!name?.trim() || !email?.trim() || !subject?.trim() || !message?.trim()) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
@@ -27,9 +29,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // In production, send email via SMTP or store in database
-    // For now, log the submission
-    console.log("Contact form submission:", { name, email, subject, message });
+    await connectToDatabase();
+    await ContactMessage.create({
+      name: name.trim(),
+      email: email.trim(),
+      subject: subject.trim(),
+      message: message.trim(),
+    });
 
     return NextResponse.json({
       success: true,

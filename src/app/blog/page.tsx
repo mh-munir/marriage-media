@@ -4,24 +4,11 @@ import type { Metadata } from "next";
 import BlogContent from "@/app/blog/blog-content";
 import { WebPageSchema } from "@/components/seo/json-ld";
 import { PAGE_SEO, SITE_CONFIG } from "@/lib/seo-constants";
+import { getPageMetadata } from "@/lib/page-seo";
 
 const page = PAGE_SEO.blog;
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description: page.description,
-  keywords: page.keywords,
-  alternates: { canonical: "/blog" },
-  openGraph: {
-    title: page.title,
-    description: page.description,
-    url: "/blog",
-  },
-  twitter: {
-    title: page.title,
-    description: page.description,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> { return getPageMetadata("blog"); }
 
 export default function BlogPage() {
   return (

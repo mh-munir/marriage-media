@@ -4,24 +4,11 @@ import type { Metadata } from "next";
 import AboutContent from "./about-content";
 import { WebPageSchema } from "@/components/seo/json-ld";
 import { PAGE_SEO, SITE_CONFIG } from "@/lib/seo-constants";
+import { getPageMetadata } from "@/lib/page-seo";
 
 const page = PAGE_SEO.about;
 
-export const metadata: Metadata = {
-  title: "About",
-  description: page.description,
-  keywords: page.keywords,
-  alternates: { canonical: "/about" },
-  openGraph: {
-    title: page.title,
-    description: page.description,
-    url: "/about",
-  },
-  twitter: {
-    title: page.title,
-    description: page.description,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> { return getPageMetadata("about"); }
 
 export default function AboutPage() {
   return (

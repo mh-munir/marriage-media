@@ -10,16 +10,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/providers/language-provider";
+import { defaultManagedSections, sectionValue, useManagedPage } from "@/components/seo/managed-page-content";
 
-const contactInfo = [
-  { icon: Mail, title: "Email Us", detail: "support@marriagemedia.com", description: "We reply within 24 hours" },
-  { icon: Phone, title: "Call Us", detail: "+880-1XXXXXXXXX", description: "Sat-Thu, 9AM-6PM" },
-  { icon: MapPin, title: "Visit Us", detail: "Dhaka, Bangladesh", description: "By appointment only" },
-  { icon: Clock, title: "Working Hours", detail: "Sat - Thu", description: "9:00 AM - 6:00 PM (BST)" },
-];
+const contactIcons = { email: Mail, phone: Phone, address: MapPin, hours: Clock };
 
 export default function ContactContent() {
-  const { translateText: text } = useLanguage();
+  const { language, translateText: text } = useLanguage();
+  const { sections } = useManagedPage("contact");
+  const managed = sections.length ? sections : defaultManagedSections("contact");
+  const hero = sectionValue(managed, "hero", defaultManagedSections("contact")[0]);
+  const contactInfo = managed
+    .filter((section) => ["email", "phone", "address", "hours"].includes(section.id))
+    .filter((section) => section.visible)
+    .map((section) => {
+      const item = section.items[0];
+      return {
+        icon: contactIcons[section.id as keyof typeof contactIcons] || Mail,
+        title: language === "bn" ? section.titleBn || section.title : section.titleEn || section.title,
+        detail: language === "bn" ? section.descriptionBn || section.description : section.descriptionEn || section.description,
+        description: language === "bn" ? item?.titleBn || item?.title || "" : item?.titleEn || item?.title || "",
+      };
+    });
   const [formData, setFormData] = React.useState({ name: "", email: "", subject: "", message: "" });
   const [submitting, setSubmitting] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
@@ -47,19 +58,19 @@ export default function ContactContent() {
   return (
     <div className="min-h-screen">
       <Header />
-      <section className="relative pt-16 overflow-hidden">
+      {hero.visible ? <section className="relative pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
-              {text("Get In")} <span className="bg-linear-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">{text("Touch")}</span>
+              {text(language === "bn" ? hero.titleBn || hero.title : hero.titleEn || hero.title)}
             </h1>
             <p className="text-lg text-muted-foreground">
-              {text("Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.")}
+              {text(language === "bn" ? hero.descriptionBn || hero.description : hero.descriptionEn || hero.description)}
             </p>
           </motion.div>
         </div>
-      </section>
+      </section> : null}
 
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

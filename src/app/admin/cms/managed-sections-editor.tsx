@@ -12,10 +12,12 @@ export function ManagedSectionsEditor({
   sections,
   onSave,
   imageCapabilities = { section: false, items: false },
+  sectionLabels = {},
 }: {
   sections: ManagedPageSection[];
   onSave: (sections: ManagedPageSection[]) => Promise<void>;
   imageCapabilities?: { section: boolean; items: boolean };
+  sectionLabels?: Record<string, string>;
 }) {
   const [draft, setDraft] = React.useState(sections);
   const [uploading, setUploading] = React.useState("");
@@ -73,9 +75,12 @@ export function ManagedSectionsEditor({
             <span className="mr-3 text-emerald-600">
               {String(index + 1).padStart(2, "0")}
             </span>
-            {section.title || section.id}
+            {sectionLabels[section.id] || section.title || section.id}
           </summary>
           <div className="space-y-4 border-t p-5">
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              Public page section: <strong>{sectionLabels[section.id] || section.title || section.id}</strong>
+            </p>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -264,13 +269,9 @@ function ImageField({
     <div className="space-y-2">
       <p className="text-sm font-medium">{label}</p>
       {value ? (
-        <Image
-          src={value}
-          alt="Selected preview"
-          fill
-          className="h-28 w-48 rounded-xl object-cover"
-          sizes="192px"
-        />
+        <div className="relative h-28 w-48 overflow-hidden rounded-xl">
+          <Image src={value} alt="Selected preview" fill className="object-cover" sizes="192px" />
+        </div>
       ) : null}
       <label className="inline-flex cursor-pointer items-center rounded-lg border bg-white px-3 py-2 text-sm font-medium">
         {busy ? (

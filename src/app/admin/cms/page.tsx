@@ -19,12 +19,15 @@ import {
   type ManagedPageSection,
 } from "@/components/seo/managed-page-content";
 import { adminFetch } from "@/lib/admin-fetch";
+import AdminPricingPage from "@/app/admin/pricing/page";
+import AdminBrandingPage from "@/app/admin/branding/page";
 
 const pageOptions = [
   { slug: "home", label: "Home" },
   { slug: "about", label: "About" },
   { slug: "pricing", label: "Pricing" },
   { slug: "success-stories", label: "Success Stories" },
+  { slug: "contact", label: "Contact" },
 ];
 interface SitePage {
   slug: string;
@@ -48,7 +51,7 @@ export default function AdminCmsPage() {
   const searchParams = useSearchParams();
   const requestedSlug = searchParams.get("slug");
   const [section, setSection] = React.useState<
-    "pages" | "blogs" | "success-stories" | "email-templates"
+    "pages" | "blogs" | "success-stories" | "email-templates" | "pricing" | "branding"
   >("pages");
   const [selectedSlug, setSelectedSlug] = React.useState(
     pageOptions.some((option) => option.slug === requestedSlug)
@@ -72,9 +75,11 @@ export default function AdminCmsPage() {
 
   React.useEffect(() => {
     if (section !== "pages") return;
+    let active = true;
     void adminFetch(`/api/admin/site-pages?slug=${selectedSlug}`).then(
       async (response) => {
         const data = await response.json();
+        if (!active) return;
         const saved = data.pages?.[0];
         setPage(
           saved
@@ -109,10 +114,11 @@ export default function AdminCmsPage() {
         setError(response.ok ? "" : data.error || "Could not load page");
       },
     );
+    return () => { active = false; };
   }, [selectedSlug, section]);
 
   React.useEffect(() => {
-    if (section === "pages") return;
+    if (section === "pages" || section === "pricing" || section === "branding") return;
     void adminFetch(`/api/admin/cms?type=${section}`).then(async (response) => {
       const data = await response.json();
       if (section === "blogs" || section === "success-stories")
@@ -218,8 +224,20 @@ export default function AdminCmsPage() {
           <Mail className="mr-2 inline h-4 w-4" />
           Email templates
         </button>
+        <button
+          className={`rounded-lg px-4 py-2 text-sm font-semibold ${section === "pricing" ? "bg-[#0d1b2a] text-white" : "border bg-white"}`}
+          onClick={() => setSection("pricing")}
+        >
+          Pricing plans
+        </button>
+        <button
+          className={`rounded-lg px-4 py-2 text-sm font-semibold ${section === "branding" ? "bg-[#0d1b2a] text-white" : "border bg-white"}`}
+          onClick={() => setSection("branding")}
+        >
+          Logo & branding
+        </button>
       </div>
-      {section === "pages" ? (
+      {section === "pricing" ? <AdminPricingPage /> : section === "branding" ? <AdminBrandingPage /> : section === "pages" ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -253,13 +271,14 @@ export default function AdminCmsPage() {
               />
             ) : (
               <ManagedSectionsEditor
-                key={selectedSlug}
+                key={`${selectedSlug}-${page.slug}`}
                 sections={
                   (page.sections as ManagedPageSection[] | undefined)?.length
                     ? (page.sections as ManagedPageSection[])
                     : defaultManagedSections(selectedSlug)
                 }
                 imageCapabilities={{ section: false, items: selectedSlug === "success-stories" }}
+                sectionLabels={managedSectionLabels[selectedSlug] || {}}
                 onSave={saveManagedSections}
               />
             )}
@@ -334,3 +353,10 @@ export default function AdminCmsPage() {
     </div>
   );
 }
+
+const managedSectionLabels: Record<string, Record<string, string>> = {
+  about: { hero: "Hero banner", stats: "Statistics", mission: "Mission", vision: "Vision", values: "Our values", team: "Our team", recognition: "Recognition" },
+  pricing: { hero: "Hero banner", benefits: "Premium benefits", testimonials: "Member testimonials", faq: "Frequently asked questions" },
+  "success-stories": { hero: "Hero banner", gallery: "Photo gallery", cta: "Join call to action" },
+  contact: { email: "Email contact", phone: "Phone contact", address: "Office address", hours: "Working hours" },
+};

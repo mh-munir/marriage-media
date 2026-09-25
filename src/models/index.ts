@@ -27,6 +27,7 @@ export { default as Counter } from "./Counter";
 export { default as SitePage } from "./SitePage";
 export { default as SiteBranding } from "./SiteBranding";
 export { default as LookupOption } from "./LookupOption";
+export { default as ContactMessage } from "./ContactMessage";
 
 export type { IUser } from "./User";
 export type { IProfile } from "./Profile";
@@ -56,3 +57,4 @@ export type { ISavedSearch } from "./SavedSearch";
 export type { ICounter } from "./Counter";
 export type { ISitePage } from "./SitePage";
 export type { ISiteBranding } from "./SiteBranding";
+export type { IContactMessage } from "./ContactMessage";

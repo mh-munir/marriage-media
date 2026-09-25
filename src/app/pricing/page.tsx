@@ -4,24 +4,11 @@ import type { Metadata } from "next";
 import PricingContent from "./pricing-content";
 import { ProductSchema, WebPageSchema } from "@/components/seo/json-ld";
 import { PAGE_SEO, SITE_CONFIG } from "@/lib/seo-constants";
+import { getPageMetadata } from "@/lib/page-seo";
 
 const page = PAGE_SEO.pricing;
 
-export const metadata: Metadata = {
-  title: "Pricing",
-  description: page.description,
-  keywords: page.keywords,
-  alternates: { canonical: "/pricing" },
-  openGraph: {
-    title: page.title,
-    description: page.description,
-    url: "/pricing",
-  },
-  twitter: {
-    title: page.title,
-    description: page.description,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> { return getPageMetadata("pricing"); }
 
 export default function PricingPage() {
   return (

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { SitePage } from "@/models";
 
-const PAGE_SLUGS = new Set(["home", "about", "pricing", "blog", "success-stories"]);
+const PAGE_SLUGS = new Set(["home", "about", "pricing", "blog", "success-stories", "contact"]);
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {

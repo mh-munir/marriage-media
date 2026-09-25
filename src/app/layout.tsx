@@ -3,14 +3,14 @@ import "./globals.css";
 import { ThemeInit } from "@/components/theme-init";
 import { MonetagScript } from "@/components/monetag-script";
 import { Providers } from "@/providers/providers";
+import { getPageMetadata } from "@/lib/page-seo";
 
 const monetagScriptUrl = process.env.NEXT_PUBLIC_MONETAG_SCRIPT_URL;
 
-export const metadata: Metadata = {
-  title: "Marriage Media",
-  description: "Find your perfect partner.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const metadata = await getPageMetadata("home");
+  return { ...metadata, metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000") };
+}
 
 export default function RootLayout({
   children,

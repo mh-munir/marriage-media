@@ -121,10 +121,10 @@ export default function HomePage() {
   };
 
   if (loading) return null;
-  // The homepage has its own application layout. CMS pages remain overridable,
-  // but a saved home-page section must not replace this public UI with the
-  // legacy CMS renderer.
-  if ((page?.content || page?.contentBn || page?.contentEn || page?.sections?.length) && page?.slug !== "home") return <SitePageOverride page={page} />;
+  // A saved Home CMS configuration is rendered through the same section model
+  // used by the editor, so every saved public change is immediately visible.
+  if (page?.sections?.length) return <SitePageOverride page={page} />;
+  if (page?.content || page?.contentBn || page?.contentEn) return <SitePageOverride page={page} />;
 
   return (
     <div className="home-page min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">
