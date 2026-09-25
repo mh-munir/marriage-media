@@ -226,7 +226,7 @@ export default function HomePage() {
             {loadingProfiles ? (
               <div className="flex gap-4 overflow-hidden pb-3">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="min-w-67.5 max-w-67.5 flex-1 animate-pulse rounded-[26px] border border-[#e7d5d0] bg-[#f4f4f4] p-2">
+                  <div key={index} className="w-[85vw] max-w-60 flex-1 animate-pulse rounded-[26px] border border-[#e7d5d0] bg-[#f4f4f4] p-2 sm:min-w-67.5 sm:max-w-67.5">
                     <div className="aspect-[.82] rounded-[22px] bg-[#e8e8e8]" />
                     <div className="mt-3 h-4 w-3/5 rounded bg-[#e8e8e8]" />
                     <div className="mt-2 h-3 w-2/3 rounded bg-[#e8e8e8]" />
@@ -239,9 +239,9 @@ export default function HomePage() {
                   <Link
                     key={member.id}
                     href={`/profile/${member.id}`}
-                    className="group block min-w-62 max-w-62 snap-start sm:min-w-67.5 sm:max-w-67.5"
+                    className="group block w-[85vw] max-w-60 shrink-0 snap-start sm:min-w-62 sm:max-w-62 lg:min-w-67.5 lg:max-w-67.5"
                   >
-                    <div data-carousel-card className="overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
+                    <div data-carousel-card className="w-full overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
                       <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] sm:h-44">
                         <div className="flex flex-col items-center text-center text-[#587875]">
                           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-sm">
@@ -331,7 +331,7 @@ export default function HomePage() {
 
         <section className="bg-[#fff6f5] px-5 py-18 sm:px-8 lg:py-22">
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.9fr_1.1fr]">
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative p-2 text-[#263b3a] sm:p-5">
+            <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative p-2 text-[#263b3a] sm:p-5">
               <div className="relative flex h-full flex-col justify-center">
                 <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#f4b0a8]">{t("successStories")}</p>
                 <h2 className="mt-4 max-w-md font-serif text-4xl leading-tight sm:text-5xl">{translateText("The best love stories start with a conversation.")}</h2>
@@ -339,7 +339,7 @@ export default function HomePage() {
                 <Link href="/success-stories" className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-[#174b4a] px-5 py-3 text-sm font-semibold text-white">{translateText("Read member stories")} <ArrowRight className="h-4 w-4" /></Link>
               </div>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative h-70 overflow-hidden rounded-3xl shadow-[0_18px_35px_rgba(88,111,109,.12)] sm:h-80">
+            <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative h-70 overflow-hidden rounded-3xl shadow-[0_18px_35px_rgba(88,111,109,.12)] sm:h-80">
               <Image src={image.table} alt="Elegant wedding table" fill sizes="(min-width: 1024px) 55vw, 100vw" className="object-cover" />
             </motion.div>
           </div>
@@ -349,7 +349,7 @@ export default function HomePage() {
           <div className="absolute inset-0 opacity-45 dark:opacity-25"><Image src={image.bride} alt="" fill sizes="100vw" className="object-cover object-center" /></div>
           <div className="absolute inset-0 bg-linear-to-r from-[#fff9ee] via-[#fff9ee]/85 to-[#fff9ee]/15 dark:from-[#171412]/96 dark:via-[#171412]/90 dark:to-[#171412]/55" />
           <div className="relative mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.85fr_1.15fr]">
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+            <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
               <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f] dark:text-[#fb9b90]">{translateText("Start today")}</p>
               <h2 className="mt-3 font-serif text-4xl text-[#263b3a] dark:text-[#fff7ed] sm:text-5xl">{translateText("A thoughtful beginning can change everything.")}</h2>
               <p className="mt-5 max-w-md text-sm leading-6 text-[#78908c] dark:text-[#e7d8d2]">{translateText("Join a growing community of people looking for a partner, not just another profile.")}</p>

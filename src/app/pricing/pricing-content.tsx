@@ -152,21 +152,21 @@ export default function PricingPage() {
       {/* Hero */}
       <section className="relative pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-18 sm:py-24 lg:py-32">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center max-w-3xl mx-auto"
+            className="mx-auto max-w-3xl text-center"
           >
             <Badge variant="premium" className="mb-4">
-              <Crown className="h-3.5 w-3.5 mr-1" />
+              <Crown className="mr-1 h-3.5 w-3.5" />
               {text(localizedField(hero as unknown as Record<string, unknown>, "eyebrow", language, hero.eyebrow))}
             </Badge>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
+            <h1 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
               {text(localizedField(hero as unknown as Record<string, unknown>, "title", language, hero.title))}
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base text-muted-foreground sm:text-lg">
               {text(localizedField(hero as unknown as Record<string, unknown>, "description", language, hero.description))}
             </p>
           </motion.div>
@@ -174,9 +174,9 @@ export default function PricingPage() {
       </section>
 
       {/* Plans */}
-      <section className="pb-24">
+      <section className="pb-18 sm:pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-4 sm:gap-8 md:grid-cols-3">
             {plans.map((plan, index) => (
               <motion.div
                 key={plan.name}
@@ -185,7 +185,7 @@ export default function PricingPage() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card
-                  className={`h-full relative ${
+                  className={`relative h-full w-full ${
                     plan.popular
                       ? "border-primary shadow-lg shadow-primary/10 ring-2 ring-primary"
                       : ""
@@ -196,8 +196,8 @@ export default function PricingPage() {
                       <Badge variant="premium">{text("Most Popular")}</Badge>
                     </div>
                   )}
-                  <CardContent className="p-8">
-                    <div className="flex items-center gap-2 mb-4">
+                  <CardContent className="p-5 sm:p-8">
+                    <div className="mb-4 flex items-center gap-2">
                       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                         {plan.icon === "crown" ? <Crown className="h-5 w-5 text-primary" /> : plan.icon === "sparkles" ? <Sparkles className="h-5 w-5 text-primary" /> : <Heart className="h-5 w-5 text-primary" />}
                       </div>
@@ -207,17 +207,17 @@ export default function PricingPage() {
                     </div>
 
                     <div className="mb-4">
-                      <div className="flex items-baseline gap-1">
+                      <div className="flex flex-wrap items-baseline gap-1">
                         <span className="text-sm text-muted-foreground">৳</span>
-                        <span className="text-4xl font-bold">{plan.price}</span>
+                        <span className="text-3xl font-bold sm:text-4xl">{plan.price}</span>
                         <span className="text-sm text-muted-foreground">{text(localizedText({ bn: plan.periodBn, en: plan.periodEn }, language, plan.period))}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{text(localizedText({ bn: plan.descriptionBn, en: plan.descriptionEn }, language, plan.description))}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{text(localizedText({ bn: plan.descriptionBn, en: plan.descriptionEn }, language, plan.description))}</p>
                     </div>
 
                     <Button
                       variant={plan.popular ? "gradient" : "outline"}
-                      className="w-full mb-6"
+                      className="mb-6 w-full"
                       asChild
                     >
                       <Link href={`/payment?plan=${encodeURIComponent(plan.id)}`}>
@@ -228,15 +228,15 @@ export default function PricingPage() {
 
                     <div className="space-y-3">
                       {(language === "bn" ? plan.featuresBn || plan.features : plan.featuresEn || plan.features).map((feature) => (
-                        <div key={feature} className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                          <span className="text-sm">{text(feature)}</span>
+                        <div key={feature} className="flex items-start gap-2">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                          <span className="text-sm leading-relaxed wrap-break-word">{text(feature)}</span>
                         </div>
                       ))}
                       {(language === "bn" ? plan.notIncludedBn || plan.notIncluded : plan.notIncludedEn || plan.notIncluded).map((feature) => (
-                        <div key={feature} className="flex items-center gap-2 opacity-50">
-                          <X className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-sm">{text(feature)}</span>
+                        <div key={feature} className="flex items-start gap-2 opacity-50">
+                          <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="text-sm leading-relaxed wrap-break-word">{text(feature)}</span>
                         </div>
                       ))}
                     </div>
@@ -265,7 +265,7 @@ export default function PricingPage() {
               {text(localizedField(benefits as unknown as Record<string, unknown>, "description", language, benefits.description))}
             </p>
           </motion.div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
             {managedBenefits.map((benefit, index) => (
               <motion.div
                 key={benefit.title}
@@ -303,7 +303,7 @@ export default function PricingPage() {
             </Badge>
             <h2 className="text-3xl font-bold mb-4">{text(testimonialsSection.title)}</h2>
           </motion.div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={testimonial.name}

@@ -73,11 +73,11 @@ export default function ContactContent() {
       </section> : null}
 
       <section className="py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
             {/* Contact Form */}
-            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-              <Card>
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full min-w-0">
+              <Card className="w-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageCircle className="h-5 w-5" /> {text("Send a Message")}
@@ -124,10 +124,10 @@ export default function ContactContent() {
             </motion.div>
 
             {/* Contact Info */}
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="space-y-4">
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="w-full min-w-0 space-y-4">
               {contactInfo.map((info) => (
-                <Card key={info.title} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-5 flex items-start gap-4">
+                <Card key={info.title} className="w-full transition-shadow hover:shadow-md">
+                  <CardContent className="flex items-start gap-4 p-5">
                     <div className="p-2.5 rounded-xl bg-primary/10">
                       <info.icon className="h-5 w-5 text-primary" />
                     </div>

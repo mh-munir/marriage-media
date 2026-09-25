@@ -140,15 +140,15 @@ export function Header() {
           )}
         >
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-3" aria-label="Marriage Media home">
+          <Link href="/" className="group flex items-center gap-2 sm:gap-3" aria-label="Marriage Media home">
             {headerLogoUrl ? (
-              <Image src={headerLogoUrl} alt="Marriage Media" width={176} height={40} className="h-10 max-w-44 rounded-md object-contain object-left" unoptimized />
+              <Image src={headerLogoUrl} alt="Marriage Media" width={176} height={40} className="h-8 max-w-28 rounded-md object-contain object-left sm:h-10 sm:max-w-44" unoptimized />
             ) : (
               <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
-                  <Heart className="h-5 w-5 text-primary" fill="currentColor" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-primary/10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105 sm:h-10 sm:w-10">
+                  <Heart className="h-4 w-4 text-primary sm:h-5 sm:w-5" fill="currentColor" />
                 </div>
-                <span className="hidden font-serif text-xl font-semibold tracking-tight sm:block">
+                <span className="hidden font-serif text-lg font-semibold tracking-tight sm:block sm:text-xl">
                   Marriage <span className="text-primary">Media</span>
                 </span>
               </>
