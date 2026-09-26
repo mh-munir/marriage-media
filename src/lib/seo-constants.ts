@@ -1,8 +1,8 @@
 export const SITE_CONFIG = {
   name: "Halal Biye Bangladesh",
-  title: "Halal Biye Bangladesh | MetroMonitor",
+  title: "Halal Biye Bangladesh | matrimony",
   description:
-    "Halal Biye Bangladesh by MetroMonitor is Bangladesh's trusted halal matrimony platform. Find your perfect life partner with verified profiles and meaningful matching.",
+    "Halal Biye Bangladesh by matrimony is Bangladesh's trusted halal matrimony platform. Find your perfect life partner with verified profiles and meaningful matching.",
   shortDescription:
     "Bangladesh's trusted halal matrimony platform. Find your perfect life partner today.",
   url: "https://marriagemedia.com",
@@ -58,9 +58,9 @@ export interface PageMetadata {
 
 export const PAGE_SEO: Record<string, PageMetadata> = {
   home: {
-    title: "Halal Biye Bangladesh | MetroMonitor",
+    title: "Halal Biye Bangladesh | matrimony",
     description:
-      "Halal Biye Bangladesh by MetroMonitor is Bangladesh's trusted halal matrimony platform. Find your perfect life partner with advanced AI matching, verified profiles, and secure communication.",
+      "Halal Biye Bangladesh by matrimony is Bangladesh's trusted halal matrimony platform. Find your perfect life partner with advanced AI matching, verified profiles, and secure communication.",
     keywords: [
       "matrimony bangladesh",
       "marriage partner bangladesh",
@@ -73,7 +73,7 @@ export const PAGE_SEO: Record<string, PageMetadata> = {
   about: {
     title: "About Us - Halal Biye Bangladesh",
     description:
-      "Learn about Halal Biye Bangladesh by MetroMonitor, Bangladesh's trusted halal matrimony platform. Discover our mission to bring families together through thoughtful matching and verified profiles.",
+      "Learn about Halal Biye Bangladesh by matrimony, Bangladesh's trusted halal matrimony platform. Discover our mission to bring families together through thoughtful matching and verified profiles.",
     keywords: [
       "about marriage media",
       "matrimony platform bangladesh",
@@ -95,7 +95,7 @@ export const PAGE_SEO: Record<string, PageMetadata> = {
   contact: {
     title: "Contact Us - Halal Biye Bangladesh",
     description:
-      "Get in touch with Halal Biye Bangladesh by MetroMonitor. Our support team is here to help with registrations, profiles, payments, and finding your perfect match.",
+      "Get in touch with Halal Biye Bangladesh by matrimony. Our support team is here to help with registrations, profiles, payments, and finding your perfect match.",
     keywords: [
       "contact marriage media",
       "matrimony support",
