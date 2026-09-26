@@ -181,9 +181,17 @@ export async function GET(request: NextRequest) {
     const bengaliLabels = await getBengaliLabels();
 
     if (level === "labels") {
-      return NextResponse.json({
-        labels: Object.fromEntries(bengaliLabels.entries()),
-      });
+      return NextResponse.json(
+        {
+          labels: Object.fromEntries(bengaliLabels.entries()),
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            Pragma: "no-cache",
+          },
+        },
+      );
     }
 
     if (level === "divisions") {

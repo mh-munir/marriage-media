@@ -840,14 +840,23 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
     return () => observer.disconnect();
   }, [forcedLanguage, hasHydrated, isAdminRoute, language]);
 
+  const locationLabelsPromiseRef = React.useRef<Promise<Record<string, string> | null> | null>(null);
+
   React.useEffect(() => {
     let active = true;
-    void fetch("/api/locations?level=labels", { cache: "force-cache" })
-      .then((response) => response.ok ? response.json() as Promise<{ labels?: Record<string, string> }> : null)
-      .then((result) => {
-        if (active && result?.labels) registerLocationLabels(result.labels);
-      })
-      .catch(() => undefined);
+    const loadLabels = async () => {
+      if (!locationLabelsPromiseRef.current) {
+        locationLabelsPromiseRef.current = fetch("/api/locations?level=labels", { cache: "no-store" })
+          .then((response) => response.ok ? response.json() as Promise<{ labels?: Record<string, string> }> : null)
+          .then((result) => result?.labels ?? null)
+          .catch(() => null);
+      }
+
+      const result = await locationLabelsPromiseRef.current;
+      if (active && result) registerLocationLabels(result);
+    };
+
+    void loadLabels();
     return () => { active = false; };
   }, []);
 

@@ -92,7 +92,7 @@ export function NotificationPanel({ open, onClose }: NotificationPanelProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 420, damping: 32 }}
-            className="fixed inset-x-3 top-20 z-50 flex max-h-[min(680px,calc(100dvh-6rem))] flex-col overflow-hidden rounded-3xl border border-border/70 bg-background/95 shadow-2xl shadow-slate-950/20 backdrop-blur-2xl sm:inset-x-auto sm:right-6 sm:w-[26rem]"
+            className="fixed inset-x-3 top-20 z-50 flex max-h-[min(680px,calc(100dvh-6rem))] flex-col overflow-hidden rounded-3xl border border-border/70 bg-background/95 shadow-2xl shadow-slate-950/20 backdrop-blur-2xl sm:inset-x-auto sm:right-6 sm:w-104"
           >
             {/* Header */}
             <div className="relative overflow-hidden border-b border-border/60 bg-linear-to-br from-primary/10 via-background to-rose-50/60 p-5 dark:to-primary/5">

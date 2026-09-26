@@ -190,7 +190,7 @@ export async function sendInterestSMS(
   const formatted = formatPhoneE164(phone, countryCode);
   return sendSMS({
     to: formatted,
-    message: `${senderName} has sent you an interest on Marriage Media! Log in to view details.`,
+    message: `${senderName} has sent you an interest on Islamic Marriage Media! Log in to view details.`,
   });
 }
 
@@ -206,7 +206,7 @@ export async function sendPaymentSMS(
   const formatted = formatPhoneE164(phone, countryCode);
   return sendSMS({
     to: formatted,
-    message: `Your ${plan} subscription (${amount}) has been confirmed on Marriage Media. Enjoy your premium features!`,
+    message: `Your ${plan} subscription (${amount}) has been confirmed on Islamic Marriage Media. Enjoy your premium features!`,
   });
 }
 
@@ -221,7 +221,7 @@ export async function sendSecurityAlertSMS(
   const formatted = formatPhoneE164(phone, countryCode);
   return sendSMS({
     to: formatted,
-    message: `[Marriage Media Security] ${message}`,
+    message: `[Islamic Marriage Media Security] ${message}`,
   });
 }
 
@@ -236,6 +236,6 @@ export async function sendVerificationCodeSMS(
   const formatted = formatPhoneE164(phone, countryCode);
   return sendSMS({
     to: formatted,
-    message: `Your Marriage Media verification code is: ${code}. It expires in 10 minutes. Do not share this code.`,
+    message: `Your Islamic Marriage Media verification code is: ${code}. It expires in 10 minutes. Do not share this code.`,
   });
 }

@@ -5,6 +5,8 @@ type RawHomeProfile = {
   _id: Types.ObjectId;
   userId?: Types.ObjectId;
   publicId?: string;
+  firstName?: string;
+  lastName?: string;
   age?: number;
   gender?: "Male" | "Female";
   district?: string;
@@ -97,7 +99,7 @@ const emptyHomeData: HomeData = {
 };
 
 const PROFILE_SELECT =
-  "userId publicId age gender district division country highestEducation profession religion maritalStatus isPremium isVerified isProfileBoosted profileViews lastActiveAt createdAt";
+  "userId publicId firstName lastName age gender district division country highestEducation profession religion maritalStatus isPremium isVerified isProfileBoosted profileViews lastActiveAt createdAt";
 
 const publicProfileFilter = {
   isVisible: true,
@@ -113,12 +115,12 @@ async function mapProfile(profile: RawHomeProfile): Promise<HomeProfile> {
     .filter(Boolean)
     .join(", ");
   const publicId = profile.publicId?.trim() || `IMD-${profile._id.toString().slice(-6).toUpperCase()}`;
+  const fullName = [profile.firstName?.trim(), profile.lastName?.trim()].filter(Boolean).join(" ") || "Member";
 
   return {
     id: profile.userId?.toString() || profile._id.toString(),
     publicId,
-    // Kept as a non-identifying fallback for the legacy CMS renderer.
-    name: "Member",
+    name: fullName,
     age: typeof profile.age === "number" ? profile.age : null,
     gender: profile.gender,
     location: location || "",

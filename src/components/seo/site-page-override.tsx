@@ -24,23 +24,34 @@ export interface SitePageData {
   sections?: HomeSection[];
 }
 
+const pageCache = new Map<string, Promise<SitePageData | null>>();
+
 export function useSitePage(slug: string) {
   const [page, setPage] = React.useState<SitePageData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let mounted = true;
-    fetch(`/api/site-pages/${slug}`)
-      .then(async (response) => (response.ok ? response.json() : { page: null }))
-      .then((data: { page?: SitePageData | null }) => {
-        if (mounted) setPage(data.page || null);
-      })
-      .catch(() => {
-        if (mounted) setPage(null);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+
+    const loadPage = async () => {
+      if (!pageCache.has(slug)) {
+        pageCache.set(
+          slug,
+          fetch(`/api/site-pages/${slug}`)
+            .then(async (response) => (response.ok ? (await response.json()) as { page?: SitePageData | null } : { page: null }))
+            .then((data) => data.page || null)
+            .catch(() => null),
+        );
+      }
+
+      const result = await pageCache.get(slug)!;
+      if (mounted) setPage(result);
+    };
+
+    void loadPage().finally(() => {
+      if (mounted) setLoading(false);
+    });
+
     return () => { mounted = false; };
   }, [slug]);
 

@@ -25,7 +25,7 @@ import { useTheme } from "@/components/theme-provider";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { useLanguage } from "@/providers/language-provider";
 import { translateLocationLabel } from "@/lib/location-labels";
-import type { HomeProfile } from "@/lib/home-data";
+import type { HomeData, HomeProfile } from "@/lib/home-data";
 
 const image = {
   couple: "/images/home/hero-couple.jpg",
@@ -38,10 +38,48 @@ const image = {
   portraitFour: "/images/home/portrait-four.jpg",
 };
 
+const fallbackHomeStats = {
+  activeProfiles: 0,
+  premiumMembers: 0,
+};
+
 export default function HomePage() {
   const { page, loading } = useSitePage("home");
   const { t, translateText, language } = useLanguage();
   const { resolvedTheme } = useTheme();
+  const [homeData, setHomeData] = useState<HomeData | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadHomeData() {
+      try {
+        const response = await fetch("/api/home", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Home API failed: ${response.status}`);
+        }
+
+        const data = (await response.json()) as HomeData;
+        if (isMounted) {
+          setHomeData(data);
+        }
+      } catch (error) {
+        console.error("Unable to load homepage data from API.", error);
+        if (isMounted) {
+          setHomeData(null);
+        }
+      }
+    }
+
+    loadHomeData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const formatLocationText = (value: string | null | undefined) => {
     const normalized = value?.trim();
@@ -60,49 +98,15 @@ export default function HomePage() {
     { icon: Sparkles, number: "02", title: t("discoverMatch"), text: t("communityDescription") },
     { icon: MessageCircleHeart, number: "03", title: t("startSomethingReal"), text: t("noEndlessNoise") },
   ];
-  const [memberProfiles, setMemberProfiles] = useState<HomeProfile[]>([]);
-  const [homeStats, setHomeStats] = useState<{ activeProfiles?: number; premiumMembers?: number }>();
-  const [loadingProfiles, setLoadingProfiles] = useState(true);
-  const carouselRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    const loadProfiles = async () => {
-      try {
-        const response = await fetch("/api/home", { cache: "force-cache" });
-        if (!response.ok) {
-          return;
-        }
-
-        const data = (await response.json()) as {
-          premiumMembers?: HomeProfile[];
-          stats?: { activeProfiles?: number; premiumMembers?: number };
-        };
-
-        if (!active) {
-          return;
-        }
-
-        setMemberProfiles(data.premiumMembers ?? []);
-        setHomeStats(data.stats);
-      } catch {
-        if (active) {
-          setMemberProfiles([]);
-        }
-      } finally {
-        if (active) {
-          setLoadingProfiles(false);
-        }
+  const memberProfiles = homeData?.premiumMembers ?? [];
+  const homeStats = homeData?.stats
+    ? {
+        activeProfiles: homeData.stats.activeProfiles,
+        premiumMembers: homeData.stats.premiumMembers,
       }
-    };
-
-    void loadProfiles();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    : fallbackHomeStats;
+  const carouselRef = useRef<HTMLDivElement | null>(null);
 
   const scrollCarousel = (direction: number) => {
     const carousel = carouselRef.current;
@@ -130,7 +134,12 @@ export default function HomePage() {
     <div className="home-page min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">
       <Header />
       <main>
-        <section className="home-hero relative isolate overflow-hidden bg-[#fff9f7] px-5 pb-14 pt-24 sm:px-8 lg:pb-16 lg:pt-32">
+        <motion.section
+          initial={false}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="home-hero relative isolate overflow-hidden bg-[#fff9f7] px-5 pb-14 pt-24 sm:px-8 lg:pb-16 lg:pt-32"
+        >
           <div className="absolute -left-24 top-12 h-56 w-72 -rotate-12 rounded-[45%] bg-[#fce2df]/70 blur-2xl" />
           <div className="absolute -right-20 top-8 h-52 w-80 rotate-12 rounded-[45%] bg-[#fbe6e1]/65 blur-2xl" />
           <div
@@ -142,7 +151,7 @@ export default function HomePage() {
             }}
           />
           <div className="relative mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.96fr_1.04fr] lg:gap-14">
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative z-10 max-w-xl">
+            <div className="relative z-10 max-w-xl">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#efc5bf] bg-white/70 px-4 py-2 text-xs font-semibold text-[#b96862]">
                 <Sparkles className="h-3.5 w-3.5" /> {t("homeEyebrow")}
               </div>
@@ -153,31 +162,33 @@ export default function HomePage() {
                 <Link href="/success-stories" className="inline-flex items-center gap-2 px-2 py-3 text-sm font-semibold text-[#486866]">{t("seeSuccessStories")} <ArrowRight className="h-4 w-4" /></Link>
               </div>
                 <HomeHeroStats stats={homeStats} />
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="relative mx-auto h-115 w-full max-w-xl sm:h-125">
+            </div>
+            <div className="relative mx-auto h-115 w-full max-w-xl sm:h-125">
               <div className="absolute right-[2%] top-0 h-[94%] w-[84%] overflow-hidden rounded-[32%_32%_12%_12%] border-7 border-white bg-white shadow-[0_24px_55px_rgba(128,88,72,.18)] sm:right-[7%] sm:h-[88%] sm:w-[73%] sm:rounded-[46%_46%_20%_20%]"><Image src={image.couple} alt="Couple walking together" fill priority sizes="(min-width: 1024px) 38vw, 84vw" className="object-cover" /></div>
               <div className="absolute bottom-2 left-0 h-38 w-34 overflow-hidden rounded-3xl border-5 border-[#fff9f7] bg-white shadow-xl sm:h-48 sm:w-44"><Image src={image.celebration} alt="Wedding celebration" fill loading="eager" sizes="176px" className="object-cover" /></div>
               <div className="absolute bottom-10 right-0 flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-xs font-semibold text-[#486866] shadow-xl"><BadgeCheck className="h-5 w-5 text-[#3182ce]" /> {t("verifiedProfiles")}</div>
-            </motion.div>
+            </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="relative px-5 py-18 sm:px-8 lg:py-22">
+        <motion.section
+          initial={false}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.2 }}
+          className="relative px-5 py-18 sm:px-8 lg:py-22"
+        >
           <div className="mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f]">{t("betterWay")}</p>
                 <h2 className="mt-3 font-serif text-4xl text-[#263b3a] sm:text-5xl">{t("builtForReal")}</h2>
               </div>
-            </motion.div>
+            </div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {[{ icon: ShieldCheck, title: t("trustFirst"), text: t("noEndlessNoise") }, { icon: Sparkles, title: t("smarterRecommendations"), text: t("communityDescription") }, { icon: Heart, title: t("madeForCommitment"), text: t("homeDescription") }].map(({ icon: Icon, title, text }, index) => (
-                <motion.div
+                <div
                   key={title}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
                   className="rounded-xl border border-[#f3dedb] bg-[#fffdfd] p-6 shadow-[0_10px_24px_rgba(88,111,109,0.035)]"
                 >
                   <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#fef0ef] text-[#e8897f]">
@@ -185,15 +196,21 @@ export default function HomePage() {
                   </div>
                   <h3 className="mt-5 font-serif text-xl text-[#355350]">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-[#78908c]">{text}</p>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="bg-[#eff9f8] px-5 py-18 sm:px-8 lg:py-22">
+        <motion.section
+          initial={false}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#eff9f8] px-5 py-18 sm:px-8 lg:py-22"
+        >
           <div className="mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="mb-8 flex flex-col gap-4">
+            <div className="mb-8 flex flex-col gap-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div className="max-w-2xl">
                   <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f]">{t("meetCommunity")}</p>
@@ -208,7 +225,7 @@ export default function HomePage() {
               <p className="max-w-2xl text-sm leading-6 text-[#78908c]">
                 {t("communityDescription")}
               </p>
-            </motion.div>
+            </div>
 
             <div className="mb-5 flex items-center justify-end gap-3">
               {memberProfiles.length > 0 ? (
@@ -223,17 +240,7 @@ export default function HomePage() {
               ) : null}
             </div>
 
-            {loadingProfiles ? (
-              <div className="flex gap-4 overflow-hidden pb-3">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="w-[85vw] max-w-60 flex-1 animate-pulse rounded-[26px] border border-[#e7d5d0] bg-[#f4f4f4] p-2 sm:min-w-67.5 sm:max-w-67.5">
-                    <div className="aspect-[.82] rounded-[22px] bg-[#e8e8e8]" />
-                    <div className="mt-3 h-4 w-3/5 rounded bg-[#e8e8e8]" />
-                    <div className="mt-2 h-3 w-2/3 rounded bg-[#e8e8e8]" />
-                  </div>
-                ))}
-              </div>
-            ) : memberProfiles.length ? (
+            {memberProfiles.length ? (
               <div ref={carouselRef} className="scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 pl-1 pr-1">
                 {memberProfiles.map((member) => (
                   <Link
@@ -262,7 +269,8 @@ export default function HomePage() {
                       <div className="space-y-3 p-3.5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-lg font-semibold text-[#355350]">{member.publicId}</p>
+                            <p className="truncate text-lg font-semibold text-[#355350]">{member.name || member.publicId}</p>
+                            <p className="mt-1 text-xs text-[#6f8580]">{member.publicId}</p>
                             <p className="mt-1 text-sm text-[#6f8580]">
                               {member.age ? `${member.age} • ${formatMemberProfession(member.profession)}` : formatMemberProfession(member.profession)}
                             </p>
@@ -303,17 +311,23 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="px-5 py-18 sm:px-8 lg:py-22">
+        <motion.section
+          initial={false}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.2 }}
+          className="px-5 py-18 sm:px-8 lg:py-22"
+        >
           <div className="mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="max-w-xl">
+            <div className="max-w-xl">
               <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f]">{t("howItWorks")}</p>
               <h2 className="mt-3 font-serif text-4xl text-[#263b3a] sm:text-5xl">{t("threeSteps")}</h2>
-            </motion.div>
+            </div>
             <div className="mt-10 grid gap-8 md:grid-cols-3">
               {steps.map(({ icon: Icon, number, title, text }, index) => (
-                <motion.div key={number} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} className="relative p-4 sm:p-6">
+                <div key={number} className="relative p-4 sm:p-6">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-semibold text-sm text-[#ef7190]">{number}</span>
                     {index < steps.length - 1 ? <ArrowRight className="h-5 w-5 text-[#d9a8a0]" /> : null}
@@ -323,41 +337,53 @@ export default function HomePage() {
                   </div>
                   <h3 className="mt-4 font-serif text-2xl text-[#355350]">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-[#78908c]">{text}</p>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="bg-[#fff6f5] px-5 py-18 sm:px-8 lg:py-22">
+        <motion.section
+          initial={false}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.2 }}
+          className="bg-[#fff6f5] px-5 py-18 sm:px-8 lg:py-22"
+        >
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.9fr_1.1fr]">
-            <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative p-2 text-[#263b3a] sm:p-5">
+            <div className="relative p-2 text-[#263b3a] sm:p-5">
               <div className="relative flex h-full flex-col justify-center">
                 <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#f4b0a8]">{t("successStories")}</p>
                 <h2 className="mt-4 max-w-md font-serif text-4xl leading-tight sm:text-5xl">{translateText("The best love stories start with a conversation.")}</h2>
                 <p className="mt-5 max-w-sm text-sm leading-6 text-[#78908c]">“We started with a simple conversation. Six months later, we knew.”</p>
                 <Link href="/success-stories" className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-[#174b4a] px-5 py-3 text-sm font-semibold text-white">{translateText("Read member stories")} <ArrowRight className="h-4 w-4" /></Link>
               </div>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative h-70 overflow-hidden rounded-3xl shadow-[0_18px_35px_rgba(88,111,109,.12)] sm:h-80">
+            </div>
+            <div className="relative h-70 overflow-hidden rounded-3xl shadow-[0_18px_35px_rgba(88,111,109,.12)] sm:h-80">
               <Image src={image.table} alt="Elegant wedding table" fill sizes="(min-width: 1024px) 55vw, 100vw" className="object-cover" />
-            </motion.div>
+            </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="home-final-cta relative overflow-hidden bg-[#eff8f7] px-5 py-16 sm:px-8 lg:py-18">
-          <div className="absolute inset-0 opacity-45 dark:opacity-25"><Image src={image.bride} alt="" fill sizes="100vw" className="object-cover object-center" /></div>
+        <motion.section
+          initial={false}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.2 }}
+          className="home-final-cta relative overflow-hidden bg-[#eff8f7] px-5 py-16 sm:px-8 lg:py-18"
+        >
+          <div className="absolute inset-0 opacity-45 dark:opacity-25"><Image src={image.bride} alt="" fill priority sizes="100vw" className="object-cover object-center" /></div>
           <div className="absolute inset-0 bg-linear-to-r from-[#fff9ee] via-[#fff9ee]/85 to-[#fff9ee]/15 dark:from-[#171412]/96 dark:via-[#171412]/90 dark:to-[#171412]/55" />
           <div className="relative mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.85fr_1.15fr]">
-            <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+            <div>
               <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f] dark:text-[#fb9b90]">{translateText("Start today")}</p>
               <h2 className="mt-3 font-serif text-4xl text-[#263b3a] dark:text-[#fff7ed] sm:text-5xl">{translateText("A thoughtful beginning can change everything.")}</h2>
               <p className="mt-5 max-w-md text-sm leading-6 text-[#78908c] dark:text-[#e7d8d2]">{translateText("Join a growing community of people looking for a partner, not just another profile.")}</p>
               <Link href="/login" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#ef3f68] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#ef3f68]/20">{translateText("Find your match")} <ArrowRight className="h-4 w-4" /></Link>
-            </motion.div>
+            </div>
             <div className="hidden lg:block" />
           </div>
-        </section>
+        </motion.section>
       </main>
       <Footer />
     </div>
