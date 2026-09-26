@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "admin:bootstrap": "node scripts/bootstrap-admin.js"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.2",

@@ -75,11 +75,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (user && isBootstrapAdmin && user.role !== "superadmin") {
-      user.role = "superadmin";
-      user.roleMutationAllowed = true;
-      if (typeof user.save === "function") {
-        await user.save();
-      }
+      user = await User.findOneAndUpdate(
+        { email },
+        {
+          $set: {
+            role: "superadmin",
+            roleMutationAllowed: true,
+            isActive: true,
+            isBlocked: false,
+            isEmailVerified: true,
+            profileCompleted: 100,
+          },
+        },
+        { new: true, runValidators: true },
+      ).select("+password");
     }
 
     if (!user || !user.isActive || user.isBlocked || (user.role !== "admin" && user.role !== "superadmin")) {

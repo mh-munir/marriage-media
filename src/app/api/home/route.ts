@@ -13,6 +13,7 @@ export async function GET() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load home content.";
+    console.error("Home route failed:", message);
     return NextResponse.json(
       {
         featuredProfiles: [],
@@ -28,7 +29,7 @@ export async function GET() {
           recentMembers: 0,
         },
       },
-      { status: 500, headers: { "x-error": message } }
+      { status: 200, headers: { "x-error": message } }
     );
   }
 }

@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
     const since = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
     const previousSince = new Date(now.getTime() - period * 2 * 24 * 60 * 60 * 1000);
 
+    const publicUserIds = await User.distinct("_id", { role: "user" });
+    const publicProfileMatch = { userId: { $in: publicUserIds } };
+
     // Core metrics
     const [
       totalUsers,
@@ -63,13 +66,13 @@ export async function GET(request: NextRequest) {
       userActivityHeatmap,
       monthlyReports,
     ] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ createdAt: { $gte: since } }),
-      User.countDocuments({ createdAt: { $gte: previousSince, $lt: since } }),
-      Profile.countDocuments(),
-      Profile.countDocuments({ isPremium: true, premiumExpiry: { $gt: new Date() } }),
-      Profile.countDocuments({ isVerified: true }),
-      Profile.countDocuments({ lastActiveAt: { $gte: since } }),
+      User.countDocuments({ role: "user" }),
+      User.countDocuments({ role: "user", createdAt: { $gte: since } }),
+      User.countDocuments({ role: "user", createdAt: { $gte: previousSince, $lt: since } }),
+      Profile.countDocuments(publicProfileMatch),
+      Profile.countDocuments({ ...publicProfileMatch, isPremium: true, premiumExpiry: { $gt: new Date() } }),
+      Profile.countDocuments({ ...publicProfileMatch, isVerified: true }),
+      Profile.countDocuments({ ...publicProfileMatch, lastActiveAt: { $gte: since } }),
       Interest.countDocuments(),
       Interest.countDocuments({ createdAt: { $gte: since } }),
       Payment.countDocuments({ status: "completed" }),

@@ -81,6 +81,21 @@ export type HomeData = {
   stats: HomeStats;
 };
 
+const emptyHomeData: HomeData = {
+  featuredProfiles: [],
+  premiumMembers: [],
+  recentMembers: [],
+  successStories: [],
+  stats: {
+    activeProfiles: 0,
+    acceptedMatches: 0,
+    verifiedProfiles: 0,
+    premiumMembers: 0,
+    successStories: 0,
+    recentMembers: 0,
+  },
+};
+
 const PROFILE_SELECT =
   "userId publicId age gender district division country highestEducation profession religion maritalStatus isPremium isVerified isProfileBoosted profileViews lastActiveAt createdAt";
 
@@ -144,72 +159,84 @@ async function connectHomeDatabase() {
 }
 
 export const getHomeData = cache(async (): Promise<HomeData> => {
-  await connectHomeDatabase();
+  try {
+    await connectHomeDatabase();
 
-  const now = new Date();
-  const [{ default: Profile }, { default: Interest }, { default: Blog }] =
-    await Promise.all([
-      import("@/models/Profile"),
-      import("@/models/Interest"),
-      import("@/models/Blog"),
-    ]);
+    const now = new Date();
+    const [{ default: Profile }, { default: User }, { default: Interest }, { default: Blog }] =
+      await Promise.all([
+        import("@/models/Profile"),
+        import("@/models/User"),
+        import("@/models/Interest"),
+        import("@/models/Blog"),
+      ]);
 
-  const activePremiumFilter = {
-    ...publicProfileFilter,
-    isPremium: true,
-    premiumExpiry: { $gt: now },
-  };
-
-  const successStoryFilter = {
-    isPublished: true,
-    category: /success stories/i,
-  };
-
-  const [
-    premiumMembers,
-    successStories,
-    activeProfiles,
-    acceptedMatches,
-    verifiedProfiles,
-    premiumMembersCount,
-    successStoriesCount,
-    recentMembersCount,
-  ] = await Promise.all([
-    Profile.find(activePremiumFilter)
-      .select(PROFILE_SELECT)
-      .sort({ premiumExpiry: -1, lastActiveAt: -1 })
-      .limit(12)
-      .lean<RawHomeProfile[]>()
-      .exec(),
-    Blog.find(successStoryFilter)
-      .select("title slug excerpt category featuredImage publishedAt")
-      .sort({ publishedAt: -1, createdAt: -1 })
-      .limit(3)
-      .lean<RawSuccessStory[]>()
-      .exec(),
-    Profile.countDocuments(publicProfileFilter),
-    Interest.countDocuments({ status: "accepted" }),
-    Profile.countDocuments({ ...publicProfileFilter, isVerified: true }),
-    Profile.countDocuments(activePremiumFilter),
-    Blog.countDocuments(successStoryFilter),
-    Profile.countDocuments({
+    const publicUserIds = await User.distinct("_id", { role: "user" });
+    const userScopedPublicProfileFilter = {
       ...publicProfileFilter,
-      createdAt: { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) },
-    }),
-  ]);
+      userId: { $in: publicUserIds },
+    };
 
-  return {
-    featuredProfiles: [],
-    premiumMembers: await Promise.all(premiumMembers.map(mapProfile)),
-    recentMembers: [],
-    successStories: successStories.map(mapSuccessStory),
-    stats: {
+    const activePremiumFilter = {
+      ...userScopedPublicProfileFilter,
+      isPremium: true,
+      premiumExpiry: { $gt: now },
+    };
+
+    const successStoryFilter = {
+      isPublished: true,
+      category: /success stories/i,
+    };
+
+    const [
+      premiumMembers,
+      successStories,
       activeProfiles,
       acceptedMatches,
       verifiedProfiles,
-      premiumMembers: premiumMembersCount,
-      successStories: successStoriesCount,
-      recentMembers: recentMembersCount,
-    },
-  };
+      premiumMembersCount,
+      successStoriesCount,
+      recentMembersCount,
+    ] = await Promise.all([
+      Profile.find(activePremiumFilter)
+        .select(PROFILE_SELECT)
+        .sort({ premiumExpiry: -1, lastActiveAt: -1 })
+        .limit(12)
+        .lean<RawHomeProfile[]>()
+        .exec(),
+      Blog.find(successStoryFilter)
+        .select("title slug excerpt category featuredImage publishedAt")
+        .sort({ publishedAt: -1, createdAt: -1 })
+        .limit(3)
+        .lean<RawSuccessStory[]>()
+        .exec(),
+      Profile.countDocuments(userScopedPublicProfileFilter),
+      Interest.countDocuments({ status: "accepted" }),
+      Profile.countDocuments({ ...userScopedPublicProfileFilter, isVerified: true }),
+      Profile.countDocuments(activePremiumFilter),
+      Blog.countDocuments(successStoryFilter),
+      Profile.countDocuments({
+        ...userScopedPublicProfileFilter,
+        createdAt: { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) },
+      }),
+    ]);
+
+    return {
+      featuredProfiles: [],
+      premiumMembers: await Promise.all(premiumMembers.map(mapProfile)),
+      recentMembers: [],
+      successStories: successStories.map(mapSuccessStory),
+      stats: {
+        activeProfiles,
+        acceptedMatches,
+        verifiedProfiles,
+        premiumMembers: premiumMembersCount,
+        successStories: successStoriesCount,
+        recentMembers: recentMembersCount,
+      },
+    };
+  } catch (error) {
+    console.error("Home page data is unavailable. Returning safe empty payload.", error);
+    return emptyHomeData;
+  }
 });
