@@ -9,6 +9,15 @@ import { generateTokenPair } from "@/lib/security";
 const DEFAULT_ADMIN_EMAIL = "admin@marriagemedia.com";
 const DEFAULT_ADMIN_PASSWORD = "Admin@12345";
 
+function getBootstrapAdminCredentials() {
+  const configuredEmail = (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
+  const configuredPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
+  return {
+    email: configuredEmail,
+    password: configuredPassword,
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { email?: string; password?: string };
@@ -19,10 +28,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const isDevelopmentBootstrapAdmin =
-      process.env.NODE_ENV !== "production" &&
-      email === (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL) &&
-      password === (process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD);
+    const bootstrap = getBootstrapAdminCredentials();
+    const isBootstrapAdmin =
+      email === bootstrap.email &&
+      password === bootstrap.password;
 
     let user: any = null;
 
@@ -32,7 +41,7 @@ export async function POST(request: NextRequest) {
     } catch (dbError) {
       console.error("Admin login database connection failed:", dbError);
 
-      if (!isDevelopmentBootstrapAdmin) {
+      if (!isBootstrapAdmin) {
         return NextResponse.json({ error: "Database unavailable. Please try again in a moment." }, { status: 503 });
       }
 
@@ -51,8 +60,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Development bootstrap keeps the local admin panel usable on a fresh database.
-    if (!user && isDevelopmentBootstrapAdmin) {
+    if (!user && isBootstrapAdmin) {
       user = await User.create({
         email,
         password: await bcrypt.hash(password, 12),
@@ -62,11 +70,11 @@ export async function POST(request: NextRequest) {
         isBlocked: false,
         isEmailVerified: true,
         isPhoneVerified: false,
+        profileCompleted: 100,
       });
     }
 
-    // Keep the local development bootstrap account as the control-room owner.
-    if (user && isDevelopmentBootstrapAdmin && user.role === "admin") {
+    if (user && isBootstrapAdmin && user.role !== "superadmin") {
       user.role = "superadmin";
       user.roleMutationAllowed = true;
       if (typeof user.save === "function") {

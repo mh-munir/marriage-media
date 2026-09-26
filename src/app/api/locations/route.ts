@@ -27,6 +27,29 @@ type LocationDataset = { divisions?: LocationNode[] };
 let datasetPromise: Promise<LocationDataset> | null = null;
 let bengaliLabelsPromise: Promise<Map<string, string>> | null = null;
 
+const FALLBACK_DIVISIONS: LocationNode[] = [
+  { name: "Barishal", districts: [{ name: "Barguna" }, { name: "Barishal" }, { name: "Bhola" }, { name: "Jhalokati" }, { name: "Patuakhali" }, { name: "Pirojpur" }] },
+  { name: "Chattogram", districts: [{ name: "Bandarban" }, { name: "Brahmanbaria" }, { name: "Chandpur" }, { name: "Chattogram" }, { name: "Cumilla" }, { name: "Cox's Bazar" }, { name: "Feni" }, { name: "Khagrachhari" }, { name: "Lakshmipur" }, { name: "Noakhali" }, { name: "Rangamati" }] },
+  { name: "Dhaka", districts: [{ name: "Dhaka" }, { name: "Faridpur" }, { name: "Gazipur" }, { name: "Gopalganj" }, { name: "Kishoreganj" }, { name: "Madaripur" }, { name: "Manikganj" }, { name: "Munshiganj" }, { name: "Narayanganj" }, { name: "Narsingdi" }, { name: "Rajbari" }, { name: "Shariatpur" }, { name: "Tangail" }] },
+  { name: "Khulna", districts: [{ name: "Bagherhat" }, { name: "Chuadanga" }, { name: "Jashore" }, { name: "Jhenaidah" }, { name: "Khulna" }, { name: "Kushtia" }, { name: "Magura" }, { name: "Meherpur" }, { name: "Narail" }, { name: "Satkhira" }] },
+  { name: "Mymensingh", districts: [{ name: "Jamalpur" }, { name: "Mymensingh" }, { name: "Netrokona" }, { name: "Sherpur" }] },
+  { name: "Rajshahi", districts: [{ name: "Bogura" }, { name: "Chapai Nawabganj" }, { name: "Joypurhat" }, { name: "Naogaon" }, { name: "Natore" }, { name: "Pabna" }, { name: "Rajshahi" }, { name: "Sirajganj" }] },
+  { name: "Rangpur", districts: [{ name: "Dinajpur" }, { name: "Gaibandha" }, { name: "Kurigram" }, { name: "Lalmonirhat" }, { name: "Nilphamari" }, { name: "Panchagarh" }, { name: "Rangpur" }, { name: "Thakurgaon" }] },
+  { name: "Sylhet", districts: [{ name: "Habiganj" }, { name: "Moulvibazar" }, { name: "Sunamganj" }, { name: "Sylhet" }] },
+];
+
+const FALLBACK_DATASET: LocationDataset = { divisions: FALLBACK_DIVISIONS };
+const FALLBACK_BENGALI_LABELS = new Map<string, string>([
+  ["barishal", "বরিশাল"],
+  ["chattogram", "চট্টগ্রাম"],
+  ["dhaka", "ঢাকা"],
+  ["khulna", "খুলনা"],
+  ["mymensingh", "ময়মনসিংহ"],
+  ["rajshahi", "রাজশাহী"],
+  ["rangpur", "রংপুর"],
+  ["sylhet", "সিলেট"],
+]);
+
 const SECONDARY_UNION_CACHE = new Map<string, Promise<string[]>>();
 
 type SecondaryRecord = { id?: string; upazilla_id?: string; name?: string };
@@ -41,12 +64,23 @@ function names(nodes: LocationNode[] | undefined): string[] {
     .filter((name): name is string => Boolean(name));
 }
 
+async function safeJsonFetch<T>(url: string): Promise<T | null> {
+  try {
+    const response = await fetch(url, { next: { revalidate: 86400 } });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 async function getCachedDataset(): Promise<LocationDataset> {
   if (!datasetPromise) {
-    datasetPromise = fetch(DATASET_URL, { next: { revalidate: 86400 } }).then(async (response) => {
-      if (!response.ok) throw new Error("Location dataset unavailable.");
-      return (await response.json()) as LocationDataset;
-    });
+    datasetPromise = (async () => {
+      const dataset = await safeJsonFetch<LocationDataset>(DATASET_URL);
+      if (dataset && dataset.divisions?.length) return dataset;
+      return FALLBACK_DATASET;
+    })();
   }
 
   return datasetPromise;
@@ -54,20 +88,20 @@ async function getCachedDataset(): Promise<LocationDataset> {
 
 async function getBengaliLabels(): Promise<Map<string, string>> {
   if (!bengaliLabelsPromise) {
-    bengaliLabelsPromise = Promise.all(
-      BENGALI_SOURCE_URLS.map((url) => fetch(url, { next: { revalidate: 86400 } }))
-    ).then(async (responses) => {
+    bengaliLabelsPromise = (async () => {
       const labels = new Map<string, string>();
-      for (const response of responses) {
-        if (!response.ok) continue;
-        const exports = (await response.json()) as BengaliLocationExport[];
-        const records = exports.find((item) => item.type === "table")?.data || [];
+      const responses = await Promise.all(BENGALI_SOURCE_URLS.map((url) => safeJsonFetch<BengaliLocationExport[]>(url)));
+
+      for (const exportData of responses) {
+        if (!exportData) continue;
+        const records = exportData.find((item) => item.type === "table")?.data || [];
         for (const record of records) {
           if (record.name && record.bn_name) labels.set(normalized(record.name), record.bn_name);
         }
       }
-      return labels;
-    });
+
+      return labels.size ? labels : FALLBACK_BENGALI_LABELS;
+    })();
   }
 
   return bengaliLabelsPromise;
