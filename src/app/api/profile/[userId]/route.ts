@@ -25,8 +25,11 @@ export async function GET(
     }
 
     if (viewer && userId === viewer._id.toString()) return NextResponse.json({ error: "You cannot view your own public profile here." }, { status: 400 });
-    const profileOwner = await User.findById(userId).select("role").lean();
+    const profileOwner = await User.findById(userId).select("role isBlocked isActive").lean();
     if (!profileOwner || profileOwner.role !== "user") return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+    if (profileOwner.isBlocked || !profileOwner.isActive) {
+      return NextResponse.json({ error: "This profile is currently unavailable." }, { status: 403 });
+    }
 
     const payment = viewer ? await getActiveSubscription(viewer._id) : null;
     const fullAccess = Boolean(payment);

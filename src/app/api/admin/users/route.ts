@@ -256,10 +256,30 @@ export async function PATCH(request: NextRequest) {
   try {
     await connectToDatabase();
     const actor = await requireAdmin(request);
+
+    const body = await request.json() as {
+      action?: string;
+      email?: string;
+      phone?: string;
+      code?: string;
+      userId?: string;
+      isBlocked?: boolean;
+    };
+    const action = body.action;
+
+    if (action === "toggle-block") {
+      const { userId, isBlocked } = body;
+      if (!userId) return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+      const target = await User.findById(userId).select("_id role isBlocked").lean();
+      if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+      if (target.role !== "user") return NextResponse.json({ error: "Only public users can be blocked here" }, { status: 403 });
+      const nextBlocked = Boolean(isBlocked);
+      await User.findByIdAndUpdate(userId, { $set: { isBlocked: nextBlocked } }, { new: true });
+      return NextResponse.json({ message: nextBlocked ? "User blocked successfully." : "User unblocked successfully." });
+    }
+
     if (actor.role !== "superadmin") return NextResponse.json({ error: "Only the superadmin can verify these details" }, { status: 403 });
 
-    const body = await request.json() as { action?: string; email?: string; phone?: string; code?: string };
-    const action = body.action;
     if (action === "send-superadmin-change-otp") {
       const email = String(actor.email || "").trim().toLowerCase();
       if (!email) return NextResponse.json({ error: "Your superadmin account has no email address" }, { status: 400 });
@@ -305,6 +325,43 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ message: "Verification completed" });
     }
     return NextResponse.json({ error: "Unsupported verification action" }, { status: 400 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectToDatabase();
+    const actor = await requireAdmin(request);
+    if (actor.role !== "superadmin" && actor.role !== "admin") {
+      return NextResponse.json({ error: "Only administrators can delete public accounts" }, { status: 403 });
+    }
+
+    const body = await request.json() as { userId?: string };
+    const userId = body.userId;
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
+
+    const target = await User.findById(userId).select("_id role phone email").lean();
+    if (!target) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (target.role !== "user") {
+      return NextResponse.json({ error: "Only public users can be permanently deleted" }, { status: 403 });
+    }
+
+    await Promise.all([
+      User.deleteOne({ _id: userId }),
+      Profile.deleteMany({ userId }),
+      Payment.deleteMany({ userId }),
+      (await import("@/models")).Verification.deleteMany({ userId }),
+    ]);
+
+    return NextResponse.json({ message: "User permanently deleted from the database." });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
     const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;

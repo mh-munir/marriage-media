@@ -99,6 +99,53 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
     if (currentUser?.id === selectedAccount._id) await refreshUser();
   }
 
+  async function toggleUserBlock(user: AdminUser) {
+    setActionLoading(true);
+    setActionError("");
+    setActionMessage("");
+    const response = await adminFetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggle-block", userId: user._id, isBlocked: !user.isBlocked }),
+    });
+    const data = await response.json();
+    setActionLoading(false);
+    if (!response.ok) {
+      setActionError(data.error || "Could not update block status");
+      return;
+    }
+    setUsers((current) => current.map((account) => account._id === user._id ? { ...account, isBlocked: !user.isBlocked } : account));
+    if (selectedAccount?._id === user._id) {
+      setSelectedAccount((current) => current ? { ...current, isBlocked: !user.isBlocked } : current);
+      setAccountForm((current) => ({ ...current, isBlocked: !user.isBlocked }));
+    }
+    setActionMessage(`User ${!user.isBlocked ? "blocked" : "unblocked"} successfully.`);
+  }
+
+  async function deleteUserAccount(user: AdminUser) {
+    const confirmDelete = window.confirm(`Delete ${user.email || "this user"}? This removes the account and profile from the database permanently.`);
+    if (!confirmDelete) return;
+    setActionLoading(true);
+    setActionError("");
+    setActionMessage("");
+    const response = await adminFetch("/api/admin/users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user._id }),
+    });
+    const data = await response.json();
+    setActionLoading(false);
+    if (!response.ok) {
+      setActionError(data.error || "Could not delete user");
+      return;
+    }
+    setUsers((current) => current.filter((account) => account._id !== user._id));
+    if (selectedAccount?._id === user._id) {
+      setSelectedAccount(null);
+    }
+    setActionMessage("User permanently deleted from the database.");
+  }
+
   async function uploadAccountAvatar(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.currentTarget.value = "";
@@ -302,6 +349,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <th className="px-6 py-3">Trust</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Joined</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -403,6 +451,32 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                       </td>
                       <td className="px-6 py-4 text-slate-500">
                         {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        {!isAdminTeam ? (
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${user.isBlocked ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void toggleUserBlock(user);
+                              }}
+                            >
+                              {user.isBlocked ? "Unblock" : "Block"}
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-200"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void deleteUserAccount(user);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ) : null}
                       </td>
                     </tr></React.Fragment>
                   ))

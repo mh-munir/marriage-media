@@ -173,7 +173,7 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
         import("@/models/Blog"),
       ]);
 
-    const publicUserIds = await User.distinct("_id", { role: "user" });
+    const publicUserIds = await User.distinct("_id", { role: "user", isActive: true, isBlocked: false });
     const userScopedPublicProfileFilter = {
       ...publicProfileFilter,
       userId: { $in: publicUserIds },
