@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Heart, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, CirclePlay, Heart, MapPin, Sparkles } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
@@ -33,6 +33,7 @@ export interface HomeSection {
   buttonTextBn?: string;
   buttonTextEn?: string;
   buttonLink: string;
+  youtubeUrl?: string;
   items: Array<{ title: string; titleBn?: string; titleEn?: string; text: string; textBn?: string; textEn?: string; imageUrl?: string; imageAlt?: string }>;
 }
 
@@ -325,11 +326,13 @@ function StandardSection({ section, index }: { section: HomeSection; index: numb
 
 function FaqSection({ section, index }: { section: HomeSection; index: number }) {
   const [openIndex, setOpenIndex] = useState(0);
+  const youtubeUrl = section.youtubeUrl?.trim();
+  const hasYoutubeUrl = Boolean(youtubeUrl && /^https?:\/\//i.test(youtubeUrl));
 
   return <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.18 }} variants={sectionReveal} custom={index * 0.12} className="bg-[#fffaf7] px-5 py-20 transition-colors sm:px-8 lg:py-28 dark:bg-slate-950">
     <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[.88fr_1.12fr] lg:gap-16">
       <div className="relative mx-auto w-full max-w-md"><div className="absolute -inset-5 rounded-[38px] bg-rose-200/45 blur-2xl dark:bg-cyan-500/10" /><div className="relative h-80 overflow-hidden rounded-4xl border border-white/80 bg-[#eaf0ee] shadow-[0_25px_55px_rgba(73,94,89,.16)] dark:border-slate-700 dark:bg-slate-900 sm:h-115">{section.imageUrl ? <Image src={section.imageUrl} alt={section.imageAlt || section.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 42vw" /> : <div className="flex h-full items-center justify-center bg-linear-to-br from-rose-100 to-teal-100 text-[#52736f] dark:from-slate-800 dark:to-slate-900 dark:text-slate-300"><Heart className="h-12 w-12" /></div>}<div className="absolute inset-0 bg-linear-to-t from-[#193f3c]/55 via-transparent to-transparent" /><div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/30 bg-slate-950/25 p-4 text-white backdrop-blur-sm"><p className="text-sm font-medium">{section.eyebrow}</p></div></div></div>
-      <div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[#b96862] dark:text-rose-300">{section.eyebrow}</p><h2 className="mt-3 font-serif text-4xl leading-tight text-[#193f3c] sm:text-5xl dark:text-slate-50">{section.title}</h2>{section.description ? <p className="mt-4 max-w-2xl text-base leading-7 text-[#6a8581] dark:text-slate-300">{section.description}</p> : null}<div className="mt-8 space-y-3">{section.items.map((item, itemIndex) => { const isOpen = itemIndex === openIndex; return <article key={`${section.id}-${itemIndex}`} className="overflow-hidden rounded-2xl border border-rose-100 bg-white shadow-sm transition dark:border-slate-700 dark:bg-slate-900"><button type="button" className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left font-semibold text-[#264946] dark:text-slate-100" onClick={() => setOpenIndex(isOpen ? -1 : itemIndex)} aria-expanded={isOpen}><span>{item.title}</span><ChevronDown className={`h-5 w-5 shrink-0 text-rose-400 transition-transform ${isOpen ? "rotate-180" : ""}`} /></button>{isOpen ? <div className="border-t border-rose-100 px-5 py-4 text-sm leading-6 text-[#65817d] dark:border-slate-700 dark:text-slate-300">{item.text}</div> : null}</article>; })}</div></div>
+      <div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[#b96862] dark:text-rose-300">{section.eyebrow}</p><h2 className="mt-3 font-serif text-4xl leading-tight text-[#193f3c] sm:text-5xl dark:text-slate-50">{section.title}</h2>{section.description ? <p className="mt-4 max-w-2xl text-base leading-7 text-[#6a8581] dark:text-slate-300">{section.description}</p> : null}<div className="mt-8 space-y-3">{section.items.map((item, itemIndex) => { const isOpen = itemIndex === openIndex; return <article key={`${section.id}-${itemIndex}`} className="overflow-hidden rounded-2xl border border-rose-100 bg-white shadow-sm transition dark:border-slate-700 dark:bg-slate-900"><button type="button" className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left font-semibold text-[#264946] dark:text-slate-100" onClick={() => setOpenIndex(isOpen ? -1 : itemIndex)} aria-expanded={isOpen}><span>{item.title}</span><ChevronDown className={`h-5 w-5 shrink-0 text-rose-400 transition-transform ${isOpen ? "rotate-180" : ""}`} /></button>{isOpen ? <div className="border-t border-rose-100 px-5 py-4 text-sm leading-6 text-[#65817d] dark:border-slate-700 dark:text-slate-300">{item.text}</div> : null}</article>; })}</div>{hasYoutubeUrl ? <a href={youtubeUrl} target="_blank" rel="noreferrer" aria-label="Watch our videos on YouTube" title="Watch our videos on YouTube" className="mt-6 inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition hover:-translate-y-0.5 hover:bg-red-700"><CirclePlay className="h-5 w-5" /></a> : null}</div>
     </div>
   </motion.section>;
 }
