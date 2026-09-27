@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, Heart, MapPin, Sparkles } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -38,16 +39,21 @@ export interface HomeSection {
 const getFallbackProfileImage = (gender?: "Male" | "Female") =>
   gender === "Male" ? "/images/home/portrait-four.jpg" : "/images/home/portrait-one.jpg";
 
-const defaultCommunityItems = [
-  { title: "Aisha Khan", text: "Dhaka · 27", imageUrl: "/images/home/portrait-one.jpg", imageAlt: "Aisha Khan" },
-  { title: "Rafi Ahmed", text: "Chattogram · 30", imageUrl: "/images/home/portrait-two.jpg", imageAlt: "Rafi Ahmed" },
-  { title: "Nusrat Jahan", text: "Sylhet · 26", imageUrl: "/images/home/portrait-three.jpg", imageAlt: "Nusrat Jahan" },
-  { title: "Arif Rahman", text: "Rajshahi · 29", imageUrl: "/images/home/portrait-four.jpg", imageAlt: "Arif Rahman" },
-];
-
 export function ensureHomeSections(sections: HomeSection[]) {
-  return sections.map((section) => section.type === "community" && section.items.length === 0 ? { ...section, imageUrl: "", imageAlt: "", items: defaultCommunityItems } : section);
+  return sections.map((section) => section.type === "community" && section.items.length === 0 ? { ...section, imageUrl: "", imageAlt: "", items: [] } : section);
 }
+
+const sectionReveal = {
+  hidden: { opacity: 0, y: 18 },
+  visible: (delay = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.75,
+      delay,
+    },
+  }),
+};
 
 export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
   const { language } = useLanguage();
@@ -96,20 +102,20 @@ export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
     };
   }, []);
 
-  return <div className="min-h-screen bg-[#fffdfc] text-[#263b3a]"><Header /><main>{localizedSections.filter((section) => section.visible).map((section) => section.type === "hero" ? <HeroSection key={section.id} section={section} /> : section.type === "community" ? <CommunitySection key={section.id} section={section} memberProfiles={memberProfiles} /> : <StandardSection key={section.id} section={section} />)}</main><Footer /></div>;
+  return <div className="min-h-screen bg-[#fffdfc] text-[#263b3a]"><Header /><main>{localizedSections.filter((section) => section.visible).map((section, index) => section.type === "hero" ? <HeroSection key={section.id} section={section} index={index} /> : section.type === "community" ? <CommunitySection key={section.id} section={section} memberProfiles={memberProfiles} index={index} /> : <StandardSection key={section.id} section={section} index={index} />)}</main><Footer /></div>;
 }
 
-function HeroSection({ section }: { section: HomeSection }) {
+function HeroSection({ section, index }: { section: HomeSection; index: number }) {
   const secondaryImage = section.secondaryImageUrl || "/images/home/celebration.jpg";
-  return <section className="relative bg-[#f7efee] px-5 pb-16 pt-28 sm:px-8 lg:pb-24 lg:pt-36"><div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#f7c9c3]/40 blur-3xl" /><div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:gap-20"><div className="relative z-10 max-w-xl"><div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#efc5bf] bg-white/70 px-4 py-2 text-xs font-semibold text-[#b96862]"><Sparkles className="h-3.5 w-3.5" />{section.eyebrow}</div><h1 className="font-serif text-5xl leading-[.96] text-[#223c3a] sm:text-7xl">{section.title}</h1><p className="mt-7 max-w-lg text-base leading-7 text-[#6c817e]">{section.description}</p><div className="mt-9 flex flex-wrap items-center gap-4"><HomeDashboardAction /><Link href="/success-stories" className="inline-flex items-center gap-2 px-2 py-3 text-sm font-semibold text-[#486866]">See success stories <ArrowRight className="h-4 w-4" /></Link></div></div><div className="relative mx-auto h-115 w-full max-w-lg sm:h-140"><div className="absolute right-0 top-0 h-[88%] w-[78%] overflow-hidden rounded-[180px_180px_12px_12px] border-8 border-white bg-white shadow-2xl shadow-[#7b5d59]/15"><Image src={section.imageUrl || "/images/home/hero-couple.jpg"} alt={section.imageAlt || section.title} fill className="object-cover" sizes="100vw" /></div><div className="absolute bottom-0 left-0 h-48 w-44 overflow-hidden rounded-2xl border-8 border-[#f7efee] bg-white shadow-xl sm:h-56 sm:w-52"><Image src={secondaryImage} alt={section.secondaryImageAlt || "Wedding celebration"} fill className="object-cover" sizes="176px" /></div><div className="absolute bottom-10 right-0 flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-xs font-semibold text-[#486866] shadow-xl"><span className="h-5 w-5 rounded-full bg-[#61b69e]" />Verified profiles</div></div></div></section>;
+  return <motion.section initial="hidden" animate="visible" variants={sectionReveal} custom={index * 0.12} className="relative bg-[#f7efee] px-5 pb-16 pt-28 sm:px-8 lg:pb-24 lg:pt-36"><div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#f7c9c3]/40 blur-3xl" /><div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:gap-20"><motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.9, delay: 0.1 }} className="relative z-10 max-w-xl"><div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#efc5bf] bg-white/70 px-4 py-2 text-xs font-semibold text-[#b96862]"><Sparkles className="h-3.5 w-3.5" />{section.eyebrow}</div><h1 className="font-serif text-5xl leading-[.96] text-[#223c3a] sm:text-7xl">{section.title}</h1><p className="mt-7 max-w-lg text-base leading-7 text-[#6c817e]">{section.description}</p><div className="mt-9 flex flex-wrap items-center gap-4"><HomeDashboardAction /><Link href="/success-stories" className="inline-flex items-center gap-2 px-2 py-3 text-sm font-semibold text-[#486866]">See success stories <ArrowRight className="h-4 w-4" /></Link></div></motion.div><motion.div initial={{ opacity: 0, x: 18, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 1, delay: 0.18 }} className="relative mx-auto h-115 w-full max-w-lg sm:h-140"><div className="absolute right-0 top-0 h-[88%] w-[78%] overflow-hidden rounded-[180px_180px_12px_12px] border-8 border-white bg-white shadow-2xl shadow-[#7b5d59]/15"><Image src={section.imageUrl || "/images/home/hero-couple.jpg"} alt={section.imageAlt || section.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" priority loading="eager" /></div><div className="absolute bottom-0 left-0 h-48 w-44 overflow-hidden rounded-2xl border-8 border-[#f7efee] bg-white shadow-xl sm:h-56 sm:w-52"><Image src={secondaryImage} alt={section.secondaryImageAlt || "Wedding celebration"} fill className="object-cover" sizes="176px" /></div><div className="absolute bottom-10 right-0 flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-xs font-semibold text-[#486866] shadow-xl"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#6d6fc5] text-white"><BadgeCheck className="h-3.5 w-3.5" /></span>Verified profiles</div></motion.div></div></motion.section>;
 }
 
-function StandardSection({ section }: { section: HomeSection }) {
+function StandardSection({ section, index }: { section: HomeSection; index: number }) {
   const isValues = section.type === "values";
   const isSteps = section.type === "steps";
 
   return (
-    <section className={`px-5 py-20 sm:px-8 lg:py-28 ${section.type === "community" || section.type === "final" ? "bg-[#eff8f7]" : ""}`}>
+    <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={sectionReveal} custom={index * 0.12} className={`px-5 py-20 sm:px-8 lg:py-28 ${section.type === "community" || section.type === "final" ? "bg-[#eff8f7]" : ""}`}>
       <div className="mx-auto max-w-6xl">
         {isValues ? (
           <>
@@ -167,13 +173,13 @@ function StandardSection({ section }: { section: HomeSection }) {
                 <p className="mt-5 max-w-xl text-base leading-7 text-[#78908c]">{section.description}</p>
                 {section.buttonText ? <Link href={section.buttonLink || "/register"} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#294845] px-5 py-3 text-sm font-semibold text-white">{section.buttonText}<ArrowRight className="h-4 w-4" /></Link> : null}
               </div>
-              {section.imageUrl ? <div className="relative h-80 overflow-hidden rounded-4xl shadow-lg sm:h-105"><Image src={section.imageUrl} alt={section.imageAlt || section.title} fill className="object-cover" sizes="100vw" /></div> : null}
+              {section.imageUrl ? <div className="relative h-80 overflow-hidden rounded-4xl shadow-lg sm:h-105"><Image src={section.imageUrl} alt={section.imageAlt || section.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" /></div> : null}
             </div>
             {section.items.length ? (
               <div className="mt-12 grid gap-5 md:grid-cols-3">
                 {section.items.map((item, index) => (
                   <article key={`${section.id}-${index}`} className="border-t-2 border-[#f1b3ac] px-1 pt-5">
-                    {item.imageUrl ? <div className="relative mb-4 h-36 overflow-hidden rounded-2xl"><Image src={item.imageUrl} alt={item.imageAlt || item.title} fill className="object-cover" sizes="100vw" /></div> : <Sparkles className="h-6 w-6 text-[#e8897f]" />}
+                    {item.imageUrl ? <div className="relative mb-4 h-36 overflow-hidden rounded-2xl"><Image src={item.imageUrl} alt={item.imageAlt || item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" /></div> : <Sparkles className="h-6 w-6 text-[#e8897f]" />}
                     <h3 className="mt-4 font-serif text-2xl text-[#355350]">{item.title}</h3>
                     <p className="mt-3 text-sm leading-6 text-[#78908c]">{item.text}</p>
                   </article>
@@ -183,11 +189,11 @@ function StandardSection({ section }: { section: HomeSection }) {
           </>
         )}
       </div>
-    </section>
+    </motion.section>
   );
 }
 
-function CommunitySection({ section, memberProfiles }: { section: HomeSection; memberProfiles: HomeProfile[] }) {
+function CommunitySection({ section, memberProfiles, index }: { section: HomeSection; memberProfiles: HomeProfile[]; index: number }) {
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   const cards = memberProfiles.length
@@ -216,7 +222,7 @@ function CommunitySection({ section, memberProfiles }: { section: HomeSection; m
     }
 
     const firstCard = carousel.querySelector<HTMLElement>("[data-carousel-card]");
-    const cardWidth = firstCard?.offsetWidth ?? 240;
+    const cardWidth = firstCard?.offsetWidth ?? 288;
     const gap = 16;
 
     carousel.scrollBy({
@@ -226,7 +232,7 @@ function CommunitySection({ section, memberProfiles }: { section: HomeSection; m
   };
 
   return (
-    <section className="bg-[#eff8f7] px-5 py-20 sm:px-8 lg:py-24">
+    <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={sectionReveal} custom={index * 0.12} className="bg-[#eff8f7] px-5 py-20 sm:px-8 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -265,76 +271,11 @@ function CommunitySection({ section, memberProfiles }: { section: HomeSection; m
           </button>
         </div>
 
-        <div ref={carouselRef} className="scrollbar-none mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
-          {cards.map((item, index) => (
-            <Link
-              href={item.profileLink || "/register"}
-              key={`${section.id}-${index}`}
-              data-carousel-card
-              className="group block min-w-60 max-w-60 snap-start"
-            >
-              <div className="overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
-                <div className="relative">
-                  <Image
-                    src={item.imageUrl || (index % 2 === 0 ? "/images/home/portrait-one.jpg" : "/images/home/portrait-four.jpg")}
-                    alt={item.imageAlt || item.title}
-                    fill
-                    className="aspect-4/5 w-full rounded-t-[28px] object-cover transition duration-500 group-hover:scale-105"
-                    sizes="240px"
-                  />
-                  <div className="absolute inset-0 rounded-t-[28px] bg-linear-to-t from-[#1f3d3b]/45 via-[#1f3d3b]/10 to-transparent" />
-
-                  <button
-                    type="button"
-                    aria-label={`Save ${item.title}`}
-                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#e8897f] shadow-sm backdrop-blur-sm"
-                  >
-                    <Heart className="h-4 w-4 fill-current" />
-                  </button>
-
-                  {item.isVerified ? (
-                    <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm">
-                      <BadgeCheck className="h-3.5 w-3.5" />
-                      Verified
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="space-y-3 p-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-semibold text-[#355350]">{item.title}</p>
-                      <p className="mt-1 text-sm text-[#6f8580]">{item.meta}</p>
-                    </div>
-                    {item.isPremium ? (
-                      <span className="rounded-full bg-[#fef0ef] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b96862]">
-                        Paid
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs text-[#6f8580]">
-                    <MapPin className="h-3.5 w-3.5 text-[#e8897f]" />
-                    <span className="truncate">{item.text}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-[#f0d6d1] pt-3">
-                    <div className="flex items-center gap-3 text-[11px] text-[#6f8580]">
-                      <span className="inline-flex items-center gap-1">
-                        <BadgeCheck className="h-3.5 w-3.5 text-[#61b69e]" />
-                        {item.isVerified ? "Verified" : "New"}
-                      </span>
-                      <span>{item.isPremium ? "Premium" : "Community"}</span>
-                    </div>
-                    <span className="text-sm font-semibold text-[#355350]">View profile →</span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.7 }} className="mt-8 rounded-3xl border border-dashed border-[#d9e7e4] bg-white/60 px-6 py-8 text-center text-sm text-[#6f8580]">
+          No public member profiles to display.
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -342,7 +283,7 @@ export function defaultHomeSections(): HomeSection[] {
   return [
     { id: "hero", type: "hero", visible: true, eyebrow: "Meaningful connections, made simpler", title: "Meet someone who feels like home.", description: "Halal Biye Bangladesh helps you find a genuine life partner through thoughtful matching, verified profiles, and conversations that matter.", imageUrl: "/images/home/hero-couple.jpg", imageAlt: "Couple walking together", secondaryImageUrl: "/images/home/celebration.jpg", secondaryImageAlt: "Wedding celebration", buttonText: "Find your match", buttonLink: "/register", items: [] },
     { id: "values", type: "values", visible: true, eyebrow: "A better way to meet", title: "Built for something real.", description: "No endless noise. Just a warm, trusted space for people who are ready for a meaningful relationship.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "Trust comes first", text: "Verification and privacy tools help you connect with confidence." }, { title: "Smarter recommendations", text: "Find people who align with your values, lifestyle, and future plans." }, { title: "Made for commitment", text: "A community for genuine conversations and lasting partnerships." }] },
-    { id: "community", type: "community", visible: true, eyebrow: "Meet the community", title: "People worth getting to know.", description: "Every profile is a person with a story, a family, and hopes for the future. Start with a hello.", imageUrl: "", imageAlt: "", buttonText: "Join Halal Biye Bangladesh", buttonLink: "/register", items: defaultCommunityItems },
+    { id: "community", type: "community", visible: true, eyebrow: "Meet the community", title: "People worth getting to know.", description: "Every profile is a person with a story, a family, and hopes for the future. Start with a hello.", imageUrl: "", imageAlt: "", buttonText: "Join Halal Biye Bangladesh", buttonLink: "/register", items: [] },
     { id: "steps", type: "steps", visible: true, eyebrow: "How it works", title: "Three steps to your next chapter.", description: "A thoughtful path from your first profile to a meaningful conversation.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "Tell us your story", text: "Share the values, dreams, and little details that make you, you." }, { title: "Discover your match", text: "Explore thoughtful recommendations shaped around what matters to you." }, { title: "Start something real", text: "Connect safely and take the next step at your own pace." }] },
     { id: "stories", type: "stories", visible: true, eyebrow: "Real stories, real hope", title: "The best love stories start with a conversation.", description: "Read stories from members who found a meaningful connection.", imageUrl: "/images/home/table.jpg", imageAlt: "Elegant wedding table", buttonText: "Read member stories", buttonLink: "/success-stories", items: [] },
     { id: "final", type: "final", visible: true, eyebrow: "Start today", title: "A thoughtful beginning can change everything.", description: "Join a growing community of people looking for a partner, not just another profile.", imageUrl: "/images/home/bride.jpg", imageAlt: "Wedding details", buttonText: "Find your match", buttonLink: "/register", items: [] },

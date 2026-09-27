@@ -12,6 +12,7 @@ import {
 } from "@/components/seo/home-page-override";
 import { HomeSectionsEditor } from "./home-sections-editor";
 import { ManagedSectionsEditor } from "./managed-sections-editor";
+import { invalidateSitePageCache } from "@/components/seo/site-page-override";
 import { BlogEditor, type BlogRecord } from "./blog-editor";
 import {
   defaultManagedSections,
@@ -143,6 +144,7 @@ export default function AdminCmsPage() {
         return;
       }
       setPage(data.page);
+      invalidateSitePageCache("home");
       setMessage("Home page sections saved successfully.");
     } catch {
       setError(
@@ -166,6 +168,7 @@ export default function AdminCmsPage() {
         return;
       }
       setPage(data.page);
+      invalidateSitePageCache(selectedSlug);
       setMessage("Page sections saved successfully.");
     } catch {
       setError("Could not connect to the server. Please try again.");
