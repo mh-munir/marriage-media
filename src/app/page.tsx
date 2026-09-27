@@ -217,7 +217,7 @@ export default function HomePage() {
                   <h2 className="mt-3 font-serif text-4xl text-[#263b3a] sm:text-5xl">{t("peopleWorthKnowing")}</h2>
                 </div>
 
-                <Link href="/login" className="inline-flex items-center gap-2 rounded-full bg-[#ef3f68] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <Link href="/login" className="login-gradient-cta inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5">
                   {t("joinMarriageMedia")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -306,7 +306,7 @@ export default function HomePage() {
             )}
 
             <div className="mt-8 flex justify-center">
-              <Link href="/login" className="inline-flex items-center gap-2 rounded-full bg-[#ef3f68] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <Link href="/login" className="login-gradient-cta inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5">
                 {t("joinMarriageMedia")} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -356,7 +356,7 @@ export default function HomePage() {
                 <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#f4b0a8]">{t("successStories")}</p>
                 <h2 className="mt-4 max-w-md font-serif text-4xl leading-tight sm:text-5xl">{translateText("The best love stories start with a conversation.")}</h2>
                 <p className="mt-5 max-w-sm text-sm leading-6 text-[#78908c]">“We started with a simple conversation. Six months later, we knew.”</p>
-                <Link href="/success-stories" className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-[#174b4a] px-5 py-3 text-sm font-semibold text-white">{translateText("Read member stories")} <ArrowRight className="h-4 w-4" /></Link>
+                <Link href="/success-stories" className="login-gradient-cta mt-7 inline-flex w-fit items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold">{translateText("Read member stories")} <ArrowRight className="h-4 w-4" /></Link>
               </div>
             </div>
             <div className="relative h-70 overflow-hidden rounded-3xl shadow-[0_18px_35px_rgba(88,111,109,.12)] sm:h-80">
@@ -379,7 +379,7 @@ export default function HomePage() {
               <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f] dark:text-[#fb9b90]">{translateText("Start today")}</p>
               <h2 className="mt-3 font-serif text-4xl text-[#263b3a] dark:text-[#fff7ed] sm:text-5xl">{translateText("A thoughtful beginning can change everything.")}</h2>
               <p className="mt-5 max-w-md text-sm leading-6 text-[#78908c] dark:text-[#e7d8d2]">{translateText("Join a growing community of people looking for a partner, not just another profile.")}</p>
-              <Link href="/login" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#ef3f68] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#ef3f68]/20">{translateText("Find your match")} <ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/login" className="login-gradient-cta mt-7 inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm font-semibold">{translateText("Find your match")} <ArrowRight className="h-4 w-4" /></Link>
             </div>
             <div className="hidden lg:block" />
           </div>

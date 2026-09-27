@@ -230,7 +230,7 @@ function StandardSection({ section, index }: { section: HomeSection; index: numb
             {section.buttonText ? (
               <Link
                 href={section.buttonLink || "/register"}
-                className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#193f3c] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#193f3c]/20 transition hover:-translate-y-0.5 hover:bg-[#0f302d] dark:bg-rose-400 dark:text-slate-950 dark:hover:bg-rose-300"
+                className="login-gradient-cta mt-8 inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition hover:-translate-y-0.5"
               >
                 {section.buttonText}
                 <ArrowRight className="h-4 w-4" />
@@ -300,7 +300,7 @@ function StandardSection({ section, index }: { section: HomeSection; index: numb
                 <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f]">{section.eyebrow}</p>
                 <h2 className="mt-3 font-serif text-4xl leading-tight text-[#263b3a] sm:text-5xl">{section.title}</h2>
                 <p className="mt-5 max-w-xl text-base leading-7 text-[#78908c]">{section.description}</p>
-                {section.buttonText ? <Link href={section.buttonLink || "/register"} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#294845] px-5 py-3 text-sm font-semibold text-white">{section.buttonText}<ArrowRight className="h-4 w-4" /></Link> : null}
+                {section.buttonText ? <Link href={section.buttonLink || "/register"} className="login-gradient-cta mt-7 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold">{section.buttonText}<ArrowRight className="h-4 w-4" /></Link> : null}
               </div>
               {section.imageUrl ? <div className="relative h-80 overflow-hidden rounded-4xl shadow-lg sm:h-105"><Image src={section.imageUrl} alt={section.imageAlt || section.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" /></div> : null}
             </div>
@@ -382,7 +382,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
             </div>
 
             {section.buttonText ? (
-              <Link href={section.buttonLink || "/register"} className="inline-flex items-center gap-2 rounded-xl border border-[#9fcfc7] bg-white px-5 py-3 text-sm font-semibold text-[#486866] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <Link href={section.buttonLink || "/register"} className="login-gradient-cta inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5">
                 {section.buttonText}
                 <ArrowRight className="h-4 w-4" />
               </Link>

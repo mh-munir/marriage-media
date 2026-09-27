@@ -13,7 +13,7 @@ export function HomeDashboardAction() {
     return (
       <Link
         href="/register"
-        className="inline-flex items-center gap-3 rounded-xl bg-[#e8897f] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#e8897f]/25 transition-transform hover:-translate-y-0.5"
+        className="login-gradient-cta inline-flex items-center gap-3 rounded-xl px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5"
       >
         {t("registerFree")}
         <ArrowRight className="h-4 w-4" />

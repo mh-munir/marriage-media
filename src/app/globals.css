@@ -575,6 +575,17 @@
     background: var(--gradient-primary);
   }
 
+  .login-gradient-cta {
+    background-image: linear-gradient(to right, #f43f5e, #ec4899, #9333ea) !important;
+    color: #fff !important;
+    box-shadow: 0 10px 20px rgb(236 72 153 / 0.2);
+  }
+
+  .login-gradient-cta:hover {
+    background-image: linear-gradient(to right, #e11d48, #db2777, #7e22ce) !important;
+    box-shadow: 0 12px 24px rgb(236 72 153 / 0.28);
+  }
+
   .gradient-secondary {
     background: var(--gradient-secondary);
   }
