@@ -61,14 +61,14 @@ const sectionReveal = {
 };
 
 export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
-  const { language } = useLanguage();
+  const { language, translateText } = useLanguage();
   const [memberProfiles, setMemberProfiles] = useState<HomeProfile[]>([]);
   const localizedSections = ensureHomeSections(sections).map((section) => ({
     ...section,
     eyebrow: localizedField(section as unknown as Record<string, unknown>, "eyebrow", language, section.eyebrow),
     title: localizedField(section as unknown as Record<string, unknown>, "title", language, section.title),
     description: localizedField(section as unknown as Record<string, unknown>, "description", language, section.description),
-    buttonText: localizedField(section as unknown as Record<string, unknown>, "buttonText", language, section.buttonText),
+    buttonText: translateText(localizedField(section as unknown as Record<string, unknown>, "buttonText", language, section.buttonText)),
     items: section.items.map((item) => ({
       ...item,
       title: localizedField(item as unknown as Record<string, unknown>, "title", language, item.title),
@@ -111,6 +111,7 @@ export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
 }
 
 function HeroSection({ section, index }: { section: HomeSection; index: number }) {
+  const { t } = useLanguage();
   const secondaryImage = section.secondaryImageUrl || "/images/home/celebration.jpg";
 
   return (
@@ -151,7 +152,7 @@ function HeroSection({ section, index }: { section: HomeSection; index: number }
               href="/success-stories"
               className="inline-flex items-center gap-2 rounded-xl border border-[#d9dfe0] bg-white/80 px-4 py-3 text-sm font-semibold text-[#486866] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/60 dark:text-[#e7f0ef]"
             >
-              See success stories
+              {t("seeSuccessStories")}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -334,6 +335,7 @@ function FaqSection({ section, index }: { section: HomeSection; index: number })
 }
 
 function CommunitySection({ section, memberProfiles, index }: { section: HomeSection; memberProfiles: HomeProfile[]; index: number }) {
+  const { translateText } = useLanguage();
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   const cards = memberProfiles.length
@@ -412,7 +414,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
         </div>
 
         <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.7 }} className="mt-8 rounded-3xl border border-dashed border-[#d9e7e4] bg-white/60 px-6 py-8 text-center text-sm text-[#6f8580]">
-          No public member profiles to display.
+          {translateText("No public member profiles to display.")}
         </motion.div>
       </div>
     </motion.section>
@@ -427,6 +429,6 @@ export function defaultHomeSections(): HomeSection[] {
     { id: "steps", type: "steps", visible: true, eyebrow: "How it works", title: "Three steps to your next chapter.", description: "A thoughtful path from your first profile to a meaningful conversation.", imageUrl: "", imageAlt: "", buttonText: "", buttonLink: "", items: [{ title: "Tell us your story", text: "Share the values, dreams, and little details that make you, you." }, { title: "Discover your match", text: "Explore thoughtful recommendations shaped around what matters to you." }, { title: "Start something real", text: "Connect safely and take the next step at your own pace." }] },
     { id: "stories", type: "stories", visible: true, eyebrow: "Real stories, real hope", title: "The best love stories start with a conversation.", description: "Read stories from members who found a meaningful connection.", imageUrl: "/images/home/table.jpg", imageAlt: "Elegant wedding table", buttonText: "Read member stories", buttonLink: "/success-stories", items: [] },
     { id: "final", type: "final", visible: true, eyebrow: "Start today", title: "A thoughtful beginning can change everything.", description: "Join a growing community of people looking for a partner, not just another profile.", imageUrl: "/images/home/bride.jpg", imageAlt: "Wedding details", buttonText: "Find your match", buttonLink: "/register", items: [] },
-    { id: "faq", type: "faq", visible: true, eyebrow: "Common questions", title: "Everything you need to know", description: "Helpful answers before you begin your journey with Marriage Media.", imageUrl: "/images/home/celebration.jpg", imageAlt: "A joyful wedding celebration", buttonText: "", buttonLink: "", items: [{ title: "How do I create a profile?", text: "Create a free account, add your details and complete your profile so that compatible members can discover you." }, { title: "Are profiles verified?", text: "We provide verification tools and review processes to help keep the community safe and trustworthy." }, { title: "Can I use Marriage Media for free?", text: "Yes. You can start with a free account and choose a premium plan later when you need more features." }] },
+    { id: "faq", type: "faq", visible: true, eyebrow: "Common questions", eyebrowBn: "সাধারণ প্রশ্ন", title: "Everything you need to know", titleBn: "আপনার প্রয়োজনীয় সব তথ্য", description: "Helpful answers before you begin your journey with Marriage Media.", descriptionBn: "Marriage Media-তে যাত্রা শুরু করার আগে প্রয়োজনীয় উত্তরগুলো জেনে নিন।", imageUrl: "/images/home/celebration.jpg", imageAlt: "A joyful wedding celebration", buttonText: "", buttonLink: "", items: [{ title: "How do I create a profile?", titleBn: "আমি কীভাবে প্রোফাইল তৈরি করব?", text: "Create a free account, add your details and complete your profile so that compatible members can discover you.", textBn: "বিনামূল্যে একটি অ্যাকাউন্ট খুলুন, আপনার তথ্য যোগ করুন এবং প্রোফাইল সম্পূর্ণ করুন—তাহলে উপযুক্ত সদস্যরা আপনাকে খুঁজে পাবেন।" }, { title: "Are profiles verified?", titleBn: "প্রোফাইলগুলো কি যাচাইকৃত?", text: "We provide verification tools and review processes to help keep the community safe and trustworthy.", textBn: "কমিউনিটিকে নিরাপদ ও বিশ্বাসযোগ্য রাখতে আমরা যাচাইয়ের ব্যবস্থা ও পর্যালোচনা প্রক্রিয়া চালু রেখেছি।" }, { title: "Can I use Marriage Media for free?", titleBn: "আমি কি Marriage Media বিনামূল্যে ব্যবহার করতে পারি?", text: "Yes. You can start with a free account and choose a premium plan later when you need more features.", textBn: "হ্যাঁ। আপনি বিনামূল্যের অ্যাকাউন্ট দিয়ে শুরু করতে পারেন এবং প্রয়োজন হলে পরে প্রিমিয়াম প্ল্যান নিতে পারেন।" }] },
   ];
 }

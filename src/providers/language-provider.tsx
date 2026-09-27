@@ -295,6 +295,8 @@ const biodataText: Record<string, string> = {
   "Upgrade to Premium": "প্রিমিয়ামে আপগ্রেড করুন",
   "The best love stories start with a conversation.": "সেরা ভালোবাসার গল্প একটি কথোপকথন দিয়েই শুরু হয়।",
   "Read member stories": "সদস্যদের গল্প পড়ুন",
+  "Join Halal Biye Bangladesh": "হালাল বিয়ে বাংলাদেশে যোগ দিন",
+  "No public member profiles to display.": "প্রদর্শনের জন্য কোনো পাবলিক সদস্য প্রোফাইল নেই।",
   "Start today": "আজই শুরু করুন",
   "A thoughtful beginning can change everything.": "একটি সুন্দর শুরু সবকিছু বদলে দিতে পারে।",
   "Join a growing community of people looking for a partner, not just another profile.": "শুধু আরেকটি প্রোফাইল নয়, জীবনসঙ্গী খুঁজছেন এমন মানুষের ক্রমবর্ধমান কমিউনিটিতে যোগ দিন।",
