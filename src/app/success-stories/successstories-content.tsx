@@ -99,7 +99,7 @@ export default function SuccessStoriesPage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative pt-16 overflow-hidden">
+      {hero.visible ? <section className="relative pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20" />
         <div className="absolute top-20 left-10 w-72 h-72 bg-rose-200/30 dark:bg-rose-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-200/30 dark:bg-pink-500/10 rounded-full blur-3xl" />
@@ -125,7 +125,7 @@ export default function SuccessStoriesPage() {
             </p>
           </motion.div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Gallery */}
       {gallery.visible ? <section className="border-y border-border bg-card/50 py-24">
@@ -219,7 +219,7 @@ export default function SuccessStoriesPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-card/50 border-y border-border">
+      {cta.visible ? <section className="py-24 bg-card/50 border-y border-border">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -237,15 +237,15 @@ export default function SuccessStoriesPage() {
                 {localizedField(cta as unknown as Record<string, unknown>, "description", language, cta.description)}
               </p>
               <Button variant="secondary" size="lg" asChild>
-                <Link href="/register">
-                  {cta.buttonText || "Create Free Account"}
+                <Link href={cta.buttonLink || "/register"}>
+                  {localizedField(cta as unknown as Record<string, unknown>, "buttonText", language, cta.buttonText || "Create Free Account")}
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
             </div>
           </motion.div>
         </div>
-      </section>
+      </section> : null}
 
       <Footer />
     </div>

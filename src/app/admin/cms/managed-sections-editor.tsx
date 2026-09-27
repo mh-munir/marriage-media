@@ -21,6 +21,9 @@ export function ManagedSectionsEditor({
 }) {
   const [draft, setDraft] = React.useState(sections);
   const [uploading, setUploading] = React.useState("");
+  React.useEffect(() => {
+    setDraft(sections);
+  }, [sections]);
   const update = (index: number, patch: Partial<ManagedPageSection>) =>
     setDraft((current) =>
       current.map((item, itemIndex) =>

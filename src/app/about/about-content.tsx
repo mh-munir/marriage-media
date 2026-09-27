@@ -91,14 +91,16 @@ export default function AboutPage() {
 
   const managed = sections.length ? sections : defaultManagedSections("about");
   const hero = sectionValue(managed, "hero", defaultManagedSections("about")[0]);
+  const stats = sectionValue(managed, "stats", defaultManagedSections("about")[1]);
   const mission = sectionValue(managed, "mission", defaultManagedSections("about")[2]);
   const vision = sectionValue(managed, "vision", defaultManagedSections("about")[3]);
   const valuesSection = sectionValue(managed, "values", defaultManagedSections("about")[4]);
   const teamSection = sectionValue(managed, "team", defaultManagedSections("about")[5]);
-  const recognition = sectionValue(managed, "recognition", defaultManagedSections("about")[6]);
-  const managedValues = values.map((value, index) => ({ ...value, title: localizedField((valuesSection.items[index] || {}) as unknown as Record<string, unknown>, "title", language, value.title), description: localizedField((valuesSection.items[index] || {}) as unknown as Record<string, unknown>, "text", language, value.description) }));
-  const managedTeam = team.map((member, index) => {
-    const item = teamSection.items[index];
+  const why = sectionValue(managed, "why", defaultManagedSections("about")[6]);
+  const recognition = sectionValue(managed, "recognition", defaultManagedSections("about")[7]);
+  const managedValues = valuesSection.items.map((item, index) => ({ icon: values[index]?.icon || Heart, title: localizedField(item as unknown as Record<string, unknown>, "title", language, item.title), description: localizedField(item as unknown as Record<string, unknown>, "text", language, item.text) }));
+  const managedTeam = teamSection.items.map((item, index) => {
+    const member = team[index] || { name: item.title || "Team member", role: "", description: "" };
     const [role, description] = (item?.text || `${member.role} | ${member.description}`).split(" | ");
     return { ...member, name: localizedField((item || {}) as unknown as Record<string, unknown>, "title", language, member.name), role, description: localizedField((item || {}) as unknown as Record<string, unknown>, "text", language, description) };
   });
@@ -108,7 +110,7 @@ export default function AboutPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative pt-16 overflow-hidden">
+      {hero.visible ? <section className="relative pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <motion.div
@@ -131,14 +133,15 @@ export default function AboutPage() {
             </p>
           </motion.div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Stats */}
-      <section className="py-16 border-y border-border bg-card/50">
+      {stats.visible ? <section className="py-16 border-y border-border bg-card/50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {statLabels.map((label) => {
-              const key = label === "Active Users" ? "activeUsers" : label === "Premium Profiles" ? "premiumProfiles" : label === "Verified Profiles" ? "verifiedProfiles" : "happyFamilies";
+            {stats.items.map((item, index) => {
+              const label = localizedField(item as unknown as Record<string, unknown>, "title", language, statLabels[index] || item.title);
+              const key = ["activeUsers", "premiumProfiles", "verifiedProfiles", "happyFamilies"][index] || "happyFamilies";
               return <div key={label} className="text-center">
                 <div className="text-3xl font-bold text-primary">
                   {liveStats ? `${liveStats[key].toLocaleString()}+` : "..."}
@@ -148,13 +151,13 @@ export default function AboutPage() {
             })}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Mission & Vision */}
-      <section className="py-24">
+      {(mission.visible || vision.visible) ? <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12">
-            <motion.div
+            {mission.visible ? <motion.div
               initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -167,8 +170,8 @@ export default function AboutPage() {
               <p className="text-muted-foreground leading-relaxed">
                 {text(localizedField(mission as unknown as Record<string, unknown>, "description", language, mission.description))}
               </p>
-            </motion.div>
-            <motion.div
+            </motion.div> : null}
+            {vision.visible ? <motion.div
               initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -181,13 +184,13 @@ export default function AboutPage() {
               <p className="text-muted-foreground leading-relaxed">
                 {text(localizedField(vision as unknown as Record<string, unknown>, "description", language, vision.description))}
               </p>
-            </motion.div>
+            </motion.div> : null}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Values */}
-      <section className="py-24 bg-card/50 border-y border-border">
+      {valuesSection.visible ? <section className="py-24 bg-card/50 border-y border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -196,11 +199,11 @@ export default function AboutPage() {
             className="text-center mb-16"
           >
             <Badge variant="secondary" className="mb-4">
-              {text("Our Values")}
+              {text(localizedField(valuesSection as unknown as Record<string, unknown>, "eyebrow", language, valuesSection.eyebrow))}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">{text("What We Stand For")}</h2>
+            <h2 className="text-3xl font-bold mb-4">{text(localizedField(valuesSection as unknown as Record<string, unknown>, "title", language, valuesSection.title))}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {text("Our core values guide everything we do, from building features to serving our community.")}
+              {text(localizedField(valuesSection as unknown as Record<string, unknown>, "description", language, valuesSection.description))}
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -225,10 +228,10 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Team */}
-      <section className="py-24">
+      {teamSection.visible ? <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -237,11 +240,11 @@ export default function AboutPage() {
             className="text-center mb-16"
           >
             <Badge variant="secondary" className="mb-4">
-              {text("Our Team")}
+              {text(localizedField(teamSection as unknown as Record<string, unknown>, "eyebrow", language, teamSection.eyebrow))}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">{text("Meet the People Behind Halal Biye Bangladesh")}</h2>
+            <h2 className="text-3xl font-bold mb-4">{text(localizedField(teamSection as unknown as Record<string, unknown>, "title", language, teamSection.title))}</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {text("A passionate team dedicated to helping you find your perfect match.")}
+              {text(localizedField(teamSection as unknown as Record<string, unknown>, "description", language, teamSection.description))}
             </p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -267,10 +270,10 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Why Choose Us */}
-      <section className="py-24 bg-card/50 border-y border-border">
+      {why.visible ? <section className="py-24 bg-card/50 border-y border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -279,31 +282,14 @@ export default function AboutPage() {
             className="text-center mb-12"
           >
             <Badge variant="secondary" className="mb-4">
-              {text("Why Choose Us")}
+              {text(localizedField(why as unknown as Record<string, unknown>, "eyebrow", language, why.eyebrow))}
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">{text("What Makes Us Different")}</h2>
+            <h2 className="text-3xl font-bold mb-4">{text(localizedField(why as unknown as Record<string, unknown>, "title", language, why.title))}</h2>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Shield,
-                title: "100% Verified Profiles",
-                description:
-                  "Every profile goes through a rigorous verification process. We manually check each profile to ensure authenticity.",
-              },
-              {
-                icon: Sparkles,
-                title: "AI-Powered Matching",
-                description:
-                  "Our advanced AI algorithm analyzes 50+ compatibility factors to suggest the best matches for you.",
-              },
-              {
-                icon: Handshake,
-                title: "Family-Oriented",
-                description:
-                  "We understand the importance of family in Bangladeshi culture. Our platform supports family involvement in the matching process.",
-              },
-            ].map((item, index) => (
+            {why.items.map((item, index) => {
+              const Icon = [Shield, Sparkles, Handshake][index] || Heart;
+              return (
               <motion.div
                 key={item.title}
                 initial={{ opacity: 0, y: 30 }}
@@ -313,20 +299,21 @@ export default function AboutPage() {
                 className="flex gap-4"
               >
                 <div className="shrink-0 h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <item.icon className="h-6 w-6 text-primary" />
+                  <Icon className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <h3 className="font-semibold mb-2">{text(localizedField(item as unknown as Record<string, unknown>, "title", language, item.title))}</h3>
+                  <p className="text-sm text-muted-foreground">{text(localizedField(item as unknown as Record<string, unknown>, "text", language, item.text))}</p>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Recognition */}
-      <section className="py-24">
+      {recognition.visible ? <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -335,13 +322,13 @@ export default function AboutPage() {
             className="text-center max-w-3xl mx-auto"
           >
             <Award className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h2 className="text-3xl font-bold mb-4">{recognition.title}</h2>
+            <h2 className="text-3xl font-bold mb-4">{text(localizedField(recognition as unknown as Record<string, unknown>, "title", language, recognition.title))}</h2>
             <p className="text-muted-foreground text-lg">
-              {recognition.description}
+              {text(localizedField(recognition as unknown as Record<string, unknown>, "description", language, recognition.description))}
             </p>
           </motion.div>
         </div>
-      </section>
+      </section> : null}
 
       <Footer />
     </div>

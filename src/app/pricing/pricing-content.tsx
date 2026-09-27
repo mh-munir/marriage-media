@@ -130,8 +130,8 @@ export default function PricingPage() {
   const benefits = sectionValue(sections.length ? sections : defaults, "benefits", defaults[1]);
   const testimonialsSection = sectionValue(sections.length ? sections : defaults, "testimonials", defaults[2]);
   const faqSection = sectionValue(sections.length ? sections : defaults, "faq", defaults[3]);
-  const managedBenefits = premiumBenefits.map((benefit, index) => {
-    const item = benefits.items[index] || {};
+  const managedBenefits = benefits.items.map((item, index) => {
+    const benefit = premiumBenefits[index] || { icon: Sparkles, title: item.title, description: item.text };
     const resolvedTitle = localizedField(item as unknown as Record<string, unknown>, "title", language, benefit.title);
     const resolvedDescription = localizedField(item as unknown as Record<string, unknown>, "text", language, benefit.description);
     return {
@@ -150,7 +150,7 @@ export default function PricingPage() {
       <Header />
 
       {/* Hero */}
-      <section className="relative pt-16 overflow-hidden">
+      {hero.visible ? <section className="relative pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-br from-rose-50 via-white to-pink-50 dark:from-rose-950/20 dark:via-background dark:to-pink-950/20" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-18 sm:py-24 lg:py-32">
           <motion.div
@@ -171,7 +171,7 @@ export default function PricingPage() {
             </p>
           </motion.div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Plans */}
       <section className="pb-18 sm:pb-24">
@@ -249,7 +249,7 @@ export default function PricingPage() {
       </section>
 
       {/* Premium Benefits */}
-      <section className="py-24 bg-card/50 border-y border-border">
+      {benefits.visible ? <section className="py-24 bg-card/50 border-y border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -287,10 +287,10 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       {/* Testimonials */}
-      <section className="py-24">
+      {testimonialsSection.visible ? <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -342,10 +342,10 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       {/* FAQ */}
-      <section className="py-24 bg-card/50 border-y border-border">
+      {faqSection.visible ? <section className="py-24 bg-card/50 border-y border-border">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -366,7 +366,7 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> : null}
 
       <Footer />
     </div>

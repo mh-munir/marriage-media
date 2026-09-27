@@ -97,6 +97,11 @@ export function ThemeProvider({
 
 function applyTheme(resolved: "light" | "dark") {
   const root = document.documentElement;
+  // The control room uses a fixed light interface. Public pages still follow
+  // the visitor's saved/system theme normally.
+  const effectiveTheme = window.location.pathname.startsWith("/admin")
+    ? "light"
+    : resolved;
   root.classList.remove("light", "dark");
-  root.classList.add(resolved);
+  root.classList.add(effectiveTheme);
 }

@@ -358,7 +358,7 @@ export default function AdminCmsPage() {
 }
 
 const managedSectionLabels: Record<string, Record<string, string>> = {
-  about: { hero: "Hero banner", stats: "Statistics", mission: "Mission", vision: "Vision", values: "Our values", team: "Our team", recognition: "Recognition" },
+  about: { hero: "Hero banner", stats: "Statistics", mission: "Mission", vision: "Vision", values: "Our values", team: "Our team", why: "Why choose us", recognition: "Recognition" },
   pricing: { hero: "Hero banner", benefits: "Premium benefits", testimonials: "Member testimonials", faq: "Frequently asked questions" },
   "success-stories": { hero: "Hero banner", gallery: "Photo gallery", cta: "Join call to action" },
   contact: { email: "Email contact", phone: "Phone contact", address: "Office address", hours: "Working hours" },

@@ -102,7 +102,7 @@ export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
     };
   }, []);
 
-  return <div className="min-h-screen bg-[#fffdfc] text-[#263b3a]"><Header /><main>{localizedSections.filter((section) => section.visible).map((section, index) => section.type === "hero" ? <HeroSection key={section.id} section={section} index={index} /> : section.type === "community" ? <CommunitySection key={section.id} section={section} memberProfiles={memberProfiles} index={index} /> : <StandardSection key={section.id} section={section} index={index} />)}</main><Footer /></div>;
+  return <div className="home-page min-h-screen bg-[#fffdfc] text-[#263b3a]"><Header /><main>{localizedSections.filter((section) => section.visible).map((section, index) => section.type === "hero" ? <HeroSection key={section.id} section={section} index={index} /> : section.type === "community" ? <CommunitySection key={section.id} section={section} memberProfiles={memberProfiles} index={index} /> : <StandardSection key={section.id} section={section} index={index} />)}</main><Footer /></div>;
 }
 
 function HeroSection({ section, index }: { section: HomeSection; index: number }) {
@@ -114,8 +114,49 @@ function StandardSection({ section, index }: { section: HomeSection; index: numb
   const isValues = section.type === "values";
   const isSteps = section.type === "steps";
 
+  if (section.type === "final") {
+    return (
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+        variants={sectionReveal}
+        custom={index * 0.12}
+        className="home-final-cta relative isolate overflow-hidden bg-[#173f3c] px-5 py-20 sm:px-8 lg:py-28"
+      >
+        {section.imageUrl ? (
+          <Image
+            src={section.imageUrl}
+            alt={section.imageAlt || ""}
+            fill
+            sizes="100vw"
+            className="-z-20 object-cover object-center"
+          />
+        ) : null}
+        <div className="absolute inset-0 -z-10 bg-linear-to-r from-[#f8f4ed]/97 via-[#f8f4ed]/88 to-[#173f3c]/42" />
+        <div className="absolute inset-0 -z-10 bg-[#173f3c]/12" />
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-xl rounded-[30px] border border-white/55 bg-white/18 p-7 shadow-[0_24px_60px_rgba(18,49,46,.18)] backdrop-blur-[2px] sm:p-10">
+            <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#b96862]">{section.eyebrow}</p>
+            <h2 className="mt-4 font-serif text-4xl leading-tight text-[#263b3a] sm:text-5xl">{section.title}</h2>
+            <p className="mt-5 max-w-lg text-base leading-7 text-[#466a66]">{section.description}</p>
+            {section.buttonText ? (
+              <Link
+                href={section.buttonLink || "/register"}
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#294845] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#294845]/20 transition hover:-translate-y-0.5 hover:bg-[#1e3a37]"
+              >
+                {section.buttonText}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </motion.section>
+    );
+  }
+
   return (
-    <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={sectionReveal} custom={index * 0.12} className={`px-5 py-20 sm:px-8 lg:py-28 ${section.type === "community" || section.type === "final" ? "bg-[#eff8f7]" : ""}`}>
+    <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={sectionReveal} custom={index * 0.12} className={`px-5 py-20 sm:px-8 lg:py-28 ${section.type === "community" ? "bg-[#eff8f7]" : ""}`}>
       <div className="mx-auto max-w-6xl">
         {isValues ? (
           <>
@@ -135,9 +176,6 @@ function StandardSection({ section, index }: { section: HomeSection; index: numb
                   </div>
                   <h3 className="mt-5 font-serif text-2xl text-[#355350]">{item.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-[#78908c]">{item.text}</p>
-                  <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#355350]">
-                    Learn more <ArrowRight className="h-4 w-4" />
-                  </div>
                 </article>
               ))}
             </div>
