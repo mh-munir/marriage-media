@@ -26,10 +26,11 @@ function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setUser, setTokens } = useAuthStore();
-  const { translateText: text } = useLanguage();
+  const { language, translateText: text } = useLanguage();
   const registered = searchParams.get("registered");
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const submitInProgress = React.useRef(false);
 
   const {
     register,
@@ -40,6 +41,8 @@ function LoginFormInner() {
   });
 
   const onSubmit = async (data: LoginForm) => {
+    if (submitInProgress.current) return;
+    submitInProgress.current = true;
     setIsLoading(true);
     try {
       const response = await fetch("/api/auth/login", {
@@ -64,8 +67,9 @@ function LoginFormInner() {
       router.push(user.onboardingCompleted ? "/dashboard" : "/onboarding");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
-      toast.error(message);
+      toast.error(text(message));
     } finally {
+      submitInProgress.current = false;
       setIsLoading(false);
     }
   };
@@ -84,8 +88,8 @@ function LoginFormInner() {
           <div className="auth-brand-mark flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-orange-400">
             <Heart className="h-5 w-5 text-white" fill="white" />
           </div>
-          <span suppressHydrationWarning className="text-2xl font-bold tracking-tight">
-            Marriage<span className="text-primary">Media</span>
+          <span suppressHydrationWarning className="text-2xl font-bold tracking-tight text-primary">
+            {language === "bn" ? "হালাল বিয়ে" : "Halal Biye"}
           </span>
         </Link>
 
@@ -148,7 +152,10 @@ function LoginFormInner() {
 
               <Button type="submit" variant="gradient" className="w-full" size="lg" disabled={isLoading}>
                 {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    {text("Signing in...")}
+                  </>
                 ) : (
                   <>
                     {text("Sign In")}

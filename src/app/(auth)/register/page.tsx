@@ -21,7 +21,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { translateText: text } = useLanguage();
+  const { language, translateText: text } = useLanguage();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -92,8 +92,8 @@ export default function RegisterPage() {
           <div className="auth-brand-mark flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-orange-400">
             <Heart className="h-5 w-5 text-white" fill="white" />
           </div>
-          <span suppressHydrationWarning className="text-2xl font-bold tracking-tight">
-            Marriage<span className="text-primary">Media</span>
+          <span suppressHydrationWarning className="text-2xl font-bold tracking-tight text-primary">
+            {language === "bn" ? "হালাল বিয়ে" : "Halal Biye"}
           </span>
         </Link>
 

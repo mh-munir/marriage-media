@@ -33,6 +33,7 @@ import {
   sanitizePhoneNumberInput,
 } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
+import { registerLocationLabels, translateLocationLabel } from "@/lib/location-labels";
 import { useAuthStore } from "@/stores/auth-store";
 import { useLanguage } from "@/providers/language-provider";
 
@@ -309,7 +310,8 @@ async function fetchLocationOptions(level: LocationLevel, params: Record<string,
 
   const response = await fetch(`/api/locations?${query.toString()}`, { cache: "force-cache" });
   if (!response.ok) throw new Error("Unable to load location options.");
-  const data = (await response.json()) as { options?: string[] };
+  const data = (await response.json()) as { options?: string[]; labels?: Record<string, string> };
+  registerLocationLabels(data.labels || {});
   const options = data.options || [];
   locationOptionsCache.set(cacheKey, options);
   return options;
@@ -938,9 +940,9 @@ export default function DashboardProfilePage() {
                           <div className="space-y-4">
                         <h3 className="text-lg font-semibold">{text("Present Address")}</h3>
                         <Input
-                          label="Country"
-                          value={profile.country}
-                          onChange={(e) => setProfile({ ...profile, country: e.target.value })}
+                          label={text("Country")}
+                          value={translateLocationLabel(profile.country, language)}
+                          onChange={(e) => setProfile({ ...profile, country: e.target.value === "বাংলাদেশ" ? "Bangladesh" : e.target.value })}
                         />
                         <div className="grid sm:grid-cols-2 gap-4">
                           <div>
@@ -952,7 +954,7 @@ export default function DashboardProfilePage() {
                             >
                               <option value="">{text("Select division")}</option>
                               {locationOptions.divisions.map((d) => (
-                                <option key={d} value={d}>{d}</option>
+                                <option key={d} value={d}>{translateLocationLabel(d, language)}</option>
                               ))}
                             </select>
                           </div>
@@ -966,7 +968,7 @@ export default function DashboardProfilePage() {
                             >
                               <option value="">{text(profile.division ? "Select district" : "Select division first")}</option>
                               {locationOptions.districts.map((district) => (
-                                <option key={district} value={district}>{district}</option>
+                                <option key={district} value={district}>{translateLocationLabel(district, language)}</option>
                               ))}
                             </select>
                           </div>
@@ -982,7 +984,7 @@ export default function DashboardProfilePage() {
                             >
                               <option value="">{text(profile.district ? "Select thana" : "Select district first")}</option>
                               {locationOptions.thanas.map((thana) => (
-                                <option key={thana} value={thana}>{thana}</option>
+                                <option key={thana} value={thana}>{translateLocationLabel(thana, language)}</option>
                               ))}
                             </select>
                           </div>
@@ -996,7 +998,7 @@ export default function DashboardProfilePage() {
                             >
                               <option value="">{text(profile.thana ? "Select union" : "Select thana first")}</option>
                               {locationOptions.unions.map((union) => (
-                                <option key={union} value={union}>{union}</option>
+                                <option key={union} value={union}>{translateLocationLabel(union, language)}</option>
                               ))}
                             </select>
                           </div>
@@ -1010,8 +1012,8 @@ export default function DashboardProfilePage() {
                           <h3 className="text-lg font-semibold">{text("Permanent Address")}</h3>
                           <Input
                             label={text("Country")}
-                            value={profile.permanentLocation.country}
-                            onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, country: e.target.value } })}
+                            value={translateLocationLabel(profile.permanentLocation.country, language)}
+                            onChange={(e) => setProfile({ ...profile, permanentLocation: { ...profile.permanentLocation, country: e.target.value === "বাংলাদেশ" ? "Bangladesh" : e.target.value } })}
                           />
                           <div className="grid gap-4 sm:grid-cols-2">
                             <div>
@@ -1022,7 +1024,7 @@ export default function DashboardProfilePage() {
                                 className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm"
                               >
                                 <option value="">{text("Select division")}</option>
-                                {permanentLocationOptions.divisions.map((division) => <option key={division} value={division}>{division}</option>)}
+                                {permanentLocationOptions.divisions.map((division) => <option key={division} value={division}>{translateLocationLabel(division, language)}</option>)}
                               </select>
                             </div>
                             <div>
@@ -1034,7 +1036,7 @@ export default function DashboardProfilePage() {
                                 className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <option value="">{text(profile.permanentLocation.division ? "Select district" : "Select division first")}</option>
-                                {permanentLocationOptions.districts.map((district) => <option key={district} value={district}>{district}</option>)}
+                                {permanentLocationOptions.districts.map((district) => <option key={district} value={district}>{translateLocationLabel(district, language)}</option>)}
                               </select>
                             </div>
                             <div>
@@ -1046,7 +1048,7 @@ export default function DashboardProfilePage() {
                                 className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <option value="">{text(profile.permanentLocation.district ? "Select thana" : "Select district first")}</option>
-                                {permanentLocationOptions.thanas.map((thana) => <option key={thana} value={thana}>{thana}</option>)}
+                                {permanentLocationOptions.thanas.map((thana) => <option key={thana} value={thana}>{translateLocationLabel(thana, language)}</option>)}
                               </select>
                             </div>
                             <div>
@@ -1058,7 +1060,7 @@ export default function DashboardProfilePage() {
                                 className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <option value="">{text(profile.permanentLocation.thana ? "Select union" : "Select thana first")}</option>
-                                {permanentLocationOptions.unions.map((union) => <option key={union} value={union}>{union}</option>)}
+                                {permanentLocationOptions.unions.map((union) => <option key={union} value={union}>{translateLocationLabel(union, language)}</option>)}
                               </select>
                             </div>
                           </div>

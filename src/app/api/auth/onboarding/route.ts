@@ -4,12 +4,20 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
 import { Profile, User } from "@/models";
+import { removeDeprecatedLifestyleFields as migrateDeprecatedLifestyleFields } from "@/lib/remove-deprecated-lifestyle-fields";
+const deprecatedLifestyleFields = ["hobbies", "smoke", "drink"] as const;
+
+function removeDeprecatedLifestyleFields(data: Record<string, unknown>) {
+  for (const field of deprecatedLifestyleFields) delete data[field];
+  return data;
+}
 
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
+    await migrateDeprecatedLifestyleFields();
     const user = await requireAuth(request);
-    const onboardingData = { ...(user.onboardingData || {}) } as Record<string, unknown>;
+    const onboardingData = removeDeprecatedLifestyleFields({ ...(user.onboardingData || {}) }) as Record<string, unknown>;
     const profile = await Profile.findOne({ userId: user._id })
       .select("profession institution hasMajorHealthIssue majorHealthIssueDetails")
       .lean();
@@ -27,14 +35,16 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     await connectToDatabase();
+    await migrateDeprecatedLifestyleFields();
     const user = await requireAuth(request);
     const body = (await request.json()) as { data?: Record<string, unknown>; step?: number; completed?: boolean; sync?: boolean };
     if (!body.data || typeof body.data !== "object") return NextResponse.json({ error: "Onboarding data is required." }, { status: 400 });
     const incomingData = { ...body.data } as Record<string, unknown>;
     delete incomingData.highestEducation;
+    removeDeprecatedLifestyleFields(incomingData);
     const isSync = body.sync === true;
     const step = isSync ? user.onboardingStep || 1 : Math.min(8, Math.max(1, Number(body.step) || 1));
-    const data = { ...(user.onboardingData || {}), ...incomingData };
+    const data = removeDeprecatedLifestyleFields({ ...(user.onboardingData || {}), ...incomingData });
     const firstName = typeof data.firstName === "string" ? data.firstName.trim() : "";
     const lastName = typeof data.lastName === "string" ? data.lastName.trim() : "";
     const gender = data.gender === "Male" || data.gender === "Female" ? data.gender : undefined;

@@ -285,10 +285,6 @@ const ProfileSchema = new Schema<IProfile>(
       enum: ["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal", "No Preference"],
       default: "No Preference",
     },
-    smoke: { type: String, enum: ["Yes", "No", "Occasionally"], default: "No" },
-    drink: { type: String, enum: ["Yes", "No", "Occasionally"], default: "No" },
-    hobbies: [{ type: String }],
-
     partnerPreference: { type: String, default: "", maxlength: [1000, "Partner preference cannot exceed 1000 characters"] },
     partnerPreferences: {
       age: { type: String, default: "" },

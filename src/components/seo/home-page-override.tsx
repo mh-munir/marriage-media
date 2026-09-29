@@ -138,7 +138,7 @@ function HeroSection({ section, index }: { section: HomeSection; index: number }
             {section.eyebrow}
           </div>
 
-          <h1 className="font-serif text-5xl leading-[.96] text-[#223c3a] sm:text-7xl dark:text-[#f3f7f5]">
+          <h1 className="font-serif text-4xl leading-[.96] text-[#223c3a] sm:text-6xl dark:text-[#f3f7f5]">
             {section.title}
           </h1>
 

@@ -1,17 +1,30 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
 import { User, Profile, Payment, ProfileView, Verification } from "@/models";
 import { requireAdmin } from "@/lib/auth";
 import { sendEmailVerification, sendPhoneOTP, verifyEmailCode, verifyPhoneOTP } from "@/lib/verification";
 import { validatePhoneNumber } from "@/lib/utils";
+import { removeDeprecatedLifestyleFields } from "@/lib/remove-deprecated-lifestyle-fields";
+
+const BIODATA_LIMITS: Record<string, number> = {
+  basic: 20,
+  gold: 50,
+  premium: -1,
+  monthly: 20,
+  quarterly: 20,
+  "half-yearly": 50,
+  yearly: -1,
+};
 
 // Get all users with admin filters
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
+    await removeDeprecatedLifestyleFields();
     await requireAdmin(request);
 
     const { searchParams } = new URL(request.url);
@@ -21,6 +34,30 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "";
     const role = searchParams.get("role") || "user";
     const segment = searchParams.get("segment") || "";
+    const userId = searchParams.get("userId") || "";
+    const isPublicUsersView = role === "user" || role === "members";
+
+    if (userId) {
+      const [user, profile, payments, verifications, profileViews] = await Promise.all([
+        User.findOne({ _id: userId, role: "user" }).select("-password").lean(),
+        Profile.findOne({ userId }).lean(),
+        Payment.find({ userId }).sort({ createdAt: -1 }).lean(),
+        Verification.find({ userId }).sort({ createdAt: -1 }).lean(),
+        ProfileView.find({ $or: [{ viewerId: userId }, { viewedId: userId }] }).sort({ createdAt: -1 }).lean(),
+      ]);
+
+      if (!user) return NextResponse.json({ error: "Public user not found" }, { status: 404 });
+
+      return NextResponse.json({
+        user: {
+          ...user,
+          profile: profile || null,
+          payments,
+          verifications,
+          profileViews,
+        },
+      });
+    }
     const skip = (page - 1) * limit;
 
     const filter: Record<string, unknown> =
@@ -28,11 +65,16 @@ export async function GET(request: NextRequest) {
         ? { role: { $in: ["admin", "superadmin"] } }
         : { role: "user" };
 
-    if (role === "user" && (segment === "free" || segment === "subscribed")) {
-      const subscribedUserIds = await Payment.distinct("userId", {
-        status: "completed",
-        expiryDate: { $gt: new Date() },
-      });
+    if (isPublicUsersView && (segment === "free" || segment === "subscribed")) {
+      const [paidUserIds, premiumProfileUserIds] = await Promise.all([
+        Payment.distinct("userId", {
+          status: "completed",
+        }),
+        Profile.distinct("userId", { isPremium: true }),
+      ]);
+      const subscribedUserIds = [...new Set([...paidUserIds, ...premiumProfileUserIds].map(String))]
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
       filter._id = segment === "subscribed" ? { $in: subscribedUserIds } : { $nin: subscribedUserIds };
     }
 
@@ -93,11 +135,18 @@ export async function GET(request: NextRequest) {
         const payment = subscriptionMap.get(u._id.toString());
         if (!payment) return null;
         const expiryDate = payment.expiryDate.toISOString();
+        const plan = String(payment.metadata?.planId || payment.plan).toLowerCase();
+        const metadataLimit = Number(payment.metadata?.profileDetailLimit);
+        const biodataLimit = Number.isFinite(metadataLimit) ? metadataLimit : (BIODATA_LIMITS[plan] ?? 0);
+        const biodataUsed = biodataVisitMap.get(u._id.toString())?.uniqueBiodatas || 0;
         return {
-          plan: String(payment.metadata?.planId || payment.plan),
+          plan,
           expiryDate,
           isActive: payment.expiryDate > new Date(),
           daysRemaining: Math.max(0, Math.ceil((payment.expiryDate.getTime() - Date.now()) / 86_400_000)),
+          biodataLimit,
+          biodataUsed,
+          biodataRemaining: biodataLimit < 0 ? null : Math.max(0, biodataLimit - biodataUsed),
         };
       })() : null,
     }));

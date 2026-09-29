@@ -186,8 +186,6 @@ export const FAMILY_STATUSES = ["Middle Class", "Upper Middle Class", "Rich", "A
 export const FAMILY_VALUES = ["Orthodox", "Traditional", "Moderate", "Liberal", "Secular"] as const;
 
 export const DIETS = ["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal", "No Preference"] as const;
-export const SMOKE_OPTIONS = ["Yes", "No", "Occasionally"] as const;
-export const DRINK_OPTIONS = ["Yes", "No", "Occasionally"] as const;
 
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
 
@@ -200,29 +198,6 @@ export const WORKING_WITH_OPTIONS = [
   "Self Employed",
   "Not Working",
   "Other",
-] as const;
-
-export const HOBBIES = [
-  "Reading",
-  "Traveling",
-  "Cooking",
-  "Music",
-  "Sports",
-  "Photography",
-  "Art",
-  "Dancing",
-  "Gardening",
-  "Fitness",
-  "Yoga",
-  "Movies",
-  "Gaming",
-  "Hiking",
-  "Writing",
-  "Volunteering",
-  "Technology",
-  "Fashion",
-  "Food",
-  "Nature",
 ] as const;
 
 export const NATIONALITIES = [

@@ -66,7 +66,7 @@ type PublicProfile = {
   motherProfession?: string;
   numberOfSiblings?: number;
   siblingDetails?: string;
-  siblings?: { name: string; relation: string }[];
+  siblings?: { name: string; relation: string; profession?: string }[];
   educationDetails?: { level: string; instituteName?: string; year?: string }[];
   habitAnswers?: Record<string, string>;
   familyAwareOfBiodata?: string;
@@ -264,44 +264,28 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
             </section>
             <div className="mt-5 space-y-5">
               <DetailsCard title={translateText("Personal Details")}>
-                <Detail label="Name" value={currentUserIsPremium ? name : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Age" value={profile.age} />
                 <Detail label="Gender" value={profile.gender} />
                 <Detail label="Marital Status" value={profile.maritalStatus} />
                 {profile.maritalStatus !== "Never Married" ? <Detail label="Number of Children" value={profile.childrenCount} /> : null}
-                <Detail label="Profile Created By" value={profile.profileCreatedBy} />
                 <Detail label="Religion" value={profile.religion} />
-                <Detail label="Caste" value={profile.caste} />
-                <Detail label="Sub-caste" value={profile.subCaste} />
                 <Detail label="Mother Tongue" value={profile.motherTongue} />
-                <Detail label="Languages" value={profile.languages?.join(", ")} />
-                <Detail label="Nationality" value={profile.nationality} />
                 <Detail label="Height" value={profile.height} />
-                <Detail label="Weight" value={profile.weight} />
                 <Detail label="Blood Group" value={profile.bloodGroup} />
                 <Detail label="Complexion" value={profile.complexion} />
                 <Detail label="Do you have any physical problem or major illness?" value={profile.hasMajorHealthIssue} />
                 {profile.hasMajorHealthIssue === "Yes" ? <Detail label="Please specify the physical problem or illness" value={profile.majorHealthIssueDetails} /> : null}
                 <Detail label="Separation/Divorce Date" value={profile.maritalStatusDate ? new Date(profile.maritalStatusDate).toLocaleDateString() : undefined} />
               </DetailsCard>
-              <DetailsCard title={translateText("Contact Details")}>
-                <Detail label="Email" value={currentUserIsPremium ? profile.email : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
-                <Detail label="Contact Number" value={currentUserIsPremium ? profile.contactNumber : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
-                <Detail label="WhatsApp/Imo Number" value={currentUserIsPremium ? profile.whatsappNumber : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
-                <Detail label="Country" value={profile.country} />
-                <Detail label="Division" value={profile.division} />
-                <Detail label="District" value={profile.district} />
-                <Detail label="Thana" value={profile.thana} />
-                <Detail label="Union" value={profile.union} />
-                <Detail label="Area" value={currentUserIsPremium ? profile.area : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
-              </DetailsCard>
+              {currentUserIsPremium && (profile.email || profile.whatsappNumber) ? (
+                <DetailsCard title={translateText("Contact Details")}>
+                  <Detail label="Email" value={profile.email} />
+                  <Detail label="WhatsApp/Imo Number" value={profile.whatsappNumber} />
+                </DetailsCard>
+              ) : null}
               <DetailsCard title={translateText("Education & Career")}>
-                <Detail label="Highest Education" value={profile.highestEducation} />
                 <Detail label="Institution" value={profile.institution} />
                 <Detail label="Profession" value={profile.profession} />
-                <Detail label="Working With" value={profile.workingWith} />
-                <Detail label="Company" value={profile.company} />
-                <Detail label="Annual Income" value={profile.annualIncome} />
               </DetailsCard>
               {educationEntries.length ? (
                 <DetailsCard title={translateText("Education Details")}>
@@ -317,21 +301,15 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 </DetailsCard>
               ) : null}
               <DetailsCard title={translateText("Family Details")}>
-                <Detail label="Family Type" value={profile.familyType} />
-                <Detail label="Family Status" value={profile.familyStatus} />
-                <Detail label="Family Values" value={profile.familyValues} />
                 <Detail label="Father's Name" value={profile.fatherName} />
                 <Detail label="Mother's Name" value={profile.motherName} />
                 <Detail label="Guardian" value={[profile.guardianRelation ? translateText(profile.guardianRelation) : "", profile.guardianName].filter(Boolean).join(": ")} />
                 <Detail label="Guardian Mobile" value={profile.guardianMobileNumber} />
-                <Detail label="Father's Contact" value={currentUserIsPremium ? profile.fatherContactNumber : undefined} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Father's Profession" value={profile.fatherProfession} />
-                <Detail label="Mother's Name" value={profile.motherName} />
                 <Detail label="Mother's Profession" value={profile.motherProfession} />
-                <Detail label="Siblings" value={profile.siblings?.map((sibling) => `${sibling.name} (${translateText(sibling.relation)})`).join(", ") || profile.siblingDetails || profile.numberOfSiblings} />
+                <Detail label="Siblings" value={profile.siblings?.map((sibling) => [sibling.name, translateText(sibling.relation), sibling.profession].filter(Boolean).join(" - ")).join(", ") || profile.numberOfSiblings} />
               </DetailsCard>
               <DetailsCard title={translateText("Present Address")}>
-                <Detail label="Address" value={profile.presentAddress} />
                 <Detail label="Area" value={profile.area} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Union" value={profile.union} />
                 <Detail label="Thana" value={profile.thana} />
@@ -341,7 +319,6 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
               </DetailsCard>
               {currentUserIsPremium && profile.permanentLocation ? (
                 <DetailsCard title={translateText("Permanent Address")}>
-                  <Detail label="Address" value={profile.permanentAddress} />
                   <Detail label="Area" value={profile.permanentLocation.area} />
                   <Detail label="Union" value={profile.permanentLocation.union} />
                   <Detail label="Thana" value={profile.permanentLocation.thana} />
@@ -352,16 +329,11 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
               ) : null}
               {profile.aboutYourself ? <DetailsCard title={translateText("About Me")}><p className="whitespace-pre-wrap text-sm text-muted-foreground">{profile.aboutYourself}</p></DetailsCard> : null}
               <DetailsCard title={translateText("Lifestyle Details")}>
-                <Detail label="Diet" value={profile.diet} />
-                <Detail label="Smoking" value={profile.smoke} />
-                <Detail label="Drinking" value={profile.drink} />
-                <Detail label="Hobbies" value={profile.hobbies?.map((hobby) => translateText(hobby)).join(", ")} />
                 {["Exercise", "Reading", "Travel", "Cooking"].map((habit) => (
                   <Detail key={habit} label={translateText(habit)} value={profile.habitAnswers?.[habit]} />
                 ))}
               </DetailsCard>
               <DetailsCard title={translateText("Expected Partner")}>
-                <Detail label="Preference" value={profile.partnerPreference} />
                 <Detail label="Age" value={profile.partnerPreferences?.age} />
                 <Detail label="Height" value={profile.partnerPreferences?.height} />
                 <Detail label="Weight" value={profile.partnerPreferences?.weight} />
@@ -374,19 +346,18 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Country" value={profile.partnerPreferences?.country} />
                 <Detail label="Division" value={profile.partnerPreferences?.division} />
                 <Detail label="District" value={profile.partnerPreferences?.district} />
-                <Detail label="Thana" value={profile.partnerPreferences?.thana} />
-                <Detail label="Union" value={profile.partnerPreferences?.union} />
-                <Detail label="Area" value={profile.partnerPreferences?.area} />
                 <Detail label="Family Type" value={profile.partnerPreferences?.familyType} />
                 <Detail label="Family Status" value={profile.partnerPreferences?.familyStatus} />
                 <Detail label="Family Values" value={profile.partnerPreferences?.familyValues} />
               </DetailsCard>
-              <DetailsCard title={translateText("Declarations")}>
-                <Detail label="Family Aware Of Biodata" value={profile.familyAwareOfBiodata} isPremiumField currentUserIsPremium={currentUserIsPremium} />
-                <Detail label="Information Accurate" value={profile.informationAccurate} isPremiumField currentUserIsPremium={currentUserIsPremium} />
-                <Detail label="Truth Declaration" value={profile.truthDeclaration} isPremiumField currentUserIsPremium={currentUserIsPremium} />
-                <Detail label="False Information Liability Accepted" value={profile.acceptsFalseInformationLiability ? "Yes" : undefined} isPremiumField currentUserIsPremium={currentUserIsPremium} />
-              </DetailsCard>
+              {currentUserIsPremium ? (
+                <DetailsCard title={translateText("Declarations")}>
+                  <Detail label="Family Aware Of Biodata" value={profile.familyAwareOfBiodata} />
+                  <Detail label="Information Accurate" value={profile.informationAccurate} />
+                  <Detail label="Truth Declaration" value={profile.truthDeclaration} />
+                  <Detail label="False Information Liability Accepted" value={profile.acceptsFalseInformationLiability ? "Yes" : undefined} />
+                </DetailsCard>
+              ) : null}
             </div>
           </div>
         </article>

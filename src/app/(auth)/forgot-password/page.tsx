@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/providers/language-provider";
 
 export default function ForgotPasswordPage() {
-  const { translateText: text } = useLanguage();
+  const { language, translateText: text } = useLanguage();
   const [phone, setPhone] = React.useState("");
   const [code, setCode] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -49,10 +49,14 @@ export default function ForgotPasswordPage() {
       <div className="pointer-events-none absolute -right-24 bottom-8 h-64 w-64 rounded-full bg-orange-200/40 blur-3xl" />
       <Card className="relative w-full max-w-md border-white/70 bg-white/90 shadow-2xl backdrop-blur">
         <CardHeader className="text-center">
-          <Link href="/" className="mx-auto mb-4 flex items-center gap-2 text-xl font-bold">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Heart className="h-5 w-5" fill="currentColor" /></span>
-            Marriage<span className="text-primary">Media</span>
-          </Link>
+           <Link href="/" className="flex items-center justify-center gap-2 mb-8">
+          <div className="auth-brand-mark flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-rose-500 via-pink-500 to-orange-400">
+            <Heart className="h-5 w-5 text-white" fill="white" />
+          </div>
+          <span suppressHydrationWarning className="text-2xl font-bold tracking-tight text-primary">
+            {language === "bn" ? "হালাল বিয়ে" : "Halal Biye"}
+          </span>
+        </Link>
           <CardTitle>{text("Forgot password?")}</CardTitle>
           <CardDescription>{text("Enter your mobile number to receive a secure recovery code.")}</CardDescription>
         </CardHeader>

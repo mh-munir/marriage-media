@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import {
   Activity,
+  ChevronDown,
   Crown,
   MailCheck,
   Plus,
@@ -44,9 +45,89 @@ interface AdminUser {
     lastName?: string;
     isPremium?: boolean;
     isVerified?: boolean;
+    age?: number;
+    gender?: string;
+    profession?: string;
+    division?: string;
+    district?: string;
+    photos?: Array<{ url?: string; isPrimary?: boolean }>;
   } | null;
-  subscription?: { plan: string; expiryDate: string; isActive: boolean; daysRemaining: number } | null;
+  subscription?: { plan: string; expiryDate: string; isActive: boolean; daysRemaining: number; biodataLimit: number; biodataUsed: number; biodataRemaining: number | null } | null;
   biodataVisits?: { totalVisits: number; uniqueBiodatas: number };
+}
+
+type PublicUserDetails = AdminUser & {
+  payments?: unknown[];
+  verifications?: unknown[];
+  profileViews?: unknown[];
+};
+
+const hiddenDisplayKeys = new Set(["password", "__v"]);
+const habitQuestionLabels: Record<string, string> = {
+  Exercise: "আপনি কি নিয়মিত নামাজ পড়েন?",
+  Reading: "আপনি কি ইসলামিক বই পড়েন?",
+  Travel: "আপনি কি হালাল-হারাম মেনে চলেন?",
+  Cooking: "আপনি কি মাহরাম এবং গায়রে মাহরাম মেনে চলেন?",
+};
+
+function humanizeKey(key: string) {
+  if (habitQuestionLabels[key]) return habitQuestionLabels[key];
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function formatDisplayValue(value: unknown, fieldKey = ""): string {
+  if (value === null || value === undefined || value === "") return "Not provided";
+  if (habitQuestionLabels[fieldKey] && value === "Yes") return "হ্যাঁ";
+  if (habitQuestionLabels[fieldKey] && value === "No") return "না";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "string" && /T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value)) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.toLocaleString();
+  }
+  const normalizedKey = fieldKey.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (typeof value === "string" && value.length >= 24 && (normalizedKey.endsWith("id") || normalizedKey.endsWith("url") || normalizedKey.includes("transaction") || normalizedKey.includes("invoice"))) {
+    return `${value.slice(0, 9)}...${value.slice(-6)}`;
+  }
+  return String(value);
+}
+
+function DataGrid({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data).filter(([key]) => !hiddenDisplayKeys.has(key));
+  return entries.length ? (
+    <div className="grid gap-x-8 sm:grid-cols-2">
+      {entries.map(([key, value]) => (
+        <div key={key} className="min-w-0 border-b border-slate-100 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{humanizeKey(key)}</p>
+          <DataValue value={value} fieldKey={key} />
+        </div>
+      ))}
+    </div>
+  ) : <p className="text-sm text-slate-500">No data available.</p>;
+}
+
+function DataValue({ value, fieldKey = "" }: { value: unknown; fieldKey?: string }) {
+  if (Array.isArray(value)) {
+    if (!value.length) return <p className="mt-1 text-sm text-slate-500">None</p>;
+    if (value.every((item) => item === null || typeof item !== "object")) {
+      return <div className="mt-2 flex flex-wrap gap-1.5">{value.map((item, index) => <span key={`${String(item)}-${index}`} className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm">{formatDisplayValue(item, fieldKey)}</span>)}</div>;
+    }
+    return <div className="mt-2 space-y-2">{value.map((item, index) => <div key={index} className="rounded-lg border border-white bg-white p-2">{item && typeof item === "object" ? <DataGrid data={item as Record<string, unknown>} /> : <p className="text-sm text-slate-700">{formatDisplayValue(item)}</p>}</div>)}</div>;
+  }
+  if (value && typeof value === "object") return <div className="mt-2"><DataGrid data={value as Record<string, unknown>} /></div>;
+  const displayValue = formatDisplayValue(value, fieldKey);
+  return <p title={displayValue === String(value) ? undefined : String(value)} className="mt-1 wrap-break-word text-sm font-medium text-slate-800">{displayValue}</p>;
+}
+
+function pickData(data: object | null | undefined, keys: string[]) {
+  const record = data as Record<string, unknown> | null | undefined;
+  return Object.fromEntries(keys.filter((key) => record && key in record).map((key) => [key, record?.[key]]));
+}
+
+function DataGroup({ title, value, defaultOpen = false }: { title: string; value: Record<string, unknown>; defaultOpen?: boolean }) {
+  return <details open={defaultOpen} className="group overflow-hidden rounded-xl border border-slate-200 bg-white"><summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 font-semibold text-slate-900 [&::-webkit-details-marker]:hidden"><span>{title}</span><span className="flex items-center gap-2 text-xs font-medium text-slate-400"><span className="hidden sm:inline">View details</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></span></summary><div className="border-t border-slate-100 px-5 pb-4"><DataGrid data={value} /></div></details>;
 }
 
 export function AdminUsersPage({ initialView = "members" }: { initialView?: "members" | "admin-team" }) {
@@ -69,6 +150,9 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
   const [accountAvatar, setAccountAvatar] = React.useState("");
   const [accountError, setAccountError] = React.useState("");
   const [accountMessage, setAccountMessage] = React.useState("");
+  const [selectedPublicUser, setSelectedPublicUser] = React.useState<PublicUserDetails | null>(null);
+  const [publicUserLoading, setPublicUserLoading] = React.useState(false);
+  const [publicUserError, setPublicUserError] = React.useState("");
 
   function openAccount(account: AdminUser) {
     setSelectedAccount(account);
@@ -76,6 +160,20 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
     setAccountAvatar(account.avatarUrl || "");
     setAccountError("");
     setAccountMessage("");
+  }
+
+  async function openPublicUser(user: AdminUser) {
+    setSelectedPublicUser(user);
+    setPublicUserLoading(true);
+    setPublicUserError("");
+    const response = await adminFetch(`/api/admin/users?userId=${encodeURIComponent(user._id)}`, { credentials: "include" });
+    const data = await response.json();
+    setPublicUserLoading(false);
+    if (!response.ok || !data.user) {
+      setPublicUserError(data.error || "Could not load public user details");
+      return;
+    }
+    setSelectedPublicUser(data.user as PublicUserDetails);
   }
 
   async function saveAccount(event: React.FormEvent<HTMLFormElement>) {
@@ -194,6 +292,14 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
 
   const isAdminTeam = view === "admin-team";
   const isSuperadmin = currentUser?.role === "superadmin";
+  const selectedPublicProfile = selectedPublicUser?.profile;
+  const selectedPublicPhoto = selectedPublicProfile?.photos?.find((photo) => photo.isPrimary)?.url || selectedPublicProfile?.photos?.[0]?.url || selectedPublicUser?.avatarUrl || "";
+  const selectedPublicName = `${selectedPublicProfile?.firstName || selectedPublicUser?.firstName || ""} ${selectedPublicProfile?.lastName || selectedPublicUser?.lastName || ""}`.trim() || "Unnamed public user";
+  const selectedPublicAccountData = pickData(selectedPublicUser, ["_id", "publicId", "role", "email", "phone", "phoneCountryCode", "isEmailVerified", "isPhoneVerified", "isActive", "isBlocked", "onboardingCompleted", "onboardingStep", "profileCompleted", "failedLoginAttempts", "createdAt", "updatedAt"]);
+  const selectedPublicOnboardingData = (selectedPublicUser?.onboardingData || {}) as Record<string, unknown>;
+  const savedHabitAnswers = (selectedPublicOnboardingData.habitAnswers || {}) as Record<string, unknown>;
+  const selectedPublicHabitAnswers = Object.fromEntries(["Exercise", "Reading", "Travel", "Cooking"].map((habit) => [habit, savedHabitAnswers[habit] || "Not answered"]));
+  const selectedPublicAboutData = { ...pickData(selectedPublicProfile, ["aboutYourself", "diet"]), ...selectedPublicHabitAnswers };
 
   async function createAdmin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -347,6 +453,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <th className="px-6 py-3">Member</th>
                   <th className="px-6 py-3">Role</th>
                   <th className="px-6 py-3">Trust</th>
+                  <th className="px-6 py-3">Subscription</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Joined</th>
                   <th className="px-6 py-3 text-right">Actions</th>
@@ -357,7 +464,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-slate-500"
-                      colSpan={5}
+                      colSpan={7}
                     >
                       Loading {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"}...
                     </td>
@@ -366,20 +473,20 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-red-600"
-                      colSpan={5}
+                      colSpan={7}
                     >
                       {error}
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-10 text-center text-slate-500" colSpan={5}>
+                    <td className="px-6 py-10 text-center text-slate-500" colSpan={7}>
                       No {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"} found.
                     </td>
                   </tr>
                 ) : (
                   users.map((user) => (
-                    <React.Fragment key={user._id}><tr className={isAdminTeam ? "cursor-pointer hover:bg-slate-50" : "hover:bg-slate-50"} onClick={isAdminTeam ? () => openAccount(user) : undefined}>
+                    <React.Fragment key={user._id}><tr className="cursor-pointer hover:bg-slate-50" onClick={isAdminTeam ? () => openAccount(user) : () => void openPublicUser(user)}>
                       <td className="px-6 py-4">
                         <p className="font-semibold">
                           {isAdminTeam
@@ -433,6 +540,18 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                             </Badge>
                           ) : null}
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isAdminTeam ? null : user.subscription ? (
+                          <div className="min-w-44 space-y-1 text-xs">
+                            <p className="font-bold capitalize text-amber-700">{user.subscription.plan} plan</p>
+                            <p className="text-slate-500">Expires: {new Date(user.subscription.expiryDate).toLocaleDateString()}</p>
+                            <p className="text-slate-600">Biodata shown: <strong>{user.subscription.biodataUsed}</strong></p>
+                            <p className={user.subscription.biodataRemaining === 0 ? "font-semibold text-red-600" : "text-emerald-700"}>
+                              Biodata remaining: <strong>{user.subscription.biodataRemaining === null ? "Unlimited" : user.subscription.biodataRemaining}</strong>
+                            </p>
+                          </div>
+                        ) : <span className="text-xs text-slate-400">Free registration</span>}
                       </td>
                       <td className="px-6 py-4">
                         {user.isBlocked ? (
@@ -497,6 +616,51 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
             {accountMessage ? <p className="text-sm text-emerald-600">{accountMessage}</p> : null}{accountError ? <p className="text-sm text-red-600">{accountError}</p> : null}
             <div className="flex justify-end"><button className="inline-flex items-center gap-2 rounded-xl bg-[#0d1b2a] px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800" disabled={actionLoading}><Save className="h-4 w-4" />Save account</button></div>
           </form>
+        </div>
+      </div> : null}
+      {selectedPublicUser ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Public user details" onClick={() => setSelectedPublicUser(null)}>
+        <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-slate-50 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="border-b border-slate-200 bg-white px-6 py-5 sm:px-8">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Public user profile</p>
+                <h3 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{selectedPublicName}</h3>
+                <p className="mt-1 text-sm text-slate-500">Account overview and member records</p>
+              </div>
+              <button type="button" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900" onClick={() => setSelectedPublicUser(null)} aria-label="Close public user details"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-emerald-50 text-2xl font-bold text-emerald-800">
+                {selectedPublicPhoto ? <Image src={selectedPublicPhoto} alt={`${selectedPublicName} profile`} fill sizes="112px" className="object-cover" /> : <span className="flex h-full items-center justify-center">{selectedPublicName.slice(0, 2).toUpperCase()}</span>}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">{selectedPublicProfile?.gender || "Gender not added"}</span>
+                {selectedPublicProfile?.age ? <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">{selectedPublicProfile.age} years</span> : null}
+                {selectedPublicProfile?.isVerified ? <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-700">Verified</span> : null}
+                {selectedPublicProfile?.isPremium ? <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-700">Premium</span> : null}
+                <span className={`rounded-full px-3 py-1.5 ${selectedPublicUser.isBlocked ? "bg-red-100 text-red-700" : "bg-sky-100 text-sky-700"}`}>{selectedPublicUser.isBlocked ? "Blocked" : "Active account"}</span>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-5 p-5 sm:p-8">
+            {publicUserLoading ? <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">Loading all database records...</p> : null}
+            {publicUserError ? <p className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-600">{publicUserError}</p> : null}
+            {!publicUserLoading && !publicUserError ? <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Profession</p><p className="mt-1 font-semibold text-slate-800">{selectedPublicProfile?.profession || "Not added"}</p></div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Location</p><p className="mt-1 font-semibold text-slate-800">{[selectedPublicProfile?.district, selectedPublicProfile?.division].filter(Boolean).join(", ") || "Not added"}</p></div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Contact</p><p className="mt-1 font-semibold text-slate-800">{selectedPublicUser.phone || selectedPublicUser.email || "Not added"}</p></div>
+              </div>
+              <DataGroup title="Account & onboarding" value={selectedPublicAccountData} defaultOpen />
+              <DataGroup title="Saved onboarding form" value={selectedPublicOnboardingData} />
+              <DataGroup title="Basic profile" value={pickData(selectedPublicProfile, ["firstName", "lastName", "gender", "dateOfBirth", "age", "height", "weight", "bloodGroup", "complexion", "maritalStatus", "maritalStatusDate", "childrenCount", "religion", "motherTongue", "nationality", "profileCreatedBy"])} defaultOpen />
+              <DataGroup title="Present & permanent address" value={pickData(selectedPublicProfile, ["country", "division", "district", "thana", "union", "area", "presentAddress", "permanentAddress", "permanentLocation"])} defaultOpen />
+              <DataGroup title="Family & guardian" value={pickData(selectedPublicProfile, ["fatherName", "fatherProfession", "motherName", "motherProfession", "guardianRelation", "guardianName", "guardianMobileNumber", "numberOfSiblings", "siblings"])} />
+              <DataGroup title="Education & work" value={pickData(selectedPublicProfile, ["highestEducation", "institution", "profession", "workingWith", "company", "annualIncome", "educationDetails"])} />
+              <DataGroup title="About" value={selectedPublicAboutData} defaultOpen />
+              <DataGroup title="Expected partner preference" value={pickData(selectedPublicProfile, ["partnerPreference", "partnerPreferences"])} />
+            </> : null}
+          </div>
         </div>
       </div> : null}
     </div>

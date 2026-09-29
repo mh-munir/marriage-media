@@ -67,7 +67,6 @@ export async function GET(
           truthDeclaration: profile.truthDeclaration || onboardingData?.truthDeclaration,
           acceptsFalseInformationLiability: profile.acceptsFalseInformationLiability ?? onboardingData?.acceptsFalseInformationLiability,
         } : {}),
-        ...(onboardingData && typeof onboardingData === "object" ? { habitAnswers: onboardingData.habitAnswers || {} } : {}),
         ...(fullAccess ? { whatsappNumber: ownerUser?.whatsappNumber || onboardingData?.whatsappNumber || "" } : {}),
         _id: profile._id.toString(),
         contactNumber: owner?.phone || "",

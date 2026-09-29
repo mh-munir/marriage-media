@@ -67,12 +67,7 @@ function StepTracker({ current }: { current: number }) {
     </nav>
   );
 }
-const habitOptions = [
-  "Exercise",
-  "Reading",
-  "Travel",
-  "Cooking",
-];
+const habitOptions = ["Exercise", "Reading", "Travel", "Cooking"];
 const partnerHeightRanges = [
   "4'10\"-5'0\"",
   "5'1\"-5'3\"",
@@ -159,9 +154,6 @@ const blank: D = {
   })),
   aboutYourself: "",
   habitAnswers: Object.fromEntries(habitOptions.map((habit) => [habit, ""])),
-  hobbies: [],
-  smoke: "No",
-  drink: "No",
   diet: "No Preference",
   photos: [],
   partnerPreferences: {
@@ -198,6 +190,7 @@ export default function OnboardingPage() {
     [error, setError] = React.useState(""),
     [missingFields, setMissingFields] = React.useState<string[]>([]);
   const { language, translateText: text } = useLanguage();
+  const saveInProgress = React.useRef(false);
   const [professionOptions, setProfessionOptions] = React.useState<Array<{ value: string; label: string }>>([]);
   const emptyLocations = {
     divisions: [] as string[],
@@ -639,16 +632,18 @@ export default function OnboardingPage() {
     return "";
   };
   const save = async (final = false) => {
+    if (saveInProgress.current) return;
     const msg = invalid();
     if (msg) return setError(msg);
+    saveInProgress.current = true;
     setBusy(true);
     setError("");
     try {
-      const selectedHabits = habitOptions.filter(
-        (habit) => data.habitAnswers?.[habit] === "Yes",
-      );
       const sanitizedData = { ...data } as D;
       delete sanitizedData.highestEducation;
+      delete sanitizedData.hobbies;
+      delete sanitizedData.smoke;
+      delete sanitizedData.drink;
 
       await apiClient.patch("/api/auth/onboarding", {
         data: sanitizedData,
@@ -666,7 +661,6 @@ export default function OnboardingPage() {
           familyValues: "Moderate",
           languages: [data.motherTongue],
           diet: "No Preference",
-          hobbies: selectedHabits,
         };
         const existingProfile = await apiClient.get<{ profile?: unknown }>(
           "/api/profile",
@@ -690,6 +684,7 @@ export default function OnboardingPage() {
             : text("Unable to save."),
       );
     } finally {
+      saveInProgress.current = false;
       setBusy(false);
     }
   };
@@ -1254,44 +1249,23 @@ export default function OnboardingPage() {
                 />
                 {fieldError("aboutYourself") ? <p className="text-xs text-destructive">{fieldError("aboutYourself")}</p> : null}
                 <fieldset>
-                  <legend className="mb-3 text-sm font-semibold">
-                    {text("Your habits")}
-                  </legend>
+                  <legend className="mb-3 text-sm font-semibold">{text("Your habits")}</legend>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {habitOptions.map((habit) => (
                       <div className="rounded-lg border p-3" key={habit}>
-                        <p className="mb-2 text-sm font-medium">
-                          {text(habit)}
-                        </p>
+                        <p className="mb-2 text-sm font-medium">{text(habit)}</p>
                         <div className="flex gap-4 text-sm">
-                          <label className="flex items-center gap-1">
-                            <input
-                              type="radio"
-                              name={`habit-${habit}`}
-                              checked={data.habitAnswers?.[habit] === "Yes"}
-                              onChange={() =>
-                                put("habitAnswers", {
-                                  ...data.habitAnswers,
-                                  [habit]: "Yes",
-                                })
-                              }
-                            />
-                            {text("Yes")}
-                          </label>
-                          <label className="flex items-center gap-1">
-                            <input
-                              type="radio"
-                              name={`habit-${habit}`}
-                              checked={data.habitAnswers?.[habit] === "No"}
-                              onChange={() =>
-                                put("habitAnswers", {
-                                  ...data.habitAnswers,
-                                  [habit]: "No",
-                                })
-                              }
-                            />
-                            {text("No")}
-                          </label>
+                          {["Yes", "No"].map((answer) => (
+                            <label className="flex items-center gap-1" key={answer}>
+                              <input
+                                type="radio"
+                                name={`habit-${habit}`}
+                                checked={data.habitAnswers?.[habit] === answer}
+                                onChange={() => put("habitAnswers", { ...data.habitAnswers, [habit]: answer })}
+                              />
+                              {text(answer)}
+                            </label>
+                          ))}
                         </div>
                       </div>
                     ))}

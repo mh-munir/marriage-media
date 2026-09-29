@@ -9,6 +9,7 @@ import { notifyProfileMatches } from "@/lib/profile-matching";
 import { allocatePublicId } from "@/lib/public-id";
 import { createNotification } from "@/lib/notifications";
 import { normalizeProfileDistricts } from "@/lib/location-normalization";
+import { removeDeprecatedLifestyleFields } from "@/lib/remove-deprecated-lifestyle-fields";
 
 let aboutMeMigrationComplete = false;
 
@@ -72,10 +73,10 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
   if (!String(permanentLocation?.country || "").trim() || !String(permanentLocation?.thana || "").trim() || !String(permanentLocation?.union || "").trim() || !String(permanentLocation?.area || "").trim()) missingFields.push("Complete Permanent Address");
   if (!Array.isArray(body.educationDetails) || !(body.educationDetails as Record<string, unknown>[]).some((entry) => String(entry.instituteName || "").trim() || String(entry.year || "").trim())) missingFields.push("At least one Education field");
   if (!String(body.aboutYourself || "").trim()) missingFields.push("About Yourself");
-  if (String(body.hasMajorHealthIssue) === "Yes" && !String(body.majorHealthIssueDetails || "").trim()) missingFields.push("Physical problem or major illness details");
-  if (Array.isArray(body.siblings) && body.siblings.length > 0 && (body.siblings as Record<string, unknown>[]).some((sibling) => !String(sibling.name || "").trim() || !String(sibling.profession || "").trim())) missingFields.push("Complete sibling details");
   const requiredHabits = ["Exercise", "Reading", "Travel", "Cooking"];
   if (!body.habitAnswers || typeof body.habitAnswers !== "object" || requiredHabits.some((habit) => !["Yes", "No"].includes(String((body.habitAnswers as Record<string, unknown>)[habit])))) missingFields.push("Yes/No answer for every habit");
+  if (String(body.hasMajorHealthIssue) === "Yes" && !String(body.majorHealthIssueDetails || "").trim()) missingFields.push("Physical problem or major illness details");
+  if (Array.isArray(body.siblings) && body.siblings.length > 0 && (body.siblings as Record<string, unknown>[]).some((sibling) => !String(sibling.name || "").trim() || !String(sibling.profession || "").trim())) missingFields.push("Complete sibling details");
   if (["Divorced", "Awaiting Divorce"].includes(String(body.maritalStatus)) && !String(body.maritalStatusDate || "").trim()) missingFields.push("Separation/Divorce date");
   if (!body.guardianRelation || !String(body.guardianName || "").trim() || !validatePhoneNumber(String(body.guardianMobileNumber || ""))) {
     missingFields.push("Guardian details (with a valid 11 digit mobile number)");
@@ -102,20 +103,25 @@ async function submitProfileReview(userId: string) {
     timeline: [{ status: "pending", timestamp: new Date(), note: "Profile completed and submitted for admin review" }],
   });
 
-  const admins = await User.find({ role: { $in: ["admin", "superadmin"] }, isActive: true }).select("_id").lean();
-  await Promise.all(admins.map((admin) => createNotification({
-    userId: admin._id.toString(),
-    type: "verification",
-    title: "Profile ready for verification",
-    message: "A member completed their profile and is waiting for approval.",
-    link: "/admin/verification",
-    channels: ["inapp"],
-  })));
+  try {
+    const admins = await User.find({ role: { $in: ["admin", "superadmin"] }, isActive: true }).select("_id").lean();
+    await Promise.all(admins.map((admin) => createNotification({
+      userId: admin._id.toString(),
+      type: "verification",
+      title: "Profile ready for verification",
+      message: "A member completed their profile and is waiting for approval.",
+      link: "/admin/verification",
+      channels: ["inapp"],
+    })));
+  } catch (notificationError) {
+    console.error("Profile review notification failed:", notificationError);
+  }
 }
 
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
+    await removeDeprecatedLifestyleFields();
     const user = await requireAuth(request);
     if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot have public profiles." }, { status: 403 });
     await removeLegacyAboutMeField();
@@ -151,12 +157,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
+    await removeDeprecatedLifestyleFields();
     const user = await requireAuth(request);
     if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot have public profiles." }, { status: 403 });
     await removeLegacyAboutMeField();
 
     const body = await request.json();
     delete body.aboutMe;
+    delete body.hobbies;
+    delete body.smoke;
+    delete body.drink;
     Object.assign(body, normalizeProfileDistricts(body));
 
     const missingFields = getMissingRequiredFields(body);
@@ -216,12 +226,16 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
+    await removeDeprecatedLifestyleFields();
     const user = await requireAuth(request);
     if (user.role !== "user") return NextResponse.json({ error: "Admin accounts cannot have public profiles." }, { status: 403 });
     await removeLegacyAboutMeField();
 
     const body = await request.json();
     delete body.aboutMe;
+    delete body.hobbies;
+    delete body.smoke;
+    delete body.drink;
     Object.assign(body, normalizeProfileDistricts(body));
 
     const missingFields = getMissingRequiredFields(body);
