@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, CirclePlay, Heart, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, CirclePlay, Heart, MapPin, Sparkles, UserRound } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
@@ -35,9 +35,6 @@ export interface HomeSection {
   buttonLink: string;
   items: Array<{ title: string; titleBn?: string; titleEn?: string; text: string; textBn?: string; textEn?: string; imageUrl?: string; imageAlt?: string; youtubeUrl?: string }>;
 }
-
-const getFallbackProfileImage = (gender?: "Male" | "Female") =>
-  gender === "Male" ? "/images/home/portrait-four.jpg" : "/images/home/portrait-one.jpg";
 
 export function ensureHomeSections(sections: HomeSection[]) {
   return defaultHomeSections().map((fallback) => {
@@ -338,24 +335,15 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
   const { translateText } = useLanguage();
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
-  const cards = memberProfiles.length
-    ? memberProfiles.slice(0, 4).map((member) => ({
-        title: member.name,
-        text: member.location,
-        imageUrl: member.imageUrl || getFallbackProfileImage(member.gender),
-        imageAlt: member.name,
-        meta: `${member.age ? `${member.age} yrs` : "Age not added"} · ${member.profession || "Profession not added"}`,
-        isPremium: member.isPremium,
-        isVerified: member.isVerified,
-        profileLink: `/dashboard/profile/${member.id}`,
-      }))
-    : section.items.slice(0, 4).map((item, index) => ({
-        ...item,
-        meta: item.text,
-        isPremium: false,
-        isVerified: index % 2 === 0,
-        profileLink: "/register",
-      }));
+  const cards = memberProfiles.slice(0, 4).map((member) => ({
+    text: member.location,
+    publicId: member.publicId,
+    age: member.age,
+    profession: member.profession,
+    profileViews: member.profileViews,
+    isVerified: member.isVerified,
+    profileLink: `/profile/${member.id}`,
+  }));
 
   const scrollCarousel = (direction: number) => {
     const carousel = carouselRef.current;
@@ -394,28 +382,43 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
           <p className="max-w-2xl text-sm leading-6 text-[#78908c]">{section.description}</p>
         </div>
 
-        <div className="mb-4 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => scrollCarousel(-1)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#bdd9d5] bg-white text-[#355350] transition hover:border-[#92b9b2] hover:bg-[#f8faf9]"
-            aria-label="Previous members"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollCarousel(1)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#bdd9d5] bg-white text-[#355350] transition hover:border-[#92b9b2] hover:bg-[#f8faf9]"
-            aria-label="Next members"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.7 }} className="mt-8 rounded-3xl border border-dashed border-[#d9e7e4] bg-white/60 px-6 py-8 text-center text-sm text-[#6f8580]">
-          {translateText("No public member profiles to display.")}
-        </motion.div>
+        {cards.length ? (
+          <>
+            <div className="mb-4 flex items-center justify-end gap-2">
+              <button type="button" onClick={() => scrollCarousel(-1)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#bdd9d5] bg-white text-[#355350] transition hover:border-[#92b9b2] hover:bg-[#f8faf9]" aria-label="Previous members">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => scrollCarousel(1)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#bdd9d5] bg-white text-[#355350] transition hover:border-[#92b9b2] hover:bg-[#f8faf9]" aria-label="Next members">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <div ref={carouselRef} className="scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4">
+              {cards.map((card) => (
+                <Link key={card.publicId} href={card.profileLink} className="group block w-[85vw] max-w-60 shrink-0 snap-start sm:min-w-62 sm:max-w-62 lg:min-w-67.5 lg:max-w-67.5">
+                  <div data-carousel-card className="w-full overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
+                    <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] sm:h-44">
+                      <div className="flex flex-col items-center text-center text-[#587875]">
+                        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-sm"><UserRound className="h-7 w-7 text-[#df7890]" /></span>
+                        <span className="mt-3 text-sm font-semibold">{translateText("Profile photo private")}</span>
+                        <span className="mt-1 px-5 text-xs leading-4 text-[#78908c]">{translateText("Photos are not shown on the public home page.")}</span>
+                      </div>
+                      {card.isVerified ? <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</div> : null}
+                    </div>
+                    <div className="space-y-3 p-3.5">
+                      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-lg font-semibold text-[#355350]">{card.publicId}</p><p className="mt-1 text-sm text-[#6f8580]">{card.age ? `${card.age} • ${card.profession || translateText("Profession not added")}` : translateText("Profession not added")}</p></div></div>
+                      <div className="flex items-center gap-2 text-xs text-[#6f8580]"><MapPin className="h-3.5 w-3.5 text-[#e8897f]" /><span className="truncate">{card.text || translateText("Location not added")}</span></div>
+                      <div className="flex items-center justify-between border-t border-[#f0d6d1] pt-3"><span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><span className="inline-flex items-center gap-1"><span className="text-[#61b69e]">◉</span>{card.profileViews} {translateText("views")}</span></span><span className="flex items-center gap-4 text-[#df7890]"><Heart className="h-4 w-4" /><span className="text-sm font-semibold text-[#355350]">{translateText("View profile")} <ArrowRight className="inline h-3.5 w-3.5" /></span></span></div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.7 }} className="mt-8 rounded-3xl border border-dashed border-[#d9e7e4] bg-white/60 px-6 py-8 text-center text-sm text-[#6f8580]">
+            {translateText("No public member profiles to display.")}
+          </motion.div>
+        )}
       </div>
     </motion.section>
   );

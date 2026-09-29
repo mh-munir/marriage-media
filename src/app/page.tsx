@@ -25,7 +25,7 @@ import { useTheme } from "@/components/theme-provider";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { useLanguage } from "@/providers/language-provider";
 import { translateLocationLabel } from "@/lib/location-labels";
-import type { HomeData, HomeProfile } from "@/lib/home-data";
+import type { HomeData } from "@/lib/home-data";
 
 const image = {
   couple: "/images/home/hero-couple.jpg",
@@ -186,7 +186,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {[{ icon: ShieldCheck, title: t("trustFirst"), text: t("noEndlessNoise") }, { icon: Sparkles, title: t("smarterRecommendations"), text: t("communityDescription") }, { icon: Heart, title: t("madeForCommitment"), text: t("homeDescription") }].map(({ icon: Icon, title, text }, index) => (
+              {[{ icon: ShieldCheck, title: t("trustFirst"), text: t("noEndlessNoise") }, { icon: Sparkles, title: t("smarterRecommendations"), text: t("communityDescription") }, { icon: Heart, title: t("madeForCommitment"), text: t("homeDescription") }].map(({ icon: Icon, title, text }) => (
                 <div
                   key={title}
                   className="rounded-xl border border-[#f3dedb] bg-[#fffdfd] p-6 shadow-[0_10px_24px_rgba(88,111,109,0.035)]"
@@ -269,8 +269,7 @@ export default function HomePage() {
                       <div className="space-y-3 p-3.5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-lg font-semibold text-[#355350]">{member.name || member.publicId}</p>
-                            <p className="mt-1 text-xs text-[#6f8580]">{member.publicId}</p>
+                            <p className="truncate text-lg font-semibold text-[#355350]">{member.publicId}</p>
                             <p className="mt-1 text-sm text-[#6f8580]">
                               {member.age ? `${member.age} • ${formatMemberProfession(member.profession)}` : formatMemberProfession(member.profession)}
                             </p>

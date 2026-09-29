@@ -74,6 +74,14 @@ function LoginFormInner() {
     }
   };
 
+  const submitForm = (event: React.FormEvent<HTMLFormElement>) => {
+    if (submitInProgress.current) {
+      event.preventDefault();
+      return;
+    }
+    void handleSubmit(onSubmit)(event);
+  };
+
   return (
     <div
       className="auth-page-shell relative flex min-h-screen items-center justify-center px-4 py-12"
@@ -108,7 +116,7 @@ function LoginFormInner() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={submitForm} className="space-y-4">
               <Input
                 label={text("Mobile Number")}
                 type="tel"
