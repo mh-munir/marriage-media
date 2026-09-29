@@ -11,7 +11,8 @@ import { defaultManualPaymentNumbers, defaultPricingPlans, type ManualPaymentNum
 const iconMap = { crown: Crown, sparkles: Sparkles, heart: Check };
 
 function listValue(value: string[]) { return value.join("\n"); }
-function parseList(value: string) { return value.split("\n").map((item) => item.trim()).filter(Boolean); }
+function parseList(value: string) { return value.split("\n"); }
+function normalizeList(value: string) { return value.split("\n").map((item) => item.trim()).filter(Boolean); }
 
 export default function AdminPricingPage() {
   const [plans, setPlans] = React.useState<PricingPlan[]>(defaultPricingPlans);
@@ -40,7 +41,8 @@ export default function AdminPricingPage() {
     event.preventDefault();
     setSaving(true); setMessage(""); setError("");
     try {
-      const response = await adminFetch("/api/admin/pricing", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plans, paymentNumbers }) });
+      const normalizedPlans = plans.map((plan) => ({ ...plan, features: normalizeList(listValue(plan.features)), featuresBn: plan.featuresBn ? normalizeList(listValue(plan.featuresBn)) : undefined, featuresEn: plan.featuresEn ? normalizeList(listValue(plan.featuresEn)) : undefined, notIncluded: normalizeList(listValue(plan.notIncluded)), notIncludedBn: plan.notIncludedBn ? normalizeList(listValue(plan.notIncludedBn)) : undefined, notIncludedEn: plan.notIncludedEn ? normalizeList(listValue(plan.notIncludedEn)) : undefined }));
+      const response = await adminFetch("/api/admin/pricing", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plans: normalizedPlans, paymentNumbers }) });
       const data = await response.json();
       if (!response.ok) { setError(data.error || "Could not save pricing plans"); return; }
       setPlans(data.plans); setPaymentNumbers(data.paymentNumbers); setMessage("Pricing and payment settings saved successfully.");
