@@ -127,7 +127,7 @@ export default function DashboardPage() {
         setRecommendations(
           Array.isArray(recommendationsData.profiles)
             ? recommendationsData.profiles
-                .filter((match: RecommendedMatch) => (match.compatibility ?? 0) >= 50)
+                .filter((match: RecommendedMatch) => (match.compatibility ?? 0) > 50)
                 .sort((first: RecommendedMatch, second: RecommendedMatch) =>
                   (second.compatibility ?? 0) - (first.compatibility ?? 0)
                 )

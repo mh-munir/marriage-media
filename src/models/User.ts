@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, Query } from "mongoose";
 
 export interface IPushSubscription {
   type: "fcm" | "webpush";
@@ -232,77 +232,50 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-const finishRoleMiddleware = (next: any, error?: Error) => {
-  if (typeof next === "function") {
-    return error ? next(error) : next();
-  }
+function assertRoleMutationAllowed(update: unknown): void {
+  if (!update || typeof update !== "object") return;
+  const updateRecord = update as Record<string, unknown>;
+  const setClause = updateRecord.$set && typeof updateRecord.$set === "object"
+    ? updateRecord.$set as Record<string, unknown>
+    : updateRecord;
+  const requestedRole = typeof setClause.role === "string" ? setClause.role : undefined;
+  const mutationAllowed = setClause.roleMutationAllowed === true;
 
-  if (error) {
-    throw error;
+  if (
+    requestedRole &&
+    (requestedRole === "admin" || requestedRole === "superadmin") &&
+    !mutationAllowed
+  ) {
+    throw new Error("Role changes are restricted to the admin creation flow.");
   }
-};
+}
 
-UserSchema.pre("save", function (this: any, next: any) {
+UserSchema.pre("save", function (this: IUser) {
   const requestedRole = this.role;
   const isAdminRole = requestedRole === "admin" || requestedRole === "superadmin";
 
   if (this.isNew) {
     if (isAdminRole && this.roleMutationAllowed !== true) {
-      return finishRoleMiddleware(next, new Error("Admin role assignment is restricted to the admin creation flow."));
+      throw new Error("Admin role assignment is restricted to the admin creation flow.");
     }
-    return finishRoleMiddleware(next);
+    return;
   }
 
   if (this.isModified("role") && requestedRole !== "user" && this.roleMutationAllowed !== true) {
-    return finishRoleMiddleware(next, new Error("Role changes are restricted to the admin creation flow."));
+    throw new Error("Role changes are restricted to the admin creation flow.");
   }
-
-  return finishRoleMiddleware(next);
 });
 
-UserSchema.pre("findOneAndUpdate", function (this: any, next: any) {
-  const update = this.getUpdate() as Record<string, unknown> | undefined;
-  const setClause = update && "$set" in update ? (update.$set as Record<string, unknown> | undefined) : update;
-  const requestedRole = typeof setClause?.role === "string" ? setClause.role : undefined;
-  const mutationAllowed = Boolean(
-    typeof setClause?.roleMutationAllowed === "boolean" ? setClause.roleMutationAllowed : false,
-  );
-
-  if (requestedRole && (requestedRole === "admin" || requestedRole === "superadmin") && !mutationAllowed) {
-    return finishRoleMiddleware(next, new Error("Role changes are restricted to the admin creation flow."));
-  }
-
-  return finishRoleMiddleware(next);
+UserSchema.pre("findOneAndUpdate", function (this: Query<unknown, IUser>) {
+  assertRoleMutationAllowed(this.getUpdate());
 });
 
-UserSchema.pre("updateOne", function (this: any, next: any) {
-  const update = this.getUpdate() as Record<string, unknown> | undefined;
-  const setClause = update && "$set" in update ? (update.$set as Record<string, unknown> | undefined) : update;
-  const requestedRole = typeof setClause?.role === "string" ? setClause.role : undefined;
-  const mutationAllowed = Boolean(
-    typeof setClause?.roleMutationAllowed === "boolean" ? setClause.roleMutationAllowed : false,
-  );
-
-  if (requestedRole && (requestedRole === "admin" || requestedRole === "superadmin") && !mutationAllowed) {
-    return finishRoleMiddleware(next, new Error("Role changes are restricted to the admin creation flow."));
-  }
-
-  return finishRoleMiddleware(next);
+UserSchema.pre("updateOne", function (this: Query<unknown, IUser>) {
+  assertRoleMutationAllowed(this.getUpdate());
 });
 
-UserSchema.pre("updateMany", function (this: any, next: any) {
-  const update = this.getUpdate() as Record<string, unknown> | undefined;
-  const setClause = update && "$set" in update ? (update.$set as Record<string, unknown> | undefined) : update;
-  const requestedRole = typeof setClause?.role === "string" ? setClause.role : undefined;
-  const mutationAllowed = Boolean(
-    typeof setClause?.roleMutationAllowed === "boolean" ? setClause.roleMutationAllowed : false,
-  );
-
-  if (requestedRole && (requestedRole === "admin" || requestedRole === "superadmin") && !mutationAllowed) {
-    return finishRoleMiddleware(next, new Error("Role changes are restricted to the admin creation flow."));
-  }
-
-  return finishRoleMiddleware(next);
+UserSchema.pre("updateMany", function (this: Query<unknown, IUser>) {
+  assertRoleMutationAllowed(this.getUpdate());
 });
 
 UserSchema.index({ role: 1 });

@@ -37,7 +37,7 @@ type BrowseProfile = {
   caste: string;
   division: string;
   district: string;
-  area: string;
+  union?: string;
   highestEducation: string;
   profession: string;
   imageUrl: string | null;

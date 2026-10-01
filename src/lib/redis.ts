@@ -75,7 +75,6 @@ class MemoryCache {
 const memoryCache = new MemoryCache();
 
 let redisClient: unknown = null;
-let useRedis = false;
 
 async function getRedisClient(): Promise<unknown> {
   if (redisClient) return redisClient;
@@ -93,7 +92,6 @@ async function getRedisClient(): Promise<unknown> {
         return Math.min(times * 200, 2000);
       },
     });
-    useRedis = true;
     return redisClient;
   } catch {
     console.warn("Redis not available, using in-memory cache");
@@ -110,7 +108,7 @@ export const cache = {
     const cacheKey = getCacheKey(prefix, key);
 
     // Try Redis first
-    if (useRedis) {
+    if (process.env.REDIS_URL) {
       try {
         const client = await getRedisClient();
         if (client) {
@@ -133,7 +131,7 @@ export const cache = {
     const serialized = JSON.stringify(value);
 
     // Try Redis first
-    if (useRedis) {
+    if (process.env.REDIS_URL) {
       try {
         const client = await getRedisClient();
         if (client) {
@@ -152,7 +150,7 @@ export const cache = {
   async del(prefix: string, key: string): Promise<void> {
     const cacheKey = getCacheKey(prefix, key);
 
-    if (useRedis) {
+    if (process.env.REDIS_URL) {
       try {
         const client = await getRedisClient();
         if (client) {
@@ -169,7 +167,7 @@ export const cache = {
   async invalidatePattern(pattern: string): Promise<void> {
     const fullPattern = `marriage-media:${pattern}`;
 
-    if (useRedis) {
+    if (process.env.REDIS_URL) {
       try {
         const client = await getRedisClient();
         if (client) {
@@ -187,7 +185,7 @@ export const cache = {
   },
 
   async flush(): Promise<void> {
-    if (useRedis) {
+    if (process.env.REDIS_URL) {
       try {
         const client = await getRedisClient();
         if (client) {

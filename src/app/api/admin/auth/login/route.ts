@@ -6,18 +6,6 @@ import connectToDatabase from "@/lib/mongodb";
 import { User } from "@/models";
 import { generateTokenPair } from "@/lib/security";
 
-const DEFAULT_ADMIN_EMAIL = "admin@marriagemedia.com";
-const DEFAULT_ADMIN_PASSWORD = "Admin@12345";
-
-function getBootstrapAdminCredentials() {
-  const configuredEmail = (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
-  const configuredPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
-  return {
-    email: configuredEmail,
-    password: configuredPassword,
-  };
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { email?: string; password?: string };
@@ -28,68 +16,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const bootstrap = getBootstrapAdminCredentials();
-    const isBootstrapAdmin =
-      email === bootstrap.email &&
-      password === bootstrap.password;
-
-    let user: any = null;
-
     try {
       await connectToDatabase();
-      user = await User.findOne({ email }).select("+password");
     } catch (dbError) {
       console.error("Admin login database connection failed:", dbError);
-
-      if (!isBootstrapAdmin) {
-        return NextResponse.json({ error: "Database unavailable. Please try again in a moment." }, { status: 503 });
-      }
-
-      user = {
-        _id: { toString: () => `local-admin-${Date.now()}` },
-        email,
-        password: await bcrypt.hash(password, 12),
-        role: "superadmin",
-        isActive: true,
-        isBlocked: false,
-        isEmailVerified: true,
-        isPhoneVerified: false,
-        avatarUrl: "",
-        profileCompleted: 100,
-        lastLoginAt: new Date(),
-      };
+      return NextResponse.json({ error: "Database unavailable. Please try again in a moment." }, { status: 503 });
     }
 
-    if (!user && isBootstrapAdmin) {
-      user = await User.create({
-        email,
-        password: await bcrypt.hash(password, 12),
-        role: "superadmin",
-        roleMutationAllowed: true,
-        isActive: true,
-        isBlocked: false,
-        isEmailVerified: true,
-        isPhoneVerified: false,
-        profileCompleted: 100,
-      });
-    }
-
-    if (user && isBootstrapAdmin && user.role !== "superadmin") {
-      user = await User.findOneAndUpdate(
-        { email },
-        {
-          $set: {
-            role: "superadmin",
-            roleMutationAllowed: true,
-            isActive: true,
-            isBlocked: false,
-            isEmailVerified: true,
-            profileCompleted: 100,
-          },
-        },
-        { new: true, runValidators: true },
-      ).select("+password");
-    }
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user || !user.isActive || user.isBlocked || (user.role !== "admin" && user.role !== "superadmin")) {
       return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });
@@ -106,10 +40,8 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
 
-    if (typeof user.save === "function") {
-      user.lastLoginAt = new Date();
-      await user.save();
-    }
+    user.lastLoginAt = new Date();
+    await user.save();
 
     const response = NextResponse.json({
       user: {

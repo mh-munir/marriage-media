@@ -7,12 +7,15 @@ import Verification, {
 } from "@/models/Verification";
 import { Profile, User } from "@/models";
 import { createNotification } from "./notifications";
+import { sendEmail } from "./email";
+import { sendSMS, formatPhoneE164 } from "./sms";
 import crypto from "crypto";
 
 // Trust score weights for each supported verification type
 const TRUST_SCORE_WEIGHTS: Record<VerificationType, number> = {
   phone: 50,
   profile: 50,
+  email: 0,
 };
 
 // Minimum types needed for verified badge
@@ -107,10 +110,10 @@ export async function sendEmailVerification(
 
   const recentCodes = await Verification.countDocuments({
     userId,
-    type: "email" as any,
+    type: "email",
     value: email,
     createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
-  } as any);
+  });
 
   if (recentCodes >= 3) {
     return {
@@ -123,10 +126,10 @@ export async function sendEmailVerification(
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await Verification.findOneAndUpdate(
-    { userId, type: "email" as any, status: "pending" } as any,
+    { userId, type: "email", status: "pending" },
     {
       userId,
-      type: "email" as any,
+      type: "email",
       value: email,
       verificationCode: code,
       codeExpiresAt: expiresAt,
@@ -144,7 +147,14 @@ export async function sendEmailVerification(
     { upsert: true, returnDocument: "after" }
   );
 
-  console.log(`[Email Verification] ${email}: ${code}`);
+  const emailResult = await sendEmail(
+    email,
+    "Your Marriage Media verification code",
+    `<p>Your verification code is <strong>${code}</strong>.</p><p>It expires in 10 minutes.</p>`,
+  );
+  if (!emailResult.success) {
+    return { success: false, error: emailResult.error || "Could not send verification email." };
+  }
 
   return {
     success: true,
@@ -161,7 +171,7 @@ export async function verifyEmailCode(
 
   const matchQuery: Record<string, unknown> = {
     userId,
-    type: "email" as any,
+    type: "email",
     status: "pending",
   };
 
@@ -169,7 +179,7 @@ export async function verifyEmailCode(
     matchQuery.value = expectedEmail.trim().toLowerCase();
   }
 
-  const verification = await Verification.findOne(matchQuery as any)
+  const verification = await Verification.findOne(matchQuery)
     .select("+verificationCode +codeExpiresAt");
 
   if (!verification) {
@@ -291,8 +301,13 @@ export async function sendPhoneOTP(
     { upsert: true, returnDocument: "after" }
   );
 
-  // In production, send via SMS provider (Twilio, etc.)
-  console.log(`[Phone OTP] ${phone}: ${code}`);
+  const smsResult = await sendSMS({
+    to: formatPhoneE164(phone),
+    message: `Your Marriage Media verification code is ${code}. It expires in 10 minutes.`,
+  });
+  if (!smsResult.success) {
+    return { success: false, error: smsResult.error || "Could not send verification SMS." };
+  }
 
   return { success: true, otp: process.env.NODE_ENV === "development" ? code : undefined };
 }

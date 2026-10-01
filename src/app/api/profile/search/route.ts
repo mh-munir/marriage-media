@@ -31,6 +31,8 @@ type SearchProfile = {
   division?: string;
   district?: string;
   area?: string;
+  union?: string;
+    union: { regex },
   highestEducation?: string;
   profession?: string;
   workingWith?: string;
@@ -423,7 +425,7 @@ export async function GET(request: NextRequest) {
         country: profile.country || "",
         division: profile.division || "",
         district: profile.district || "",
-        area: profile.area || "",
+        union: profile.union || "",
         highestEducation: profile.highestEducation || "",
         profession: profile.profession || "",
         workingWith: profile.workingWith || "",

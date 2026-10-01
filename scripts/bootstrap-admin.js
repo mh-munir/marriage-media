@@ -1,16 +1,14 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 
-const DEFAULT_ADMIN_EMAIL = "admin@marriagemedia.com";
-const DEFAULT_ADMIN_PASSWORD = "Admin@12345";
-
 const mongoUri = process.env.MONGODB_URI;
-const adminEmail = (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
-const adminPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
+const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+const adminPassword = process.env.ADMIN_PASSWORD || "";
 
 async function ensureAdminAccount() {
-  if (!mongoUri) {
-    throw new Error("MONGODB_URI is not defined. Set it before running this bootstrap script.");
+  if (!mongoUri || !adminEmail || !adminPassword) {
+    throw new Error("MONGODB_URI, ADMIN_EMAIL, and ADMIN_PASSWORD are required to bootstrap an admin account.");
   }
 
   await mongoose.connect(mongoUri);

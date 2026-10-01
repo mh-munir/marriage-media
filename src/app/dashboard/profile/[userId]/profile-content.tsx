@@ -310,7 +310,6 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <Detail label="Siblings" value={profile.siblings?.map((sibling) => [sibling.name, translateText(sibling.relation), sibling.profession].filter(Boolean).join(" - ")).join(", ") || profile.numberOfSiblings} />
               </DetailsCard>
               <DetailsCard title={translateText("Present Address")}>
-                <Detail label="Area" value={profile.area} isPremiumField={!currentUserIsPremium} currentUserIsPremium={currentUserIsPremium} />
                 <Detail label="Union" value={profile.union} />
                 <Detail label="Thana" value={profile.thana} />
                 <Detail label="District" value={profile.district} />
@@ -319,7 +318,6 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
               </DetailsCard>
               {currentUserIsPremium && profile.permanentLocation ? (
                 <DetailsCard title={translateText("Permanent Address")}>
-                  <Detail label="Area" value={profile.permanentLocation.area} />
                   <Detail label="Union" value={profile.permanentLocation.union} />
                   <Detail label="Thana" value={profile.permanentLocation.thana} />
                   <Detail label="District" value={profile.permanentLocation.district} />

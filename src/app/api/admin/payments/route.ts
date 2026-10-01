@@ -60,21 +60,33 @@ export async function PATCH(request: NextRequest) {
     }
 
     await connectToDatabase();
-    const payment = await Payment.findOne({ _id: paymentId, "metadata.submissionType": "manual", status: "pending" });
+    const payment = await Payment.findOne({
+      _id: paymentId,
+      "metadata.submissionType": "manual",
+      status: { $in: ["pending", "completed"] },
+    });
     if (!payment) return NextResponse.json({ error: "Pending manual payment not found" }, { status: 404 });
 
     if (action === "reject") {
+      if (payment.status !== "pending") {
+        return NextResponse.json({ error: "A completed payment cannot be rejected" }, { status: 409 });
+      }
       payment.status = "failed";
       await payment.save();
       return NextResponse.json({ success: true, status: payment.status });
     }
 
-    payment.status = "completed";
-    payment.startDate = new Date();
-    payment.expiryDate = new Date(Date.now() + payment.planDuration * 24 * 60 * 60 * 1000);
-    await payment.save();
+    const shouldNotify = payment.status === "pending";
+    if (shouldNotify) {
+      payment.status = "completed";
+      payment.startDate = new Date();
+      payment.expiryDate = new Date(Date.now() + payment.planDuration * 24 * 60 * 60 * 1000);
+      await payment.save();
+    }
     await Profile.findOneAndUpdate({ userId: payment.userId }, { isPremium: true, premiumExpiry: payment.expiryDate, premiumPlan: payment.metadata?.planId || payment.plan });
-    await notifyPaymentConfirmation(payment.userId.toString(), String(payment.metadata?.planId || payment.plan), `BDT ${payment.amount}`, payment.expiryDate.toLocaleDateString(), "/dashboard");
+    if (shouldNotify) {
+      await notifyPaymentConfirmation(payment.userId.toString(), String(payment.metadata?.planId || payment.plan), `BDT ${payment.amount}`, payment.expiryDate.toLocaleDateString(), "/dashboard");
+    }
 
     return NextResponse.json({ success: true, status: payment.status });
   } catch (error: unknown) {

@@ -110,10 +110,29 @@ export async function sendTemplatedEmail(
 export async function sendEmail(
   to: string,
   subject: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _htmlContent: string
+  htmlContent: string
 ): Promise<EmailResult> {
   try {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const resendFrom = process.env.RESEND_FROM_EMAIL;
+    if (resendApiKey && resendFrom) {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ from: resendFrom, to: [to], subject, html: htmlContent }),
+      });
+      if (!response.ok) return { success: false, error: `Email provider rejected the message (${response.status}).` };
+      const result = (await response.json()) as { id?: string };
+      return { success: true, messageId: result.id || `msg_${Date.now()}` };
+    }
+
+    if (process.env.NODE_ENV === "production") {
+      return { success: false, error: "Email provider is not configured." };
+    }
+
     console.log(`[Email] Sent to ${to}: ${subject}`);
     return { success: true, messageId: `msg_${Date.now()}` };
   } catch (error) {

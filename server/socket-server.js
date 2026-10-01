@@ -20,10 +20,12 @@ if (!JWT_SECRET) {
 const MessageSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
 const ConversationSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
 const ProfileSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
+const UserSchema = new mongoose.Schema({}, { strict: false });
 
 const Message = mongoose.models.Message || mongoose.model("Message", MessageSchema);
 const Conversation = mongoose.models.Conversation || mongoose.model("Conversation", ConversationSchema);
 const Profile = mongoose.models.Profile || mongoose.model("Profile", ProfileSchema);
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
 function normalizeId(value) {
   if (!value) return "";
@@ -80,9 +82,16 @@ io.use(async (socket, next) => {
   try {
     const token = getToken(socket);
     const payload = jwt.verify(token, JWT_SECRET);
+    if (!payload.userId || !isObjectId(payload.userId)) {
+      throw new Error("Invalid user token");
+    }
+    await connectMongo();
+    const user = await User.findById(payload.userId).select("isActive isBlocked").lean();
+    if (!user || user.isActive !== true || user.isBlocked === true) {
+      throw new Error("Inactive user");
+    }
     socket.data.userId = payload.userId;
     socket.data.email = payload.email;
-    await connectMongo();
     next();
   } catch {
     next(new Error("Unauthorized"));
@@ -92,7 +101,21 @@ io.use(async (socket, next) => {
 io.on("connection", (socket) => {
   const userId = socket.data.userId;
   socket.join(`user:${userId}`);
-  socket.broadcast.emit("user-online", { userId });
+
+  const emitToPeers = (participants, event, payload) => {
+    const peerIds = new Set(participants.map(normalizeId).filter((participantId) => participantId && participantId !== userId));
+    for (const peerId of peerIds) {
+      socket.to(`user:${peerId}`).emit(event, payload);
+    }
+  };
+
+  const notifyPeersOnline = (event) => {
+    Conversation.find({ participants: userId }).select("participants").lean()
+      .then((conversations) => conversations.forEach((conversation) => emitToPeers(conversation.participants || [], event, { userId })))
+      .catch(() => {});
+  };
+
+  notifyPeersOnline("user-online");
 
   socket.on("join", (requestedUserId) => {
     if (requestedUserId === userId) {
@@ -100,16 +123,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("typing", ({ conversationId, receiverId, isTyping }) => {
-    if (receiverId) {
-      socket.to(`user:${receiverId}`).emit("typing", { conversationId, userId, isTyping });
-      return;
-    }
-    socket.broadcast.emit("typing", { conversationId, userId, isTyping });
+  socket.on("typing", async (payload) => {
+    if (!payload || !isObjectId(payload.conversationId)) return;
+    const conversation = await Conversation.findOne({
+      _id: payload.conversationId,
+      participants: userId,
+    }).select("participants").lean();
+    if (!conversation) return;
+    emitToPeers(conversation.participants || [], "typing", {
+      conversationId: payload.conversationId,
+      userId,
+      isTyping: payload.isTyping === true,
+    });
   });
 
   socket.on("send-message", async (payload) => {
     try {
+      if (!payload || typeof payload !== "object") return;
       const senderId = normalizeId(payload.senderId) || userId;
       const receiverId = normalizeId(payload.receiverId);
       const conversationId = normalizeId(payload.conversationId);
@@ -118,51 +148,87 @@ io.on("connection", (socket) => {
         return;
       }
 
-      let message = payload;
-      const messageId = normalizeId(payload.id || payload._id);
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        participants: { $all: [senderId, receiverId] },
+      }).select("participants").lean();
+      if (!conversation) return;
 
-      if (!isObjectId(messageId)) {
-        const created = await Message.create({
+      const messageId = normalizeId(payload.id || payload._id);
+      let storedMessage;
+
+      if (isObjectId(messageId)) {
+        storedMessage = await Message.findOne({
+          _id: messageId,
           conversationId,
           senderId,
           receiverId,
-          content: payload.content || "",
-          messageType: payload.messageType || payload.type || "text",
-          fileUrl: payload.fileUrl || "",
-          fileName: payload.fileName || "",
-          fileSize: payload.fileSize || 0,
-          mimeType: payload.mimeType || "",
-          thumbnailUrl: payload.thumbnailUrl || "",
-          voiceUrl: payload.voiceUrl || "",
-          voiceDuration: payload.voiceDuration || 0,
-          replyTo: payload.replyTo || undefined,
-          replyPreview: payload.replyPreview,
+        }).lean();
+        if (!storedMessage) return;
+      } else {
+        const content = typeof payload.content === "string" ? payload.content : "";
+        const messageType = payload.messageType || payload.type || "text";
+        const validMessageTypes = new Set(["text", "image", "voice", "file", "emoji", "system"]);
+        if (content.length > 5000 || !validMessageTypes.has(messageType)) return;
+
+        const replyId = normalizeId(payload.replyTo);
+        const replyMessage = isObjectId(replyId)
+          ? await Message.findOne({ _id: replyId, conversationId }).select("senderId content messageType").lean()
+          : null;
+
+        storedMessage = await Message.create({
+          conversationId,
+          senderId,
+          receiverId,
+          content,
+          messageType,
+          fileUrl: typeof payload.fileUrl === "string" ? payload.fileUrl : "",
+          fileName: typeof payload.fileName === "string" ? payload.fileName.slice(0, 255) : "",
+          fileSize: Number.isFinite(payload.fileSize) ? Math.max(0, payload.fileSize) : 0,
+          mimeType: typeof payload.mimeType === "string" ? payload.mimeType.slice(0, 128) : "",
+          thumbnailUrl: typeof payload.thumbnailUrl === "string" ? payload.thumbnailUrl : "",
+          voiceUrl: typeof payload.voiceUrl === "string" ? payload.voiceUrl : "",
+          voiceDuration: Number.isFinite(payload.voiceDuration) ? Math.max(0, payload.voiceDuration) : 0,
+          replyTo: replyMessage?._id,
+          replyPreview: replyMessage ? {
+            senderName: normalizeId(replyMessage.senderId),
+            content: replyMessage.content.substring(0, 100),
+            messageType: replyMessage.messageType,
+          } : undefined,
           isRead: false,
           isDelivered: false,
         });
 
         await Conversation.findByIdAndUpdate(conversationId, {
-          lastMessage: created._id,
-          lastMessagePreview: created.content.substring(0, 100),
-          lastMessageType: created.messageType,
+          lastMessage: storedMessage._id,
+          lastMessagePreview: storedMessage.content.substring(0, 100),
+          lastMessageType: storedMessage.messageType,
           lastMessageAt: new Date(),
           $inc: { "participantInfo.$[receiver].unreadCount": 1 },
         }, {
           arrayFilters: [{ "receiver.userId": receiverId }],
         });
 
-        message = {
-          id: created._id.toString(),
-          conversationId,
-          senderId,
-          receiverId,
-          content: created.content,
-          messageType: created.messageType,
-          isRead: created.isRead,
-          isDelivered: created.isDelivered,
-          createdAt: created.createdAt,
-        };
       }
+
+      let message = {
+        id: normalizeId(storedMessage._id),
+        conversationId,
+        senderId,
+        receiverId,
+        content: storedMessage.content,
+        messageType: storedMessage.messageType,
+        fileUrl: storedMessage.fileUrl || "",
+        fileName: storedMessage.fileName || "",
+        fileSize: storedMessage.fileSize || 0,
+        mimeType: storedMessage.mimeType || "",
+        thumbnailUrl: storedMessage.thumbnailUrl || "",
+        voiceUrl: storedMessage.voiceUrl || "",
+        voiceDuration: storedMessage.voiceDuration || 0,
+        isRead: storedMessage.isRead,
+        isDelivered: storedMessage.isDelivered,
+        createdAt: storedMessage.createdAt,
+      };
 
       const [senderProfile, receiverProfile] = await Promise.all([
         Profile.findOne({ userId: senderId }).select("isPremium premiumExpiry").lean(),
@@ -183,59 +249,75 @@ io.on("connection", (socket) => {
       }
 
       socket.to(`user:${receiverId}`).emit("new-message", message);
-    } catch (error) {
+    } catch {
       socket.emit("message-error", {
-        message: error instanceof Error ? error.message : "Failed to send message",
+        message: "Failed to send message",
       });
     }
   });
 
-  socket.on("message-delivered", async ({ messageId, conversationId, receiverId }) => {
-    if (isObjectId(messageId)) {
-      await Message.findByIdAndUpdate(messageId, {
-        isDelivered: true,
-        deliveredAt: new Date(),
-      });
-    }
-
-    if (receiverId) {
-      socket.to(`user:${receiverId}`).emit("message-delivered", { messageId, conversationId });
-    }
+  socket.on("message-delivered", async (payload) => {
+    if (!payload || !isObjectId(payload.messageId)) return;
+    const message = await Message.findOneAndUpdate(
+      { _id: payload.messageId, receiverId: userId },
+      { isDelivered: true, deliveredAt: new Date() },
+      { new: true },
+    ).select("senderId conversationId").lean();
+    if (!message) return;
+    socket.to(`user:${normalizeId(message.senderId)}`).emit("message-delivered", {
+      messageId: payload.messageId,
+      conversationId: normalizeId(message.conversationId),
+    });
   });
 
-  socket.on("add-reaction", async ({ conversationId, messageId, reaction }) => {
-    if (!isObjectId(messageId)) return;
+  socket.on("add-reaction", async (payload) => {
+    if (!payload || !isObjectId(payload.messageId) || !isObjectId(payload.conversationId)) return;
+    const emoji = payload.reaction && payload.reaction.emoji;
+    if (typeof emoji !== "string" || !emoji || emoji.length > 16) return;
 
-    const emoji = reaction && reaction.emoji;
-    if (typeof emoji !== "string" || !emoji) return;
+    const conversation = await Conversation.findOne({
+      _id: payload.conversationId,
+      participants: userId,
+    }).select("participants").lean();
+    const message = await Message.findOne({ _id: payload.messageId, conversationId: payload.conversationId }).select("_id").lean();
+    if (!conversation || !message) return;
 
-    await Message.findByIdAndUpdate(messageId, {
+    await Message.findByIdAndUpdate(payload.messageId, {
       $pull: { reactions: { userId } },
     });
-    await Message.findByIdAndUpdate(messageId, {
+    await Message.findByIdAndUpdate(payload.messageId, {
       $push: { reactions: { userId, emoji, createdAt: new Date() } },
     });
 
-    socket.broadcast.emit("reaction-added", {
-      conversationId,
-      messageId,
+    emitToPeers(conversation.participants || [], "reaction-added", {
+      conversationId: payload.conversationId,
+      messageId: payload.messageId,
       reaction: { userId, emoji },
     });
   });
 
-  socket.on("delete-message", async ({ conversationId, messageId }) => {
-    if (!isObjectId(messageId)) return;
+  socket.on("delete-message", async (payload) => {
+    if (!payload || !isObjectId(payload.conversationId) || !isObjectId(payload.messageId)) return;
+    const conversation = await Conversation.findOne({
+      _id: payload.conversationId,
+      participants: userId,
+    }).select("participants").lean();
+    if (!conversation) return;
 
-    await Message.findOneAndUpdate(
-      { _id: messageId, senderId: userId },
-      { isDeleted: true, deletedAt: new Date(), content: "This message was deleted" }
-    );
+    const deleted = await Message.findOneAndUpdate(
+      { _id: payload.messageId, conversationId: payload.conversationId, senderId: userId },
+      { isDeleted: true, deletedAt: new Date(), content: "This message was deleted" },
+    ).select("_id").lean();
+    if (!deleted) return;
 
-    socket.broadcast.emit("message-deleted", { conversationId, messageId });
+    emitToPeers(conversation.participants || [], "message-deleted", {
+      conversationId: payload.conversationId,
+      messageId: payload.messageId,
+    });
   });
 
   socket.on("disconnect", () => {
-    socket.broadcast.emit("user-offline", { userId });
+    notifyPeersOnline("user-offline");
   });
 });
 

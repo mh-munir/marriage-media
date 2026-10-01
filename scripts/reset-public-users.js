@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { loadEnvConfig } = require('@next/env');
 loadEnvConfig(process.cwd());
 
@@ -63,7 +64,7 @@ async function main() {
       try {
         const result = await collection.deleteMany(filter);
         deletedCount += result.deletedCount || 0;
-      } catch (error) {
+      } catch {
         // Ignore unrelated collection field mismatches.
       }
     }

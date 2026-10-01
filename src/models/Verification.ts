@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-export type VerificationType = "profile" | "phone";
+export type VerificationType = "profile" | "phone" | "email";
 
 export type VerificationStatus =
   | "pending"
@@ -90,7 +90,7 @@ const VerificationSchema = new Schema<IVerification>(
     },
     type: {
       type: String,
-      enum: ["profile", "phone"],
+      enum: ["profile", "phone", "email"],
       required: true,
     },
 

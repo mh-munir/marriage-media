@@ -57,18 +57,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let result: { verification: any; error?: string };
-
-    switch (type) {
-      case "profile":
-        result = await submitProfileVerification(user._id.toString(), documentUrl || "profile-review");
-        break;
-
-      case "phone":
-        return NextResponse.json({ error: "Phone verification must be submitted via /api/verification/phone" }, { status: 400 });
-      default:
-        return NextResponse.json({ error: "Invalid verification type" }, { status: 400 });
+    if (type === "phone") {
+      return NextResponse.json({ error: "Phone verification must be submitted via /api/verification/phone" }, { status: 400 });
     }
+
+    const result = await submitProfileVerification(user._id.toString(), documentUrl || "profile-review");
 
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 409 });

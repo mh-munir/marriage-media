@@ -792,8 +792,10 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
   React.useEffect(() => {
     const resolvedLanguage = forcedLanguage || (isAdminRoute ? "en" : undefined);
     if (resolvedLanguage) {
-      setLanguageState(resolvedLanguage);
-      queueMicrotask(() => setHasHydrated(true));
+      queueMicrotask(() => {
+        setLanguageState(resolvedLanguage);
+        setHasHydrated(true);
+      });
       return;
     }
     const saved = localStorage.getItem("marriage-media-language");

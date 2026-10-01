@@ -358,7 +358,7 @@ export async function PATCH(request: NextRequest) {
       if (!/^\d{6}$/.test(code)) return NextResponse.json({ error: "Enter the 6-digit verification code" }, { status: 400 });
       if (action === "verify-email") {
         const email = String(body.email || "").trim().toLowerCase();
-        const pending = await Verification.findOne({ userId: actor._id, type: "email" as any, status: "pending", value: email } as any).select("_id").lean();
+        const pending = await Verification.findOne({ userId: actor._id, type: "email", status: "pending", value: email }).select("_id").lean();
         if (!pending) return NextResponse.json({ error: "Request a verification code for this email first" }, { status: 400 });
         const result = await verifyEmailCode(actor._id.toString(), code);
         if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });

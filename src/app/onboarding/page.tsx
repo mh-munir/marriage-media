@@ -8,10 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
-  EDUCATION_LEVELS,
   HEIGHTS,
   RELIGIONS,
-  WEIGHTS,
 } from "@/lib/utils";
 import {
   registerLocationLabels,
@@ -68,14 +66,6 @@ function StepTracker({ current }: { current: number }) {
   );
 }
 const habitOptions = ["Exercise", "Reading", "Travel", "Cooking"];
-const partnerHeightRanges = [
-  "4'10\"-5'0\"",
-  "5'1\"-5'3\"",
-  "5'4\"-5'6\"",
-  "5'7\"-5'9\"",
-  "5'10\"-6'0\"",
-  "6'1\"-6'3\"",
-];
 const heightLabels: Record<string, string> = {
   "4'10\" (147 cm)": "৪'১০\" (১৪৭ সেমি)",
   "4'11\" (150 cm)": "৪'১১\" (১৫০ সেমি)",
@@ -96,15 +86,6 @@ const heightLabels: Record<string, string> = {
   "6'2\" (188 cm)": "৬'২\" (১৮৮ সেমি)",
   "6'3\" (191 cm)": "৬'৩\" (১৯১ সেমি)",
 };
-const partnerHeightLabels: Record<string, string> = {
-  "4'10\"-5'0\"": "৪'১০\" - ৫'০\"",
-  "5'1\"-5'3\"": "৫'১\" - ৫'৩\"",
-  "5'4\"-5'6\"": "৫'৪\" - ৫'৬\"",
-  "5'7\"-5'9\"": "৫'৭\" - ৫'৯\"",
-  "5'10\"-6'0\"": "৫'১০\" - ৬'০\"",
-  "6'1\"-6'3\"": "৬'১\" - ৬'৩\"",
-};
-const partnerAgeRanges = ["18-25", "26-30", "31-35", "36-40", "41-50", "51+"];
 const requiredPartnerFields = ["religion"];
 const blank: D = {
   firstName: "",
@@ -360,13 +341,30 @@ export default function OnboardingPage() {
     k.startsWith("partnerPreferences.")
       ? data.partnerPreferences[k.slice(19)]
       : data[k];
-  const writeField = (k: string, v: any) =>
-    k.startsWith("partnerPreferences.")
-      ? put("partnerPreferences", {
-          ...data.partnerPreferences,
-          [k.slice(19)]: v,
-        })
-      : put(k, v);
+  const writeField = (k: string, v: any) => {
+    if (k.startsWith("partnerPreferences.")) {
+      put("partnerPreferences", {
+        ...data.partnerPreferences,
+        [k.slice(19)]: v,
+      });
+      return;
+    }
+
+    if (k === "division") {
+      setData((current) => ({ ...current, division: v, district: "", thana: "", union: "" }));
+      return;
+    }
+    if (k === "district") {
+      setData((current) => ({ ...current, district: v, thana: "", union: "" }));
+      return;
+    }
+    if (k === "thana") {
+      setData((current) => ({ ...current, thana: v, union: "" }));
+      return;
+    }
+
+    put(k, v);
+  };
   const input = (label: string, k: string, type = "text") => (
     <Input
       label={text(label)}
@@ -558,7 +556,10 @@ export default function OnboardingPage() {
       3: ["country", "division", "district", "thana", "union", "area"],
       8: ["familyAwareOfBiodata", "informationAccurate", "truthDeclaration"],
     };
-    const missingFields = (need[step] || []).filter((k) => !String(data[k] || "").trim());
+    const requiredForStep = step === 3
+      ? need[step].filter((field) => field !== "union" || locations.unions.length > 0)
+      : need[step] || [];
+    const missingFields = requiredForStep.filter((k) => !String(data[k] || "").trim());
     if (step === 2) {
       siblings.forEach((sibling: any, index: number) => {
         if (!String(sibling.name || "").trim()) missingFields.push(`sibling.${sibling.relation}.${index}.name`);
@@ -585,7 +586,9 @@ export default function OnboardingPage() {
     if (step === 1 && !/^\+88\d{11}$/.test(data.whatsappNumber))
       return text("WhatsApp/Imo number must be exactly 11 digits.");
     if (step === 3) {
-      const missingPermanentFields = ["country", "division", "district", "thana", "union", "area"]
+      const requiredPermanentFields = ["country", "division", "district", "thana", "area"];
+      if (permanentLocations.unions.length > 0) requiredPermanentFields.push("union");
+      const missingPermanentFields = requiredPermanentFields
         .filter((field) => !String(data.permanentLocation?.[field] || "").trim());
       if (missingPermanentFields.length) {
         const permanentKeys = missingPermanentFields.map((field) => `permanent.${field}`);
@@ -1066,10 +1069,10 @@ export default function OnboardingPage() {
                   </h3>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {input("Country", "country")}
-                    {select("Division", "division", locations.divisions)}
-                    {select("District", "district", locations.districts)}
-                    {select("Thana", "thana", locations.thanas)}
-                    {select("Union", "union", locations.unions)}
+                    {select("Division", "division", locations.divisions, locations.labels)}
+                    {select("District", "district", locations.districts, locations.labels)}
+                    {select("Thana", "thana", locations.thanas, locations.labels)}
+                    {locations.unions.length > 0 ? select("Union", "union", locations.unions, locations.labels) : null}
                     {input("Area", "area")}
                   </div>
                 </div>
@@ -1117,7 +1120,7 @@ export default function OnboardingPage() {
                         <option value="">{text("Select")}</option>
                         {permanentLocations.divisions.map((v) => (
                           <option key={v} value={v}>
-                            {translateLocationLabel(v, language)}
+                            {language === "bn" ? permanentLocations.labels[v] || translateLocationLabel(v, language) : v}
                           </option>
                         ))}
                       </select>
@@ -1140,7 +1143,7 @@ export default function OnboardingPage() {
                         <option value="">{text("Select")}</option>
                         {permanentLocations.districts.map((v) => (
                           <option key={v} value={v}>
-                            {translateLocationLabel(v, language)}
+                            {language === "bn" ? permanentLocations.labels[v] || translateLocationLabel(v, language) : v}
                           </option>
                         ))}
                       </select>
@@ -1162,33 +1165,35 @@ export default function OnboardingPage() {
                         <option value="">{text("Select")}</option>
                         {permanentLocations.thanas.map((v) => (
                           <option key={v} value={v}>
-                            {translateLocationLabel(v, language)}
+                            {language === "bn" ? permanentLocations.labels[v] || translateLocationLabel(v, language) : v}
                           </option>
                         ))}
                       </select>
                       {fieldError("permanent.thana") ? <p className="mt-1 text-xs text-destructive">{fieldError("permanent.thana")}</p> : null}
                     </label>
-                    <label className="text-sm font-medium">
-                      {text("Union")}
-                      <select
-                        className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3"
-                        value={data.permanentLocation.union}
-                        onChange={(e) =>
-                          put("permanentLocation", {
-                            ...data.permanentLocation,
-                            union: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="">{text("Select")}</option>
-                        {permanentLocations.unions.map((v) => (
-                          <option key={v} value={v}>
-                            {translateLocationLabel(v, language)}
-                          </option>
-                        ))}
-                      </select>
-                      {fieldError("permanent.union") ? <p className="mt-1 text-xs text-destructive">{fieldError("permanent.union")}</p> : null}
-                    </label>
+                    {permanentLocations.unions.length > 0 ? (
+                      <label className="text-sm font-medium">
+                        {text("Union")}
+                        <select
+                          className="mt-1 flex h-11 w-full rounded-xl border border-input bg-background px-3"
+                          value={data.permanentLocation.union}
+                          onChange={(e) =>
+                            put("permanentLocation", {
+                              ...data.permanentLocation,
+                              union: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">{text("Select")}</option>
+                          {permanentLocations.unions.map((v) => (
+                            <option key={v} value={v}>
+                              {language === "bn" ? permanentLocations.labels[v] || translateLocationLabel(v, language) : v}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldError("permanent.union") ? <p className="mt-1 text-xs text-destructive">{fieldError("permanent.union")}</p> : null}
+                      </label>
+                    ) : null}
                     <Input
                       label={text("Area")}
                       error={fieldError("permanent.area")}

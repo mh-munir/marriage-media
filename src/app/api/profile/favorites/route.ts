@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         highestEducation?: string;
         district?: string;
         division?: string;
+        union?: string;
         area?: string;
         religion?: string;
         photos?: Array<{ url?: string }>;
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
         imageUrl: canViewProfileImages ? profile?.photos?.[0]?.url || null : null,
         division: profile?.division || "",
         district: profile?.district || "",
-        area: profile?.area || "",
+        union: profile?.union || "",
         profileViews: profile?.profileViews || 0,
         createdAt: profile?.createdAt || null,
         isOnline: Boolean(profile?.lastActiveAt && new Date(profile.lastActiveAt).getTime() > Date.now() - 15 * 60 * 1000),

@@ -68,9 +68,9 @@ function getMissingRequiredFields(body: Record<string, unknown>) {
   if (!String(body.motherProfession || "").trim()) missingFields.push("Mother's Profession");
   if (!String(body.division || "").trim() || !String(body.district || "").trim()) missingFields.push("Present Address location");
   if (!body.permanentLocation || typeof body.permanentLocation !== "object" || !String((body.permanentLocation as Record<string, unknown>).division || "").trim() || !String((body.permanentLocation as Record<string, unknown>).district || "").trim()) missingFields.push("Permanent Address location");
-  if (!String(body.thana || "").trim() || !String(body.union || "").trim() || !String(body.area || "").trim()) missingFields.push("Complete Present Address");
+  if (!String(body.thana || "").trim() || !String(body.area || "").trim()) missingFields.push("Complete Present Address");
   const permanentLocation = body.permanentLocation as Record<string, unknown> | undefined;
-  if (!String(permanentLocation?.country || "").trim() || !String(permanentLocation?.thana || "").trim() || !String(permanentLocation?.union || "").trim() || !String(permanentLocation?.area || "").trim()) missingFields.push("Complete Permanent Address");
+  if (!String(permanentLocation?.country || "").trim() || !String(permanentLocation?.thana || "").trim() || !String(permanentLocation?.area || "").trim()) missingFields.push("Complete Permanent Address");
   if (!Array.isArray(body.educationDetails) || !(body.educationDetails as Record<string, unknown>[]).some((entry) => String(entry.instituteName || "").trim() || String(entry.year || "").trim())) missingFields.push("At least one Education field");
   if (!String(body.aboutYourself || "").trim()) missingFields.push("About Yourself");
   const requiredHabits = ["Exercise", "Reading", "Travel", "Cooking"];

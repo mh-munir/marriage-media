@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
         compatibility: calculateMatchScore(profile, myProfile),
         score,
       };
-    }).filter((profile) => profile.compatibility >= 50);
+    }).filter((profile) => profile.compatibility > 50);
 
     // Sort by compatibility score (highest first)
     scoredProfiles.sort((a, b) => b.compatibility - a.compatibility || b.score - a.score);

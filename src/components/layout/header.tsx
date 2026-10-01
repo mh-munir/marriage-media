@@ -94,7 +94,6 @@ export function Header() {
 
   React.useEffect(() => {
     if (!isAuthenticated || !isMessagesRoute) {
-      setMessageUnreadCount(0);
       return;
     }
 
@@ -120,6 +119,7 @@ export function Header() {
 
   const isDashboard = pathname.startsWith("/dashboard");
   const isAdmin = pathname.startsWith("/admin");
+  const visibleMessageUnreadCount = isAuthenticated && isMessagesRoute ? messageUnreadCount : 0;
   const links = isDashboard || isAdmin ? dashboardLinks : publicLinks;
 
   if (!isPageReady) {
@@ -199,7 +199,7 @@ export function Header() {
               >
                 <span className="relative inline-flex items-center gap-1.5">
                   {translatedLabel(link.href, link.label)}
-                  {link.href === "/dashboard/messages" && messageUnreadCount > 0 ? <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground">{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span> : null}
+                  {link.href === "/dashboard/messages" && visibleMessageUnreadCount > 0 ? <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground">{visibleMessageUnreadCount > 99 ? "99+" : visibleMessageUnreadCount}</span> : null}
                 </span>
               </Link>
             ))}
@@ -320,7 +320,7 @@ export function Header() {
                   {link.icon && <link.icon className="h-4 w-4" />}
                   <span className="flex items-center gap-2">
                     {translatedLabel(link.href, link.label)}
-                    {link.href === "/dashboard/messages" && messageUnreadCount > 0 ? <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold leading-5 text-primary-foreground">{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span> : null}
+                    {link.href === "/dashboard/messages" && visibleMessageUnreadCount > 0 ? <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold leading-5 text-primary-foreground">{visibleMessageUnreadCount > 99 ? "99+" : visibleMessageUnreadCount}</span> : null}
                   </span>
                 </Link>
               ))}

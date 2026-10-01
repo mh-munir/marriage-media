@@ -1,0 +1,12 @@
+.git
+.kilo
+.next
+node_modules
+coverage
+build
+out
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo

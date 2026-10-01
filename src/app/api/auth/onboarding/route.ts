@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "WhatsApp/Imo number must be exactly 11 digits after +88." }, { status: 400 });
     }
     const permanentLocation = data.permanentLocation as Record<string, unknown> | undefined;
-    if (!isSync && step >= 4 && (!data.country || !data.division || !data.district || !data.thana || !data.union || !data.area || !permanentLocation?.country || !permanentLocation.division || !permanentLocation.district || !permanentLocation.thana || !permanentLocation.union || !permanentLocation.area)) {
+    if (!isSync && step >= 4 && (!data.country || !data.division || !data.district || !data.thana || !data.area || !permanentLocation?.country || !permanentLocation.division || !permanentLocation.district || !permanentLocation.thana || !permanentLocation.area)) {
       return NextResponse.json({ error: "Please complete all location fields." }, { status: 400 });
     }
     if (!isSync && step >= 5 && (!Array.isArray(data.educationDetails) || !(data.educationDetails as Record<string, unknown>[]).some((entry) => String(entry.instituteName || "").trim() || String(entry.year || "").trim()))) {

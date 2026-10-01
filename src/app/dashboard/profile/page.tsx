@@ -327,23 +327,8 @@ export default function DashboardProfilePage() {
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
   const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const [permanentLocationOptions, setPermanentLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
-  const [professionOptions, setProfessionOptions] = React.useState<Array<{ value: string; label: string }>>([]);
   const { updateUser } = useAuthStore();
   const { language, translateText: text } = useLanguage();
-
-  React.useEffect(() => {
-    async function loadProfessionOptions() {
-      try {
-        const response = await fetch(`/api/options/professions?lang=${language === "bn" ? "bn" : "en"}`, { cache: "no-store" });
-        const data = await response.json();
-        setProfessionOptions(data.options || []);
-      } catch {
-        setProfessionOptions([]);
-      }
-    }
-
-    void loadProfessionOptions();
-  }, [language]);
 
   React.useEffect(() => {
     void fetchLocationOptions("divisions").then((divisions) => {
@@ -988,7 +973,7 @@ export default function DashboardProfilePage() {
                               ))}
                             </select>
                           </div>
-                          <div>
+                          {locationOptions.unions.length > 0 || profile.union ? <div>
                             <label className="block text-sm font-medium text-foreground mb-1.5">{text("Union")}</label>
                             <select
                               value={profile.union}
@@ -1001,7 +986,7 @@ export default function DashboardProfilePage() {
                                 <option key={union} value={union}>{translateLocationLabel(union, language)}</option>
                               ))}
                             </select>
-                          </div>
+                          </div> : null}
                         </div>
                         <Input
                           label="Area"
@@ -1051,7 +1036,7 @@ export default function DashboardProfilePage() {
                                 {permanentLocationOptions.thanas.map((thana) => <option key={thana} value={thana}>{translateLocationLabel(thana, language)}</option>)}
                               </select>
                             </div>
-                            <div>
+                            {permanentLocationOptions.unions.length > 0 || profile.permanentLocation.union ? <div>
                               <label className="block text-sm font-medium text-foreground mb-1.5">{text("Union")}</label>
                               <select
                                 value={profile.permanentLocation.union}
@@ -1062,7 +1047,7 @@ export default function DashboardProfilePage() {
                                 <option value="">{text(profile.permanentLocation.thana ? "Select union" : "Select thana first")}</option>
                                 {permanentLocationOptions.unions.map((union) => <option key={union} value={union}>{translateLocationLabel(union, language)}</option>)}
                               </select>
-                            </div>
+                            </div> : null}
                           </div>
                           <Input
                             label={text("Area")}

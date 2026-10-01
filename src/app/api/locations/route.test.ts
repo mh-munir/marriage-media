@@ -1,21 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { NextRequest } from 'next/server';
-import { GET } from './route';
+import { collectBengaliLocationLabels } from '../../../lib/location-labels.ts';
 
-test('GET /api/locations should not fail with a 502 when upstream fetches are unavailable', async () => {
-  const originalFetch = global.fetch;
-  global.fetch = async () => {
-    throw new Error('upstream unavailable');
-  };
+test('Bengali labels prioritize dataset names and include nested locations', () => {
+  const upstreamLabels = new Map([
+    ['kotwali', 'upstream label'],
+    ['pahartali', 'পাহাড়তলী'],
+  ]);
+  const labels = collectBengaliLocationLabels([
+    { name: 'Kotwali', bnName: 'কোতোয়ালী' },
+    { name: 'Double Mooring' },
+    { name: 'Pahartali' },
+    { name: 'Chattogram', bnName: 'চট্টগ্রাম', districts: [{ name: 'Bandarban', bnName: 'বান্দরবান' }] },
+  ], upstreamLabels);
 
-  try {
-    const response = await GET(new NextRequest('http://localhost/api/locations?level=labels'));
-    const payload = await response.json();
-
-    assert.equal(response.status, 200, 'should return success even if upstream sources are unavailable');
-    assert.ok(payload && typeof payload === 'object', 'should return JSON payload');
-  } finally {
-    global.fetch = originalFetch;
-  }
+  assert.equal(labels.Kotwali, 'কোতোয়ালী');
+  assert.equal(labels['Double Mooring'], 'ডবলমুরিং');
+  assert.equal(labels.Pahartali, 'পাহাড়তলী');
+  assert.equal(labels.Chattogram, 'চট্টগ্রাম');
+  assert.equal(labels.Bandarban, 'বান্দরবান');
 });

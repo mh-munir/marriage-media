@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeDistrictName } from "@/lib/location-normalization";
+import { collectBengaliLocationLabels, resolveBengaliLocationLabel, type LocationLabelNode } from "@/lib/location-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +14,8 @@ const BENGALI_SOURCE_URLS = [
   "https://raw.githubusercontent.com/nuhil/bangladesh-geocode/master/unions/unions.json",
 ];
 
-type LocationNode = {
+type LocationNode = LocationLabelNode & {
   id?: number | string;
-  name?: string;
-  districts?: LocationNode[];
-  upazilas?: LocationNode[];
-  areas?: LocationNode[];
-  unions?: LocationNode[];
 };
 
 type LocationDataset = { divisions?: LocationNode[] };
@@ -107,11 +103,23 @@ async function getBengaliLabels(): Promise<Map<string, string>> {
   return bengaliLabelsPromise;
 }
 
-function displayName(value: string, bengaliLabels: Map<string, string>): string {
-  return bengaliLabels.get(normalized(value)) || normalizeDistrictName(value);
+function displayName(value: string, bengaliLabels: Map<string, string>, datasetLabel?: string): string {
+  const label = resolveBengaliLocationLabel(value, bengaliLabels, datasetLabel);
+  return label === value ? normalizeDistrictName(value) : label;
 }
 
-function locationPayload(options: string[], bengaliLabels: Map<string, string>) {
+function locationPayload(nodes: LocationNode[] | undefined, bengaliLabels: Map<string, string>) {
+  const availableNodes = nodes || [];
+  return {
+    options: names(availableNodes),
+    labels: Object.fromEntries(availableNodes.flatMap((node) => {
+      const option = normalizeDistrictName(node.name);
+      return option ? [[option, displayName(option, bengaliLabels, node.bnName)]] : [];
+    })),
+  };
+}
+
+function optionsPayload(options: string[], bengaliLabels: Map<string, string>) {
   return {
     options,
     labels: Object.fromEntries(options.map((option) => [option, displayName(option, bengaliLabels)])),
@@ -183,7 +191,10 @@ export async function GET(request: NextRequest) {
     if (level === "labels") {
       return NextResponse.json(
         {
-          labels: Object.fromEntries(bengaliLabels.entries()),
+          labels: {
+            ...Object.fromEntries(bengaliLabels.entries()),
+            ...collectBengaliLocationLabels(divisions, bengaliLabels),
+          },
         },
         {
           headers: {
@@ -195,32 +206,34 @@ export async function GET(request: NextRequest) {
     }
 
     if (level === "divisions") {
-      return NextResponse.json(locationPayload(names(divisions), bengaliLabels));
+      return NextResponse.json(locationPayload(divisions, bengaliLabels));
     }
 
     const division = findByName(divisions, divisionName);
     if (!division) return NextResponse.json({ options: [] });
 
     if (level === "districts") {
-      return NextResponse.json(locationPayload(names(division.districts), bengaliLabels));
+      return NextResponse.json(locationPayload(division.districts, bengaliLabels));
     }
 
     const district = findByName(division.districts, districtName);
     if (!district) return NextResponse.json({ options: [] });
 
     if (level === "thanas") {
-      return NextResponse.json(locationPayload(names(district.upazilas), bengaliLabels));
+      return NextResponse.json(locationPayload(district.upazilas, bengaliLabels));
     }
 
     const thana = findByName(district.upazilas, thanaName);
-    let unionOptions = names(thana?.areas || thana?.unions);
+    let unionNodes = thana?.areas || thana?.unions || [];
+    let unionOptions = names(unionNodes);
 
     if (!unionOptions.length && districtName && thanaName) {
       const directFileUrl = `https://raw.githubusercontent.com/HedaetShahriar/bangladesh-locations-dataset/main/data/upazilas/${normalized(districtName)}-${normalized(thanaName)}.json`;
       const directResponse = await fetch(directFileUrl, { next: { revalidate: 86400 } });
       if (directResponse.ok) {
         const directData = (await directResponse.json()) as LocationNode;
-        unionOptions = names(directData.areas || directData.unions);
+        unionNodes = directData.areas || directData.unions || [];
+        unionOptions = names(unionNodes);
       }
     }
 
@@ -228,7 +241,11 @@ export async function GET(request: NextRequest) {
       unionOptions = await getSecondaryUnionOptions(thanaName);
     }
 
-    return NextResponse.json(locationPayload(unionOptions, bengaliLabels));
+    return NextResponse.json(
+      unionNodes.length
+        ? locationPayload(unionNodes, bengaliLabels)
+        : optionsPayload(unionOptions, bengaliLabels),
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Location lookup failed.";
     return NextResponse.json({ error: message }, { status: 502 });

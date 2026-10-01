@@ -7,7 +7,7 @@ export interface IPayment extends Document {
   currency: string;
   plan: "monthly" | "quarterly" | "half-yearly" | "yearly";
   planDuration: number; // in days
-  paymentMethod: "sslcommerz" | "bkash" | "nagad" | "stripe";
+  paymentMethod: "sslcommerz" | "bkash" | "nagad" | "stripe" | "paypal";
   transactionId: string;
   paymentId?: string;
   status: "pending" | "completed" | "failed" | "refunded" | "cancelled" | "refund_pending";
@@ -55,7 +55,7 @@ const PaymentSchema = new Schema<IPayment>(
     },
     paymentMethod: {
       type: String,
-      enum: ["sslcommerz", "bkash", "nagad", "stripe"],
+      enum: ["sslcommerz", "bkash", "nagad", "stripe", "paypal"],
       required: [true, "Payment method is required"],
     },
     transactionId: {

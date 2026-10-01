@@ -44,6 +44,7 @@ export interface PaymentInitResponse {
 export interface PaymentVerifyRequest {
   provider: PaymentProvider;
   transactionId: string;
+  invoiceNumber: string;
   gatewayTransactionId?: string;
   payload?: Record<string, unknown>;
 }
@@ -156,6 +157,26 @@ export async function verifyPayment(
   }
 }
 
+function buildPaymentCallbackUrl(successUrl: string, provider: PaymentProvider, transactionId: string): string {
+  const callbackUrl = new URL("/api/payment/webhook", successUrl);
+  callbackUrl.searchParams.set("provider", provider);
+  callbackUrl.searchParams.set("transactionId", transactionId);
+  return callbackUrl.toString();
+}
+
+async function getPayPalAccessToken(baseUrl: string, clientId: string, clientSecret: string): Promise<string | null> {
+  const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
+  });
+  const result = await response.json();
+  return response.ok && typeof result.access_token === "string" ? result.access_token : null;
+}
+
 // ==================== Stripe ====================
 
 async function initStripePayment(
@@ -178,10 +199,11 @@ async function initStripePayment(
       },
       body: new URLSearchParams({
         "mode": "payment",
-        "success_url": `${request.successUrl}?transactionId=${transactionId}`,
+        "success_url": `${buildPaymentCallbackUrl(request.successUrl, "stripe", transactionId)}&session_id={CHECKOUT_SESSION_ID}`,
         "cancel_url": request.cancelUrl,
         "customer_email": request.billingInfo.email,
         "metadata[transactionId]": transactionId,
+        "metadata[invoiceNumber]": invoiceNumber,
         "metadata[userId]": request.userId,
         "metadata[plan]": request.plan.id,
         "line_items[0][price_data][currency]": request.plan.currency.toLowerCase(),
@@ -237,7 +259,11 @@ async function verifyStripePayment(
       );
       const session = await response.json();
 
-      if (session.payment_status === "paid") {
+      if (
+        session.payment_status === "paid" &&
+        session.metadata?.transactionId === request.transactionId &&
+        session.metadata?.invoiceNumber === request.invoiceNumber
+      ) {
         return {
           success: true,
           status: "completed",
@@ -286,10 +312,10 @@ async function initSSLCommerzPayment(
         total_amount: request.plan.price.toString(),
         currency: request.plan.currency,
         tran_id: transactionId,
-        success_url: `${request.successUrl}?transactionId=${transactionId}`,
+        success_url: buildPaymentCallbackUrl(request.successUrl, "sslcommerz", transactionId),
         fail_url: request.cancelUrl,
         cancel_url: request.cancelUrl,
-        ipn_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook`,
+        ipn_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook?provider=sslcommerz`,
         cus_name: request.billingInfo.name,
         cus_email: request.billingInfo.email,
         cus_phone: request.billingInfo.phone || "",
@@ -356,7 +382,10 @@ async function verifySSLCommerzPayment(
 
     const result = await response.json();
 
-    if (result.status === "VALID" || result.status === "VALIDATED") {
+    if (
+      (result.status === "VALID" || result.status === "VALIDATED") &&
+      result.tran_id === request.transactionId
+    ) {
       return {
         success: true,
         status: "completed",
@@ -423,7 +452,7 @@ async function initBkashPayment(
         intent: "sale",
         merchantInvoiceNumber: invoiceNumber,
         payerReference: request.billingInfo.phone || request.billingInfo.email,
-        callbackURL: `${request.successUrl}?transactionId=${transactionId}`,
+        callbackURL: buildPaymentCallbackUrl(request.successUrl, "bkash", transactionId),
       }),
     });
 
@@ -501,7 +530,11 @@ async function verifyBkashPayment(
 
       const execData = await execResponse.json();
 
-      if (execData.transactionStatus === "Completed") {
+      if (
+        execData.transactionStatus === "Completed" &&
+        execData.paymentID === request.gatewayTransactionId &&
+        execData.merchantInvoiceNumber === request.invoiceNumber
+      ) {
         return {
           success: true,
           status: "completed",
@@ -552,8 +585,8 @@ async function initNagadPayment(
         currency: "BDT",
         orderReference: invoiceNumber,
         transactionReference: transactionId,
-        callbackURL: `${request.successUrl}?transactionId=${transactionId}`,
-        merchantCallbackURL: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook`,
+        callbackURL: buildPaymentCallbackUrl(request.successUrl, "nagad", transactionId),
+        merchantCallbackURL: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook?provider=nagad`,
       }),
     });
 
@@ -611,7 +644,11 @@ async function verifyNagadPayment(
 
       const result = await response.json();
 
-      if (result.orderStatus === "Success") {
+      if (
+        result.orderStatus === "Success" &&
+        result.transactionReference === request.transactionId &&
+        result.orderReference === request.invoiceNumber
+      ) {
         return {
           success: true,
           status: "completed",
@@ -651,16 +688,22 @@ async function initPayPalPayment(
       ? "https://api-m.paypal.com"
       : "https://api-m.sandbox.paypal.com";
 
-    // Convert BDT to USD (approximate)
-    const amountUSD = (request.plan.price / 110).toFixed(2); // Approximate BDT to USD
+    const bdtPerUsd = Number(process.env.PAYPAL_BDT_PER_USD);
+    if (!Number.isFinite(bdtPerUsd) || bdtPerUsd <= 0) {
+      return { success: false, transactionId, invoiceNumber, error: "PayPal exchange rate is not configured" };
+    }
+
+    const accessToken = await getPayPalAccessToken(baseUrl, clientId, clientSecret);
+    if (!accessToken) {
+      return { success: false, transactionId, invoiceNumber, error: "PayPal authentication failed" };
+    }
 
     // Create order
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
     const orderResponse = await fetch(`${baseUrl}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${auth}`,
+        "Authorization": `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         intent: "CAPTURE",
@@ -668,13 +711,13 @@ async function initPayPalPayment(
           reference_id: transactionId,
           amount: {
             currency_code: "USD",
-            value: amountUSD,
+            value: (request.plan.price / bdtPerUsd).toFixed(2),
           },
           description: `${request.plan.name} Subscription`,
           custom_id: invoiceNumber,
         }],
         application_context: {
-          return_url: `${request.successUrl}?transactionId=${transactionId}`,
+          return_url: buildPaymentCallbackUrl(request.successUrl, "paypal", transactionId),
           cancel_url: request.cancelUrl,
         },
       }),
@@ -728,32 +771,57 @@ async function verifyPayPalPayment(
       ? "https://api-m.paypal.com"
       : "https://api-m.sandbox.paypal.com";
 
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+    if (!request.gatewayTransactionId) {
+      return { success: false, status: "failed", error: "PayPal order reference is required" };
+    }
 
-    // Capture the order
-    if (request.gatewayTransactionId) {
-      const response = await fetch(
+    const bdtPerUsd = Number(process.env.PAYPAL_BDT_PER_USD);
+    if (!Number.isFinite(bdtPerUsd) || bdtPerUsd <= 0) {
+      return { success: false, status: "failed", error: "PayPal exchange rate is not configured" };
+    }
+
+    const accessToken = await getPayPalAccessToken(baseUrl, clientId, clientSecret);
+    if (!accessToken) {
+      return { success: false, status: "failed", error: "PayPal authentication failed" };
+    }
+
+    const headers = { Authorization: `Bearer ${accessToken}` };
+    const orderResponse = await fetch(`${baseUrl}/v2/checkout/orders/${request.gatewayTransactionId}`, { headers });
+    const order = await orderResponse.json();
+    const initialPurchaseUnit = order.purchase_units?.[0];
+    if (
+      !orderResponse.ok ||
+      initialPurchaseUnit?.reference_id !== request.transactionId ||
+      initialPurchaseUnit?.custom_id !== request.invoiceNumber
+    ) {
+      return { success: false, status: "failed", error: "PayPal order does not match this invoice" };
+    }
+
+    let result = order;
+    if (order.status !== "COMPLETED") {
+      const captureResponse = await fetch(
         `${baseUrl}/v2/checkout/orders/${request.gatewayTransactionId}/capture`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Basic ${auth}`,
-          },
-        }
+        { method: "POST", headers: { ...headers, "Content-Type": "application/json" } },
       );
-
-      const result = await response.json();
-
-      if (result.status === "COMPLETED") {
-        const capture = result.purchase_units?.[0]?.payments?.captures?.[0];
-        return {
-          success: true,
-          status: "completed",
-          amount: capture?.amount?.value ? parseFloat(capture.amount.value) * 110 : undefined,
-          currency: "BDT",
-        };
+      result = await captureResponse.json();
+      if (!captureResponse.ok) {
+        return { success: false, status: "failed", error: "PayPal capture failed" };
       }
+    }
+
+    const purchaseUnit = result.purchase_units?.[0];
+    if (
+      result.status === "COMPLETED" &&
+      purchaseUnit?.reference_id === request.transactionId &&
+      purchaseUnit?.custom_id === request.invoiceNumber
+    ) {
+      const capture = purchaseUnit.payments?.captures?.[0];
+      return {
+        success: true,
+        status: "completed",
+        amount: capture?.amount?.value ? parseFloat(capture.amount.value) : undefined,
+        currency: capture?.amount?.currency_code,
+      };
     }
 
     return { success: false, status: "failed", error: "PayPal payment not confirmed" };
