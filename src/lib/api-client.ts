@@ -14,7 +14,17 @@ const isLocalApiHost = (() => {
     return false;
   }
 })();
-const API_BASE_URL = process.env.NODE_ENV === "production" && isLocalApiHost
+const isSameProductionHost = (() => {
+  if (process.env.NODE_ENV !== "production" || typeof window === "undefined" || !configuredApiBaseUrl) {
+    return false;
+  }
+  try {
+    return new URL(configuredApiBaseUrl).hostname === window.location.hostname;
+  } catch {
+    return false;
+  }
+})();
+const API_BASE_URL = process.env.NODE_ENV === "production" && (isLocalApiHost || isSameProductionHost)
   ? ""
   : configuredApiBaseUrl;
 let refreshPromise: Promise<boolean> | null = null;

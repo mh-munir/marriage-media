@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
 
-const PORT = Number(process.env.SOCKET_PORT || 3001);
+const PORT = Number(process.env.SOCKET_PORT || process.env.PORT || 3001);
 const MONGODB_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
