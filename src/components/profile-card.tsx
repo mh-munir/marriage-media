@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { BadgeCheck, ChevronRight, Eye, MapPin, MessageCircle, Star, UserRound } from "lucide-react";
+import { BadgeCheck, ChevronRight, Eye, MapPin, MessageCircle, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/providers/language-provider";
 import { useAuthStore } from "@/stores/auth-store";
 import { translateLocationLabel } from "@/lib/location-labels";
+import { getProfilePlaceholderImage } from "@/lib/profile-placeholder";
 
 export type ProfileCardData = {
   userId: string;
@@ -16,6 +17,7 @@ export type ProfileCardData = {
   firstName: string;
   lastName: string;
   age: number | null;
+  gender?: string;
   profession: string;
   division: string;
   district: string;
@@ -55,7 +57,6 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
   const isPremiumUser = Boolean(user?.isPremium);
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || translateText("Marriage Media Member");
   const displayName = currentUserIsPremium ? name : (profile.publicId || translateText("ID pending"));
-  const shouldShowProfileImage = Boolean(profile.imageUrl);
   const translatedProfession = profile.profession ? translateText(profile.profession) : translateText("Profile shared");
   const translatedLocation = formatLocation(profile, language, translateText);
 
@@ -69,21 +70,13 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
     >
       <Card className="h-full overflow-hidden rounded-lg border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)] dark:border-border dark:bg-card">
         <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-t-lg bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef]">
-          {shouldShowProfileImage ? (
-            <Image
-              src={profile.imageUrl ?? "/images/placeholder-profile.jpg"}
-              alt={`${name} profile photo`}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex flex-col items-center text-center text-[#587875]">
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-sm"><UserRound className="h-7 w-7 text-[#df7890]" /></span>
-              <span className="mt-3 text-sm font-semibold">{translateText("Profile photo private")}</span>
-              <span className="mt-1 px-5 text-xs leading-4 text-[#78908c]">{translateText("Photos are hidden for privacy.")}</span>
-            </div>
-          )}
+          <Image
+            src={profile.imageUrl || getProfilePlaceholderImage(profile.gender)}
+            alt={`${name} profile photo`}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            className="object-contain"
+          />
           {profile.isVerified ? <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</span> : null}
           {profile.isPremium ? <Badge variant="premium" title={translateText("Premium subscriber")} className="absolute right-3 top-3 z-20 gap-1 px-2 py-1 text-[10px]"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Premium")}</Badge> : null}
         </div>

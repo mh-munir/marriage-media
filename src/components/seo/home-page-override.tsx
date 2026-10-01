@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, CirclePlay, Heart, MapPin, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, CirclePlay, Heart, MapPin, Sparkles } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
@@ -338,6 +338,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
   const cards = memberProfiles.slice(0, 4).map((member) => ({
     text: member.location,
     publicId: member.publicId,
+    gender: member.gender,
     age: member.age,
     profession: member.profession,
     profileViews: member.profileViews,
@@ -393,15 +394,18 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
               </button>
             </div>
             <div ref={carouselRef} className="scrollbar-none flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4">
-              {cards.map((card) => (
+              {cards.map((card, index) => (
                 <Link key={card.publicId} href={card.profileLink} className="group block w-[85vw] max-w-60 shrink-0 snap-start sm:min-w-62 sm:max-w-62 lg:min-w-67.5 lg:max-w-67.5">
                   <div data-carousel-card className="w-full overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
                     <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] sm:h-44">
-                      <div className="flex flex-col items-center text-center text-[#587875]">
-                        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-sm"><UserRound className="h-7 w-7 text-[#df7890]" /></span>
-                        <span className="mt-3 text-sm font-semibold">{translateText("Profile photo private")}</span>
-                        <span className="mt-1 px-5 text-xs leading-4 text-[#78908c]">{translateText("Photos are not shown on the public home page.")}</span>
-                      </div>
+                      <Image
+                        src={card.gender === "Male" ? "/images/male.png" : "/images/female.png"}
+                        alt={card.gender === "Male" ? "Male member" : "Female member"}
+                        fill
+                        sizes="(max-width: 640px) 85vw, (max-width: 1024px) 248px, 270px"
+                        loading={index === 0 ? "eager" : "lazy"}
+                        className="object-contain"
+                      />
                       {card.isVerified ? <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</div> : null}
                     </div>
                     <div className="space-y-3 p-3.5">

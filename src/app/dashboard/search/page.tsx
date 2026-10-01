@@ -32,6 +32,7 @@ type BrowseProfile = {
   firstName: string;
   lastName: string;
   age: number | null;
+  gender?: string;
   height: string;
   religion: string;
   caste: string;

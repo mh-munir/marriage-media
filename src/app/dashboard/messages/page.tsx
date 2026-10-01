@@ -25,6 +25,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, formatRelativeTime, getInitials } from "@/lib/utils";
+import { getProfilePlaceholderImage } from "@/lib/profile-placeholder";
 import { useSocket } from "@/providers/socket-provider";
 import { useSearchParams } from "next/navigation";
 
@@ -34,6 +35,7 @@ interface ConversationSummary {
   participantName: string;
   participantEmail: string;
   participantAvatar: string;
+  participantGender: string;
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -304,11 +306,9 @@ export default function DashboardMessagesPage() {
                         )}
                       >
                         <div className="relative shrink-0">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={conversation.participantAvatar} alt={conversation.participantName} />
-                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                              {getInitials(conversation.participantName)}
-                            </AvatarFallback>
+                          <Avatar className="h-12 w-12 rounded-lg">
+                            <AvatarImage src={conversation.participantAvatar || getProfilePlaceholderImage(conversation.participantGender)} alt={conversation.participantName} className="object-contain" />
+                            <AvatarFallback />
                           </Avatar>
                           {conversation.isOnline ? (
                             <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
@@ -346,11 +346,9 @@ export default function DashboardMessagesPage() {
                         <Button variant="ghost" size="icon" className="-ml-2 h-9 w-9 md:hidden" onClick={() => setSelectedConversationId("")} aria-label="Back to conversations">
                           <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={selectedConversation.participantAvatar} alt={selectedConversation.participantName} />
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                            {getInitials(selectedConversation.participantName)}
-                          </AvatarFallback>
+                        <Avatar className="h-10 w-10 rounded-lg">
+                          <AvatarImage src={selectedConversation.participantAvatar || getProfilePlaceholderImage(selectedConversation.participantGender)} alt={selectedConversation.participantName} className="object-contain" />
+                          <AvatarFallback />
                         </Avatar>
                         <div>
                           <h3 className="font-semibold text-sm">{selectedConversation.participantName}</h3>

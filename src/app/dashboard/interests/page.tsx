@@ -21,7 +21,8 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getProfilePlaceholderImage } from "@/lib/profile-placeholder";
 
 type Tab = "received" | "sent" | "accepted";
 
@@ -33,6 +34,7 @@ type InterestItem = {
   senderProfile?: {
     firstName?: string;
     lastName?: string;
+    gender?: string;
     age?: number | null;
     profession?: string;
     district?: string;
@@ -41,6 +43,7 @@ type InterestItem = {
   receiverProfile?: {
     firstName?: string;
     lastName?: string;
+    gender?: string;
     age?: number | null;
     profession?: string;
     district?: string;
@@ -179,8 +182,9 @@ export default function DashboardInterestsPage() {
                   <Card className="hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                       <div className="flex items-start gap-4">
-                        <Avatar className="h-14 w-14 shrink-0">
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">{getDisplayName(interest, "received").charAt(0)}</AvatarFallback>
+                        <Avatar className="h-14 w-14 shrink-0 rounded-lg">
+                          <AvatarImage src={getProfilePlaceholderImage(interest.senderProfile?.gender)} alt="" className="object-contain" />
+                          <AvatarFallback />
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
@@ -222,8 +226,9 @@ export default function DashboardInterestsPage() {
                   <Card className="hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                       <div className="flex items-start gap-4">
-                        <Avatar className="h-14 w-14 shrink-0">
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">{getDisplayName(interest, "sent").charAt(0)}</AvatarFallback>
+                        <Avatar className="h-14 w-14 shrink-0 rounded-lg">
+                          <AvatarImage src={getProfilePlaceholderImage(interest.receiverProfile?.gender)} alt="" className="object-contain" />
+                          <AvatarFallback />
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
@@ -264,8 +269,9 @@ export default function DashboardInterestsPage() {
                   <Card className="hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                       <div className="flex items-start gap-4">
-                        <Avatar className="h-14 w-14 shrink-0">
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">{(interest.listOrigin === "received" ? getDisplayName(interest, "received") : getDisplayName(interest, "sent")).charAt(0)}</AvatarFallback>
+                        <Avatar className="h-14 w-14 shrink-0 rounded-lg">
+                          <AvatarImage src={getProfilePlaceholderImage(interest.listOrigin === "received" ? interest.senderProfile?.gender : interest.receiverProfile?.gender)} alt="" className="object-contain" />
+                          <AvatarFallback />
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">

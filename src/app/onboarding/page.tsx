@@ -691,22 +691,29 @@ export default function OnboardingPage() {
       setBusy(false);
     }
   };
-  const upload = async (file?: File) => {
-    if (!file) return;
-    if (data.photos.length >= 4)
+  const upload = async (files: File[]) => {
+    if (files.length === 0) return;
+    const remainingSlots = 4 - data.photos.length;
+    if (remainingSlots <= 0)
       return setError(text("Maximum 4 photos allowed."));
+    const filesToUpload = files.slice(0, remainingSlots);
+    setError(files.length > remainingSlots ? text("Maximum 4 photos allowed.") : "");
     setBusy(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const x = await apiClient.request<{ photo: any }>(
-        "/api/profile/photos/upload",
-        { method: "POST", body: fd },
-      );
-      put("photos", [
-        ...data.photos,
-        { ...x.photo, isPrimary: data.photos.length === 0 },
-      ]);
+      const uploadedPhotos = [...data.photos];
+      for (const file of filesToUpload) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const result = await apiClient.request<{ photo: any }>(
+          "/api/profile/photos/upload",
+          { method: "POST", body: fd },
+        );
+        uploadedPhotos.push({
+          ...result.photo,
+          isPrimary: uploadedPhotos.length === 0,
+        });
+        put("photos", [...uploadedPhotos]);
+      }
     } catch (e) {
       setError(
         e instanceof Error && e.message === "SESSION_EXPIRED"
@@ -1286,7 +1293,13 @@ export default function OnboardingPage() {
                     className="hidden"
                     type="file"
                     accept="image/*"
-                    onChange={(e) => upload(e.target.files?.[0])}
+                    multiple
+                    disabled={busy || data.photos.length >= 4}
+                    onChange={(e) => {
+                      const files = Array.from(e.currentTarget.files || []);
+                      e.currentTarget.value = "";
+                      void upload(files);
+                    }}
                   />
                 </label>
                 {missingFields.includes("photos") ? <p className="mt-1 text-xs text-destructive">{text("At least one photo is required")}</p> : null}

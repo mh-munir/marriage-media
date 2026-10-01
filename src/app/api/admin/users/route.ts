@@ -9,6 +9,7 @@ import { requireAdmin } from "@/lib/auth";
 import { sendEmailVerification, sendPhoneOTP, verifyEmailCode, verifyPhoneOTP } from "@/lib/verification";
 import { validatePhoneNumber } from "@/lib/utils";
 import { removeDeprecatedLifestyleFields } from "@/lib/remove-deprecated-lifestyle-fields";
+import { syncRejectedProfileUserFlags } from "@/lib/rejected-profile-users";
 
 const BIODATA_LIMITS: Record<string, number> = {
   basic: 20,
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
     await removeDeprecatedLifestyleFields();
     await requireAdmin(request);
+    await syncRejectedProfileUserFlags();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -64,6 +66,10 @@ export async function GET(request: NextRequest) {
       role === "admin-team"
         ? { role: { $in: ["admin", "superadmin"] } }
         : { role: "user" };
+
+    if (isPublicUsersView) {
+      filter.isProfileVerificationRejected = { $ne: true };
+    }
 
     if (isPublicUsersView && (segment === "free" || segment === "subscribed")) {
       const [paidUserIds, premiumProfileUserIds] = await Promise.all([

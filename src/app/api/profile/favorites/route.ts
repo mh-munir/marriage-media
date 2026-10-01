@@ -36,12 +36,13 @@ export async function GET(request: NextRequest) {
       .select("age height weight maritalStatus religion caste motherTongue highestEducation annualIncome country division district thana union area familyType familyStatus familyValues diet smoke hobbies isVerified partnerPreferences")
       .lean<MatchableProfile & { partnerPreferences?: PartnerPreferences }>();
     const profiles = await Profile.find({ userId: { $in: profileIds }, isVisible: true, isDeactivated: false })
-      .select("userId publicId firstName lastName age height weight maritalStatus profession highestEducation annualIncome country division district thana union area familyType familyStatus familyValues religion caste motherTongue diet smoke hobbies photos isPremium isVerified lastActiveAt profileViews createdAt")
+      .select("userId publicId firstName lastName gender age height weight maritalStatus profession highestEducation annualIncome country division district thana union area familyType familyStatus familyValues religion caste motherTongue diet smoke hobbies photos isPremium isVerified lastActiveAt profileViews createdAt")
       .lean<{
         userId: Types.ObjectId;
         publicId?: string;
         firstName?: string;
         lastName?: string;
+        gender?: string;
         age?: number;
         height?: string;
         profession?: string;
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
         userId: profile?.userId?.toString() || favorite.profileId.toString(),
         firstName: profile?.firstName || "Saved",
         lastName: profile?.lastName || "Profile",
+        gender: profile?.gender || "",
         name: profile ? `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() : "Saved profile",
         age: profile?.age ?? null,
         height: profile?.height ?? "",

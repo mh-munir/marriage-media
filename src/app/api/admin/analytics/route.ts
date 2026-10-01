@@ -15,6 +15,7 @@ import {
 } from "@/models";
 import { requireAdmin } from "@/lib/auth";
 import { captureException } from "@/lib/monitoring";
+import { syncRejectedProfileUserFlags } from "@/lib/rejected-profile-users";
 
 const PERIOD_OPTIONS = new Set(["7", "30", "90", "365"]);
 
@@ -31,7 +32,9 @@ export async function GET(request: NextRequest) {
     const since = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
     const previousSince = new Date(now.getTime() - period * 2 * 24 * 60 * 60 * 1000);
 
-    const publicUserIds = await User.distinct("_id", { role: "user" });
+    await syncRejectedProfileUserFlags();
+    const publicUserFilter = { role: "user" as const, isProfileVerificationRejected: { $ne: true } };
+    const publicUserIds = await User.distinct("_id", publicUserFilter);
     const publicProfileMatch = { userId: { $in: publicUserIds } };
 
     // Core metrics
@@ -66,9 +69,9 @@ export async function GET(request: NextRequest) {
       userActivityHeatmap,
       monthlyReports,
     ] = await Promise.all([
-      User.countDocuments({ role: "user" }),
-      User.countDocuments({ role: "user", createdAt: { $gte: since } }),
-      User.countDocuments({ role: "user", createdAt: { $gte: previousSince, $lt: since } }),
+      User.countDocuments(publicUserFilter),
+      User.countDocuments({ ...publicUserFilter, createdAt: { $gte: since } }),
+      User.countDocuments({ ...publicUserFilter, createdAt: { $gte: previousSince, $lt: since } }),
       Profile.countDocuments(publicProfileMatch),
       Profile.countDocuments({ ...publicProfileMatch, isPremium: true, premiumExpiry: { $gt: new Date() } }),
       Profile.countDocuments({ ...publicProfileMatch, isVerified: true }),
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
       FraudLog.countDocuments({ createdAt: { $gte: since } }),
       FraudLog.countDocuments({ status: "detected", createdAt: { $gte: since } }),
       User.aggregate([
-        { $match: { createdAt: { $gte: since } } },
+        { $match: { ...publicUserFilter, createdAt: { $gte: since } } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -127,8 +130,12 @@ export async function GET(request: NextRequest) {
         { $group: { _id: "$plan", count: { $sum: 1 }, total: { $sum: "$amount" } } },
         { $sort: { total: -1 } },
       ]),
-      Profile.aggregate([{ $group: { _id: "$gender", count: { $sum: 1 } } }]),
       Profile.aggregate([
+        { $match: publicProfileMatch },
+        { $group: { _id: "$gender", count: { $sum: 1 } } },
+      ]),
+      Profile.aggregate([
+        { $match: publicProfileMatch },
         {
           $group: {
             _id: {
@@ -160,7 +167,7 @@ export async function GET(request: NextRequest) {
         { $sort: { _id: 1 } },
       ]),
       Profile.aggregate([
-        { $match: { lastActiveAt: { $gte: since } } },
+        { $match: { ...publicProfileMatch, lastActiveAt: { $gte: since } } },
         {
           $group: {
             _id: {

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import type { Types } from "mongoose";
+import { syncRejectedProfileUserFlags } from "@/lib/rejected-profile-users";
 
 type RawHomeProfile = {
   _id: Types.ObjectId;
@@ -163,6 +164,7 @@ async function connectHomeDatabase() {
 export const getHomeData = cache(async (): Promise<HomeData> => {
   try {
     await connectHomeDatabase();
+    await syncRejectedProfileUserFlags();
 
     const now = new Date();
     const [{ default: Profile }, { default: User }, { default: Interest }, { default: Blog }] =
@@ -173,7 +175,12 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
         import("@/models/Blog"),
       ]);
 
-    const publicUserIds = await User.distinct("_id", { role: "user", isActive: true, isBlocked: false });
+    const publicUserIds = await User.distinct("_id", {
+      role: "user",
+      isActive: true,
+      isBlocked: false,
+      isProfileVerificationRejected: { $ne: true },
+    });
     const userScopedPublicProfileFilter = {
       ...publicProfileFilter,
       userId: { $in: publicUserIds },

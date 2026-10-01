@@ -52,6 +52,7 @@ interface RecommendedMatch {
   firstName?: string;
   lastName?: string;
   age?: number;
+  gender?: string;
   profession?: string;
   division?: string;
   district?: string;
@@ -362,6 +363,7 @@ export default function DashboardPage() {
                               firstName: match.firstName || "",
                               lastName: match.lastName || "",
                               age: typeof match.age === "number" ? match.age : null,
+                              gender: match.gender,
                               profession: match.profession || "",
                               division: match.division || "",
                               district: match.district || "",

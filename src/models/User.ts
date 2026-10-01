@@ -30,6 +30,7 @@ export interface IUser extends Document {
   registrationOtpAttempts: number;
   isActive: boolean;
   isBlocked: boolean;
+  isProfileVerificationRejected?: boolean;
   blockedUsers: mongoose.Types.ObjectId[];
   profileCompleted: number;
   lastLoginAt?: Date;
@@ -134,6 +135,10 @@ const UserSchema = new Schema<IUser>(
       default: true,
     },
     isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    isProfileVerificationRejected: {
       type: Boolean,
       default: false,
     },

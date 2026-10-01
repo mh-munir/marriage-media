@@ -33,6 +33,7 @@ interface ProfileRecord {
   userId: ObjectIdLike;
   firstName?: string;
   lastName?: string;
+  gender?: string;
   photos?: Array<{ url?: string; isPrimary?: boolean; isApproved?: boolean }>;
   lastActiveAt?: Date | string;
   isPremium?: boolean;
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
       .filter((participantId) => participantId && participantId !== toId(user._id));
 
     const profiles = (await Profile.find({ userId: { $in: [...otherUserIds, toId(user._id)] } })
-      .select("userId firstName lastName photos lastActiveAt isPremium premiumExpiry")
+      .select("userId firstName lastName gender photos lastActiveAt isPremium premiumExpiry")
       .lean()) as unknown as ProfileRecord[];
 
     const profileMap = new Map(profiles.map((profile) => [toId(profile.userId), profile]));
@@ -96,6 +97,7 @@ export async function GET(request: NextRequest) {
         participantName: displayName || "Unknown user",
         participantEmail: otherParticipant?.email || "",
         participantAvatar: primaryPhoto?.url || "",
+        participantGender: profile?.gender || "",
         lastMessage: isLockedPreview ? "New message from a premium member" : conversation.lastMessagePreview || "",
         lastMessageType: conversation.lastMessageType || "text",
         lastMessageAt: getDateString(conversation.lastMessageAt || conversation.updatedAt),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthStore } from "@/stores/auth-store";
+import { refreshSession } from "@/lib/api-client";
 
 export function adminFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   return requestWithAdminSession(input, init);
@@ -13,19 +14,10 @@ async function requestWithAdminSession(input: RequestInfo | URL, init: RequestIn
   const response = await fetch(input, { ...init, headers, credentials: "include" });
   if (response.status !== 401) return response;
 
-  const refreshToken = useAuthStore.getState().refreshToken;
-  if (!refreshToken) return response;
-  const refreshResponse = await fetch("/api/auth/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ refreshToken }),
-  });
-  if (!refreshResponse.ok) return response;
-  const refreshed = (await refreshResponse.json()) as { accessToken?: string; refreshToken?: string };
-  if (!refreshed.accessToken || !refreshed.refreshToken) return response;
-  useAuthStore.getState().setTokens(refreshed.accessToken, refreshed.refreshToken);
+  if (!(await refreshSession())) return response;
+  const accessToken = useAuthStore.getState().token;
+  if (!accessToken) return response;
   const retryHeaders = new Headers(init.headers);
-  retryHeaders.set("Authorization", `Bearer ${refreshed.accessToken}`);
+  retryHeaders.set("Authorization", `Bearer ${accessToken}`);
   return fetch(input, { ...init, headers: retryHeaders, credentials: "include" });
 }

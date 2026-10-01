@@ -18,6 +18,7 @@ type ViewedProfile = {
   userId: Types.ObjectId;
   firstName?: string;
   lastName?: string;
+  gender?: string;
   age?: number;
   height?: string;
   religion?: string;
@@ -42,7 +43,7 @@ type ViewBody = {
 };
 
 const PROFILE_SELECT =
-  "userId firstName lastName age height religion caste division district area highestEducation profession isPremium premiumExpiry isVerified isProfileBoosted boostedAt lastActiveAt photos maritalStatus";
+  "userId firstName lastName gender age height religion caste division district area highestEducation profession isPremium premiumExpiry isVerified isProfileBoosted boostedAt lastActiveAt photos maritalStatus";
 
 function parsePositiveInt(value: string | null, fallback: number, max: number): number {
   const parsed = Number.parseInt(value || "", 10);
@@ -128,6 +129,7 @@ export async function GET(request: NextRequest) {
         userId: profile.userId.toString(),
         firstName: profile.firstName || "",
         lastName: profile.lastName || "",
+        gender: profile.gender || "",
         age: profile.age ?? null,
         height: profile.height || "",
         religion: profile.religion || "",

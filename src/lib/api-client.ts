@@ -3,14 +3,44 @@
 import { useAuthStore } from "@/stores/auth-store";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+let refreshPromise: Promise<boolean> | null = null;
 
 interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
 
+export async function refreshSession(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const { refreshToken } = useAuthStore.getState();
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      if (!data.accessToken || !data.refreshToken) return false;
+      useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 class ApiClient {
   private baseUrl: string;
-  private refreshPromise: Promise<boolean> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -37,7 +67,7 @@ class ApiClient {
       if (!allowRefresh) {
         throw new Error("SESSION_EXPIRED");
       }
-      const refreshed = await this.refreshToken();
+      const refreshed = await refreshSession();
       if (!refreshed) {
         throw new Error("SESSION_EXPIRED");
       }
@@ -50,36 +80,6 @@ class ApiClient {
     }
 
     return response.json();
-  }
-
-  private async refreshToken(): Promise<boolean> {
-    if (this.refreshPromise) return this.refreshPromise;
-    this.refreshPromise = (async () => {
-      try {
-        const { refreshToken } = useAuthStore.getState();
-
-        const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          // The httpOnly refresh-token cookie is the source of truth. Sending
-          // the persisted token as well supports existing signed-in sessions.
-          body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
-        });
-
-        if (!response.ok) return false;
-
-        const data = await response.json();
-        if (!data.accessToken || !data.refreshToken) return false;
-        useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
-        return true;
-      } catch {
-        return false;
-      } finally {
-        this.refreshPromise = null;
-      }
-    })();
-    return this.refreshPromise;
   }
 
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
