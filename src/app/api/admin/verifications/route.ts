@@ -153,9 +153,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    await User.findByIdAndUpdate(verification.userId, {
-      $set: { isProfileVerificationRejected: status === "rejected" },
-    });
+    await User.findByIdAndUpdate(
+      verification.userId,
+      status === "rejected"
+        ? {
+            $set: { isProfileVerificationRejected: true, isPhoneVerified: false },
+            $unset: { phone: "" },
+          }
+        : { $set: { isProfileVerificationRejected: false } },
+    );
 
     // If approved, update profile badge
     if (status === "approved") {

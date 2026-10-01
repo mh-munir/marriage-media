@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
-import { User } from "@/models";
+import { User, Verification } from "@/models";
 import { registerSchema } from "@/lib/validations";
 import { allocatePublicId } from "@/lib/public-id";
 import { createNotification } from "@/lib/notifications";
@@ -38,7 +38,28 @@ export async function POST(request: NextRequest) {
     const normalizedPhone = phone.replace(/\s/g, "");
 
     // Check if user already exists
-    const existingUser = await User.findOne({ phone: normalizedPhone });
+    let existingUser = await User.findOne({ phone: normalizedPhone });
+    if (existingUser) {
+      const hasRejectedProfileVerification =
+        existingUser.isProfileVerificationRejected ||
+        Boolean(await Verification.exists({
+          userId: existingUser._id,
+          type: "profile",
+          status: "rejected",
+        }));
+
+      if (hasRejectedProfileVerification) {
+        await User.updateOne(
+          { _id: existingUser._id },
+          {
+            $set: { isProfileVerificationRejected: true, isPhoneVerified: false },
+            $unset: { phone: "" },
+          },
+        );
+        existingUser = null;
+      }
+    }
+
     if (existingUser) {
       if (!existingUser.isPhoneVerified) {
         const otp = crypto.randomInt(100000, 1000000).toString();

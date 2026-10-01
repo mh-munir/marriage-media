@@ -12,9 +12,15 @@ export async function syncRejectedProfileUserFlags() {
     await User.updateMany(
       {
         _id: { $in: rejectedUserIds },
-        isProfileVerificationRejected: { $ne: true },
+        $or: [
+          { isProfileVerificationRejected: { $ne: true } },
+          { phone: { $exists: true } },
+        ],
       },
-      { $set: { isProfileVerificationRejected: true } },
+      {
+        $set: { isProfileVerificationRejected: true, isPhoneVerified: false },
+        $unset: { phone: "" },
+      },
     );
   }
 }
