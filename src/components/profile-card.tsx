@@ -19,6 +19,7 @@ export type ProfileCardData = {
   profession: string;
   division: string;
   district: string;
+  area?: string;
   union?: string;
   imageUrl: string | null;
   isPremium: boolean;
@@ -31,7 +32,7 @@ export type ProfileCardData = {
 };
 
 function formatLocation(profile: ProfileCardData, language: "bn" | "en", translateText: (text: string) => string): string {
-  const locationParts = [profile.union ?? "", profile.district, profile.division]
+  const locationParts = [profile.area ?? "", profile.union ?? "", profile.district, profile.division]
     .filter(Boolean)
     .map((value) => translateLocationLabel(value ?? "", language) || translateText(value ?? ""));
   return locationParts.length ? locationParts.join(", ") : translateText("Location not added");

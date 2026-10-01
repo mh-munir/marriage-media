@@ -32,7 +32,6 @@ type SearchProfile = {
   district?: string;
   area?: string;
   union?: string;
-    union: { regex },
   highestEducation?: string;
   profession?: string;
   workingWith?: string;
