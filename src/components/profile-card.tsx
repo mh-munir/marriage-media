@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { BadgeCheck, ChevronRight, Eye, MapPin, MessageCircle, Star } from "lucide-react";
@@ -59,6 +60,10 @@ export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAct
   const displayName = currentUserIsPremium ? name : (profile.publicId || translateText("ID pending"));
   const translatedProfession = profile.profession ? translateText(profile.profession) : translateText("Profile shared");
   const translatedLocation = formatLocation(profile, language, translateText);
+  const placeholderImage = getProfilePlaceholderImage(profile.gender);
+  const imageUrl = profile.imageUrl || placeholderImage;
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const displayedImageUrl = failedImageUrl === imageUrl ? placeholderImage : imageUrl;
 
   return (
     <motion.div
@@ -71,11 +76,12 @@ export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAct
       <Card className="h-full overflow-hidden rounded-lg border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)] dark:border-border dark:bg-card">
         <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-t-lg bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef]">
           <Image
-            src={profile.imageUrl || getProfilePlaceholderImage(profile.gender)}
+            src={displayedImageUrl}
             alt={`${name} profile photo`}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
             className="object-contain"
+            onError={() => setFailedImageUrl(imageUrl)}
           />
           {profile.isVerified ? <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</span> : null}
           {profile.isPremium ? <Badge variant="premium" title={translateText("Premium subscriber")} className="absolute right-3 top-3 z-20 gap-1 px-2 py-1 text-[10px]"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Premium")}</Badge> : null}
