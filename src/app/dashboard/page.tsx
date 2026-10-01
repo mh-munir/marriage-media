@@ -381,9 +381,9 @@ export default function DashboardPage() {
                             }}
                             index={index}
                             currentUserIsPremium={Boolean(user?.isPremium)}
-                            onFavorite={(profileUserId) => void toggleRecommendationFavorite(profileUserId)}
-                            onMessage={(profileUserId) => void openProfileMessages(profileUserId)}
-                            onView={(profileUserId) => void viewRecommendation(profileUserId)}
+                            onFavoriteAction={(profileUserId) => void toggleRecommendationFavorite(profileUserId)}
+                            onMessageAction={(profileUserId) => void openProfileMessages(profileUserId)}
+                            onViewAction={(profileUserId) => void viewRecommendation(profileUserId)}
                           />
                         );
                       })}

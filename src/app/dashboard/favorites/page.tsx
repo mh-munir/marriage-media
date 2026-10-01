@@ -107,7 +107,7 @@ export default function DashboardFavoritesPage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {favorites.map((profile, index) => (
-                <ProfileCard key={profile.id} profile={profile} index={index} currentUserIsPremium={Boolean(user?.isPremium)} onFavorite={removeFavorite} onMessage={openMessages} onView={openProfile} />
+                <ProfileCard key={profile.id} profile={profile} index={index} currentUserIsPremium={Boolean(user?.isPremium)} onFavoriteAction={removeFavorite} onMessageAction={openMessages} onViewAction={openProfile} />
               ))}
             </div>
           )}

@@ -44,12 +44,12 @@ function formatCount(value: number, language: "bn" | "en"): string {
   return new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", { notation: value >= 1000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value);
 }
 
-export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView, currentUserIsPremium = false }: {
+export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAction, onViewAction, currentUserIsPremium = false }: {
   profile: ProfileCardData;
   index?: number;
-  onFavorite: (profileUserId: string) => void;
-  onMessage?: (profileUserId: string) => void;
-  onView: (profileUserId: string) => void;
+  onFavoriteAction: (profileUserId: string) => void;
+  onMessageAction?: (profileUserId: string) => void;
+  onViewAction: (profileUserId: string) => void;
   currentUserIsPremium?: boolean;
 }) {
   const user = useAuthStore((state) => state.user);
@@ -64,8 +64,8 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.025, 0.2) }}
       role="link" tabIndex={0}
-      onClick={() => { if (profile.userId) onView(profile.userId); }}
-      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (profile.userId) onView(profile.userId); } }}
+      onClick={() => { if (profile.userId) onViewAction(profile.userId); }}
+      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (profile.userId) onViewAction(profile.userId); } }}
       className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
     >
       <Card className="h-full overflow-hidden rounded-lg border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)] dark:border-border dark:bg-card">
@@ -89,9 +89,9 @@ export function ProfileCard({ profile, index = 0, onFavorite, onMessage, onView,
           <div className="flex items-center justify-between gap-3 border-t border-[#f0d6d1] pt-3">
             <span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><Eye className="h-3.5 w-3.5 text-[#61b69e]" />{formatCount(profile.profileViews ?? 0, language)} {translateText("views")}</span>
             <div className="flex items-center gap-1">
-              <button type="button" aria-label={translateText(profile.isFavorite ? "Remove from favorites" : "Add to favorites")} onClick={(event) => { event.stopPropagation(); if (profile.userId) onFavorite(profile.userId); }} className="flex h-8 w-8 items-center justify-center rounded-full text-[#df7890] transition hover:bg-[#fef0ef]"><Star className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} /></button>
-              {isPremiumUser ? <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#587875] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onMessage?.(profile.userId); }} aria-label={translateText("Message")}><MessageCircle className="h-4 w-4" /></Button> : null}
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#355350] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onView(profile.userId); }} aria-label={translateText("View profile")}><ChevronRight className="h-5 w-5" /></Button>
+              <button type="button" aria-label={translateText(profile.isFavorite ? "Remove from favorites" : "Add to favorites")} onClick={(event) => { event.stopPropagation(); if (profile.userId) onFavoriteAction(profile.userId); }} className="flex h-8 w-8 items-center justify-center rounded-full text-[#df7890] transition hover:bg-[#fef0ef]"><Star className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} /></button>
+              {isPremiumUser ? <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#587875] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onMessageAction?.(profile.userId); }} aria-label={translateText("Message")}><MessageCircle className="h-4 w-4" /></Button> : null}
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#355350] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onViewAction(profile.userId); }} aria-label={translateText("View profile")}><ChevronRight className="h-5 w-5" /></Button>
             </div>
           </div>
         </div>

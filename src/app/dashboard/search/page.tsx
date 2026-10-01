@@ -591,9 +591,9 @@ function ProfileGrid({
           profile={profile}
           index={index}
           currentUserIsPremium={currentUserIsPremium}
-          onFavorite={onFavorite}
-          onMessage={onMessage}
-          onView={onView}
+          onFavoriteAction={onFavorite}
+          onMessageAction={onMessage}
+          onViewAction={onView}
         />
       ))}
     </div>
