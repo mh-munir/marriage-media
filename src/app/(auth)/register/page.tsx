@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { registerSchema } from "@/lib/validations";
 import { sanitizePhoneNumberInput } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
 import type { z } from "zod";
 import { useLanguage } from "@/providers/language-provider";
 
@@ -21,6 +22,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const setTokens = useAuthStore((state) => state.setTokens);
   const { language, translateText: text } = useLanguage();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
@@ -70,6 +72,10 @@ export default function RegisterPage() {
       const response = await fetch("/api/auth/register/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: pendingUserId, code: otp }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Verification failed");
+      if (!result.accessToken || !result.refreshToken) {
+        throw new Error("Unable to start your session. Please sign in.");
+      }
+      setTokens(result.accessToken, result.refreshToken);
       router.replace("/onboarding");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Verification failed");

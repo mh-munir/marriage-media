@@ -2,7 +2,21 @@
 
 import { useAuthStore } from "@/stores/auth-store";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const configuredApiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "")
+  .trim()
+  .replace(/\/+$/, "")
+  .replace(/\/api$/i, "");
+const isLocalApiHost = (() => {
+  if (!configuredApiBaseUrl) return false;
+  try {
+    return ["localhost", "127.0.0.1", "::1"].includes(new URL(configuredApiBaseUrl).hostname);
+  } catch {
+    return false;
+  }
+})();
+const API_BASE_URL = process.env.NODE_ENV === "production" && isLocalApiHost
+  ? ""
+  : configuredApiBaseUrl;
 let refreshPromise: Promise<boolean> | null = null;
 
 interface RequestOptions extends RequestInit {
