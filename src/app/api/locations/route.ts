@@ -60,9 +60,12 @@ function names(nodes: LocationNode[] | undefined): string[] {
     .filter((name): name is string => Boolean(name));
 }
 
-async function safeJsonFetch<T>(url: string): Promise<T | null> {
+async function safeJsonFetch<T>(url: string, useNextCache = true): Promise<T | null> {
   try {
-    const response = await fetch(url, { next: { revalidate: 86400 } });
+    const response = await fetch(
+      url,
+      useNextCache ? { next: { revalidate: 86400 } } : { cache: "no-store" },
+    );
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
@@ -73,7 +76,7 @@ async function safeJsonFetch<T>(url: string): Promise<T | null> {
 async function getCachedDataset(): Promise<LocationDataset> {
   if (!datasetPromise) {
     datasetPromise = (async () => {
-      const dataset = await safeJsonFetch<LocationDataset>(DATASET_URL);
+      const dataset = await safeJsonFetch<LocationDataset>(DATASET_URL, false);
       if (dataset && dataset.divisions?.length) return dataset;
       return FALLBACK_DATASET;
     })();
