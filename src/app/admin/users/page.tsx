@@ -546,7 +546,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                           <div className="min-w-44 space-y-1 text-xs">
                             <p className="font-bold capitalize text-amber-700">{user.subscription.plan} plan</p>
                             <p className="text-slate-500">Expires: {new Date(user.subscription.expiryDate).toLocaleDateString()}</p>
-                            <p className="text-slate-600">Biodata shown: <strong>{user.subscription.biodataUsed}</strong></p>
+                            <p className="text-slate-600">Biodata views: <strong>{user.subscription.biodataUsed} / {user.subscription.biodataLimit}</strong></p>
                             <p className={user.subscription.biodataRemaining === 0 ? "font-semibold text-red-600" : "text-emerald-700"}>
                               Biodata remaining: <strong>{user.subscription.biodataRemaining === null ? "Unlimited" : user.subscription.biodataRemaining}</strong>
                             </p>

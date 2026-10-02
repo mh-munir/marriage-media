@@ -57,59 +57,6 @@ export interface PaymentVerifyResponse {
   error?: string;
 }
 
-// Available subscription plans
-export const SUBSCRIPTION_PLANS: PaymentPlan[] = [
-  {
-    id: "basic",
-    name: "Basic",
-    tier: "silver",
-    price: 999,
-    currency: "BDT",
-    duration: 90,
-    features: [
-      "View contact details",
-      "Send 30 interests/day",
-      "Advanced search filters",
-      "Profile boost (1x/month)",
-    ],
-  },
-  {
-    id: "gold",
-    name: "Gold",
-    tier: "gold",
-    price: 1999,
-    currency: "BDT",
-    duration: 180,
-    features: [
-      "View contact details",
-      "Unlimited interests",
-      "Advanced search filters",
-      "Profile boost (3x/month)",
-      "Priority support",
-      "AI match recommendations",
-    ],
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    tier: "platinum",
-    price: 2999,
-    currency: "BDT",
-    duration: 365,
-    features: [
-      "View contact details",
-      "Unlimited interests",
-      "All search filters",
-      "Profile boost (5x/month)",
-      "Priority support",
-      "AI match recommendations",
-      "Video calling",
-      "Profile verification badge",
-      "Dedicated relationship manager",
-    ],
-  },
-];
-
 /**
  * Initialize a payment with the specified provider.
  */

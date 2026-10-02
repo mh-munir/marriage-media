@@ -2,16 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Payment, Profile, Coupon } from "@/models";
+import { Payment, Profile, Coupon, SitePage } from "@/models";
 import { requireAuth, generateInvoiceNumber, generateTransactionId } from "@/lib/auth";
 import { sendPaymentConfirmationEmail } from "@/lib/email";
 import { validatePhoneNumber } from "@/lib/utils";
-
-const PLAN_DURATIONS: Record<string, { days: number; amounts: Record<string, number> }> = {
-  basic: { days: 90, amounts: { bdt: 999, usd: 10 } },
-  gold: { days: 180, amounts: { bdt: 1999, usd: 20 } },
-  premium: { days: 365, amounts: { bdt: 2999, usd: 30 } },
-};
+import { defaultPricingPlans, parsePricingAmount, SUBSCRIPTION_PLAN_ACCESS } from "@/lib/pricing";
 
 // Create subscription payment
 export async function POST(request: NextRequest) {
@@ -33,12 +28,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Enter a valid 11-digit billing mobile number" }, { status: 400 });
     }
 
-    const planConfig = PLAN_DURATIONS[plan];
+    const planId = typeof plan === "string" ? plan : "";
+    const planConfig = Object.hasOwn(SUBSCRIPTION_PLAN_ACCESS, planId)
+      ? SUBSCRIPTION_PLAN_ACCESS[planId as keyof typeof SUBSCRIPTION_PLAN_ACCESS]
+      : null;
     if (!planConfig) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
-    const amount = planConfig.amounts.bdt;
+    const pricingPage = await SitePage.findOne({ slug: "pricing" }).select("pricingPlans").lean();
+    const pricingPlans = pricingPage?.pricingPlans?.length ? pricingPage.pricingPlans : defaultPricingPlans;
+    const configuredPlan = pricingPlans.find((item) => item.id === planId);
+    const amount = configuredPlan ? parsePricingAmount(configuredPlan.price) : 0;
+    if (!amount) {
+      return NextResponse.json({ error: "This plan does not have a price configured yet." }, { status: 400 });
+    }
     let discountAmount = 0;
 
     // Apply coupon
@@ -84,14 +88,14 @@ export async function POST(request: NextRequest) {
 
     const finalAmount = Math.max(0, amount - discountAmount);
     const startDate = new Date();
-    const expiryDate = new Date(startDate.getTime() + planConfig.days * 24 * 60 * 60 * 1000);
+    const expiryDate = new Date(startDate.getTime() + planConfig.durationDays * 24 * 60 * 60 * 1000);
 
     const payment = await Payment.create({
       userId: user._id,
       amount: finalAmount,
       currency: "BDT",
-      plan,
-      planDuration: planConfig.days,
+      plan: plan === "basic" ? "quarterly" : "yearly",
+      planDuration: planConfig.durationDays,
       paymentMethod,
       transactionId: generateTransactionId(),
       status: "completed",
@@ -104,7 +108,11 @@ export async function POST(request: NextRequest) {
       },
       startDate,
       expiryDate,
-      metadata: discountAmount > 0 ? { couponCode, discountAmount: discountAmount.toString() } : undefined,
+      metadata: {
+        planId,
+        profileDetailLimit: String(SUBSCRIPTION_PLAN_ACCESS[planId as keyof typeof SUBSCRIPTION_PLAN_ACCESS].profileDetailLimit),
+        ...(discountAmount > 0 ? { couponCode, discountAmount: discountAmount.toString() } : {}),
+      },
     });
 
     // Update profile premium status

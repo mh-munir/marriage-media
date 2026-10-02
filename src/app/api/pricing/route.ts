@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Coupon from "@/models/Coupon";
 import { SitePage } from "@/models";
-import { defaultManualPaymentNumbers, defaultPricingPlans } from "@/lib/pricing";
+import { defaultManualPaymentNumbers, defaultPricingPlans, SUBSCRIPTION_PLAN_ACCESS } from "@/lib/pricing";
 
 export async function GET() {
   try {
@@ -15,8 +15,28 @@ export async function GET() {
       SitePage.findOne({ slug: "pricing" }).select("pricingPlans paymentNumbers").lean(),
     ]);
 
+    const plans = pricingPage?.pricingPlans?.length ? pricingPage.pricingPlans : defaultPricingPlans;
+    const plansWithAccess = plans.map((plan) => {
+      const access = SUBSCRIPTION_PLAN_ACCESS[plan.id as keyof typeof SUBSCRIPTION_PLAN_ACCESS];
+      if (!access) return plan;
+      const limitFeature = `View up to ${access.profileDetailLimit} biodatas`;
+      const withoutOldLimit = (features: string[]) => features.filter((feature) => !/(view up to \d+ biodatas|বায়োডাটা দেখুন)/i.test(feature));
+      return {
+        ...plan,
+        period: access.durationDays === 180 ? "/6 months" : "/year",
+        periodEn: access.durationDays === 180 ? "/6 months" : "/year",
+        periodBn: access.durationDays === 180 ? "/৬ মাস" : "/১ বছর",
+        features: [...withoutOldLimit(plan.features), limitFeature],
+        featuresEn: [...withoutOldLimit(plan.featuresEn || plan.features), limitFeature],
+        featuresBn: [
+          ...withoutOldLimit(plan.featuresBn || plan.features),
+          `${access.profileDetailLimit}টি পর্যন্ত বায়োডাটা দেখুন`,
+        ],
+      };
+    });
+
     return NextResponse.json({
-      plans: pricingPage?.pricingPlans?.length ? pricingPage.pricingPlans : defaultPricingPlans,
+      plans: plansWithAccess,
       paymentNumbers: {
         bkash: pricingPage?.paymentNumbers?.bkash || defaultManualPaymentNumbers.bkash,
         nagad: pricingPage?.paymentNumbers?.nagad || defaultManualPaymentNumbers.nagad,

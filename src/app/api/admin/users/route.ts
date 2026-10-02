@@ -4,22 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
-import { User, Profile, Payment, ProfileView, Verification } from "@/models";
+import { User, Profile, Payment, ProfileDetailAccess, ProfileView, Verification } from "@/models";
 import { requireAdmin } from "@/lib/auth";
 import { sendEmailVerification, sendPhoneOTP, verifyEmailCode, verifyPhoneOTP } from "@/lib/verification";
 import { validatePhoneNumber } from "@/lib/utils";
 import { removeDeprecatedLifestyleFields } from "@/lib/remove-deprecated-lifestyle-fields";
 import { syncRejectedProfileUserFlags } from "@/lib/rejected-profile-users";
-
-const BIODATA_LIMITS: Record<string, number> = {
-  basic: 20,
-  gold: 50,
-  premium: -1,
-  monthly: 20,
-  quarterly: 20,
-  "half-yearly": 50,
-  yearly: -1,
-};
+import { getProfileDetailLimit } from "@/lib/pricing";
 
 // Get all users with admin filters
 export async function GET(request: NextRequest) {
@@ -121,12 +112,21 @@ export async function GET(request: NextRequest) {
       ]),
     ]);
 
+    const profileDetailAccesses = await ProfileDetailAccess.find({
+      paymentId: { $in: payments.map((payment) => payment._id) },
+    }).select("paymentId").lean();
+
     const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
     const biodataVisitMap = new Map(biodataVisits.map((visit) => [visit._id.toString(), {
       totalVisits: Number(visit.totalVisits || 0),
       uniqueBiodatas: Number(visit.uniqueBiodatas || 0),
     }]));
     const subscriptionMap = new Map<string, (typeof payments)[number]>();
+    const subscriptionUsageMap = new Map<string, number>();
+    for (const access of profileDetailAccesses) {
+      const paymentId = access.paymentId.toString();
+      subscriptionUsageMap.set(paymentId, (subscriptionUsageMap.get(paymentId) || 0) + 1);
+    }
     for (const payment of payments) {
       const key = payment.userId.toString();
       if (!subscriptionMap.has(key)) subscriptionMap.set(key, payment);
@@ -142,9 +142,8 @@ export async function GET(request: NextRequest) {
         if (!payment) return null;
         const expiryDate = payment.expiryDate.toISOString();
         const plan = String(payment.metadata?.planId || payment.plan).toLowerCase();
-        const metadataLimit = Number(payment.metadata?.profileDetailLimit);
-        const biodataLimit = Number.isFinite(metadataLimit) ? metadataLimit : (BIODATA_LIMITS[plan] ?? 0);
-        const biodataUsed = biodataVisitMap.get(u._id.toString())?.uniqueBiodatas || 0;
+        const biodataLimit = getProfileDetailLimit(plan);
+        const biodataUsed = subscriptionUsageMap.get(payment._id.toString()) || 0;
         return {
           plan,
           expiryDate,

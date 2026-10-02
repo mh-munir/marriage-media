@@ -5,7 +5,7 @@ import { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/auth";
 import { Profile, User } from "@/models";
-import { getActiveSubscription } from "@/lib/profile-access";
+import { getActiveSubscription, reserveProfileDetailAccess } from "@/lib/profile-access";
 import { normalizeProfileDistricts } from "@/lib/location-normalization";
 
 const FULL_ACCESS_FIELDS = "firstName lastName gender age height weight bloodGroup complexion hasMajorHealthIssue majorHealthIssueDetails maritalStatus maritalStatusDate childrenCount profileCreatedBy religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues fatherName guardianRelation guardianName guardianMobileNumber fatherProfession motherName permanentAddress presentAddress permanentLocation educationDetails aboutYourself familyAwareOfBiodata informationAccurate truthDeclaration acceptsFalseInformationLiability motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified profileViews showContactInfo createdAt";
@@ -31,19 +31,25 @@ export async function GET(
       return NextResponse.json({ error: "This profile is currently unavailable." }, { status: 403 });
     }
 
-    const payment = viewer ? await getActiveSubscription(viewer._id) : null;
-    const fullAccess = Boolean(payment);
-
-    const profile = await Profile.findOne({
+    const profileFilter = {
       userId,
       isVisible: true,
       isDeactivated: false,
-    })
-      .select(
-        fullAccess ? FULL_ACCESS_FIELDS : FREE_FIELDS
-      )
-      .lean();
+    };
+    const limitedProfile = await Profile.findOne(profileFilter).select(FREE_FIELDS).lean();
 
+    if (!limitedProfile) {
+      return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+    }
+
+    const payment = viewer ? await getActiveSubscription(viewer._id) : null;
+    const access = payment && viewer
+      ? await reserveProfileDetailAccess(payment, viewer._id, userId)
+      : { allowed: false, limit: 0, used: 0 };
+    const fullAccess = access.allowed;
+    const profile = fullAccess
+      ? await Profile.findOne(profileFilter).select(FULL_ACCESS_FIELDS).lean()
+      : limitedProfile;
     if (!profile) {
       return NextResponse.json({ error: "Profile not found." }, { status: 404 });
     }
@@ -75,7 +81,7 @@ export async function GET(
           isPrimary: photo.isPrimary,
         })) : [],
       },
-      access: { fullAccess, limit: fullAccess ? -1 : 0, used: 0, expiresAt: payment?.expiryDate || null },
+      access: { fullAccess, limit: access.limit, used: access.used, expiresAt: payment?.expiryDate || null },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";

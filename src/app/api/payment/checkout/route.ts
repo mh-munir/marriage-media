@@ -3,13 +3,14 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { requireAuth } from "@/lib/auth";
-import { Profile, Payment } from "@/models";
+import { Profile, Payment, SitePage } from "@/models";
 import {
   initPayment,
-  SUBSCRIPTION_PLANS,
+  type PaymentPlan,
   type PaymentProvider,
 } from "@/lib/payment-gateway";
 import { validatePhoneNumber } from "@/lib/utils";
+import { defaultPricingPlans, parsePricingAmount, SUBSCRIPTION_PLAN_ACCESS } from "@/lib/pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +20,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { planId, provider, billingInfo } = body;
 
-    // Validate plan
-    const plan = SUBSCRIPTION_PLANS.find((p) => p.id === planId);
-    if (!plan) {
+    const pricingPage = await SitePage.findOne({ slug: "pricing" }).select("pricingPlans").lean();
+    const pricingPlans = pricingPage?.pricingPlans?.length ? pricingPage.pricingPlans : defaultPricingPlans;
+    const configuredPlan = pricingPlans.find((item) => item.id === planId);
+    const planAccess = typeof planId === "string" && Object.hasOwn(SUBSCRIPTION_PLAN_ACCESS, planId)
+      ? SUBSCRIPTION_PLAN_ACCESS[planId as keyof typeof SUBSCRIPTION_PLAN_ACCESS]
+      : null;
+    if (!configuredPlan || !planAccess) {
       return NextResponse.json({ error: "Invalid plan selected" }, { status: 400 });
     }
+    const amount = parsePricingAmount(configuredPlan.price);
+    if (!amount) {
+      return NextResponse.json({ error: "This plan does not have a price configured yet." }, { status: 400 });
+    }
+    const plan: PaymentPlan = {
+      id: configuredPlan.id,
+      name: configuredPlan.name,
+      tier: planId === "basic" ? "silver" : planId === "gold" ? "gold" : "platinum",
+      price: amount,
+      currency: "BDT",
+      duration: planAccess.durationDays,
+      features: configuredPlan.features,
+    };
 
     // Validate provider
     const validProviders: PaymentProvider[] = [

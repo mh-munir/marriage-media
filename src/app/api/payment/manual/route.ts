@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { generateInvoiceNumber, requireAuth } from "@/lib/auth";
 import { createNotification } from "@/lib/notifications";
-import { defaultPricingPlans } from "@/lib/pricing";
+import { defaultPricingPlans, parsePricingAmount, SUBSCRIPTION_PLAN_ACCESS } from "@/lib/pricing";
 import { Payment, SitePage, User } from "@/models";
 
 type ManualPaymentBody = {
@@ -13,10 +13,6 @@ type ManualPaymentBody = {
   senderMobileNumber?: string;
   transactionId?: string;
 };
-
-function priceToNumber(value: string): number {
-  return Number(value.replace(/[^0-9.]/g, ""));
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,8 +36,10 @@ export async function POST(request: NextRequest) {
     const page = await SitePage.findOne({ slug: "pricing" }).select("pricingPlans").lean();
     const plans = page?.pricingPlans?.length ? page.pricingPlans : defaultPricingPlans;
     const plan = plans.find((item) => item.id === body.planId);
-    const amount = plan ? priceToNumber(plan.price) : 0;
-    const profileDetailAccess = plan?.id === "basic" ? { limit: 20, days: 90 } : plan?.id === "gold" ? { limit: 50, days: 180 } : plan?.id === "premium" ? { limit: -1, days: 365 } : null;
+    const amount = plan ? parsePricingAmount(plan.price) : 0;
+    const profileDetailAccess = plan && plan.id in SUBSCRIPTION_PLAN_ACCESS
+      ? SUBSCRIPTION_PLAN_ACCESS[plan.id as keyof typeof SUBSCRIPTION_PLAN_ACCESS]
+      : null;
 
     if (!plan || !profileDetailAccess || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: "This plan does not require a manual payment" }, { status: 400 });
@@ -56,16 +54,16 @@ export async function POST(request: NextRequest) {
       userId: user._id,
       amount,
       currency: "BDT",
-      plan: "monthly",
-      planDuration: profileDetailAccess.days,
+      plan: plan.id === "basic" ? "quarterly" : "yearly",
+      planDuration: profileDetailAccess.durationDays,
       paymentMethod: body.paymentMethod,
       transactionId,
       status: "pending",
       invoiceNumber: generateInvoiceNumber(),
       billingInfo: { name: user.email || "Marriage Media member", email: user.email || "member@marriagemedia.local", phone: senderMobileNumber, address: "" },
       startDate: new Date(),
-      expiryDate: new Date(Date.now() + profileDetailAccess.days * 24 * 60 * 60 * 1000),
-      metadata: { submissionType: "manual", planId: plan.id, senderMobileNumber, profileDetailLimit: String(profileDetailAccess.limit) },
+      expiryDate: new Date(Date.now() + profileDetailAccess.durationDays * 24 * 60 * 60 * 1000),
+      metadata: { submissionType: "manual", planId: plan.id, senderMobileNumber, profileDetailLimit: String(profileDetailAccess.profileDetailLimit) },
     });
 
     const admins = await User.find({ role: { $in: ["admin", "superadmin"] }, isActive: true }).select("_id").lean();
