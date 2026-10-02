@@ -11,6 +11,7 @@ import { validatePhoneNumber } from "@/lib/utils";
 import { removeDeprecatedLifestyleFields } from "@/lib/remove-deprecated-lifestyle-fields";
 import { syncRejectedProfileUserFlags } from "@/lib/rejected-profile-users";
 import { getProfileDetailLimit } from "@/lib/pricing";
+import { ADMIN_ONBOARDING_PROFILE_FIELDS, ADMIN_ONBOARDING_USER_FIELDS } from "@/lib/admin-onboarding-fields";
 
 // Get all users with admin filters
 export async function GET(request: NextRequest) {
@@ -31,12 +32,9 @@ export async function GET(request: NextRequest) {
     const isPublicUsersView = role === "user" || role === "members";
 
     if (userId) {
-      const [user, profile, payments, verifications, profileViews] = await Promise.all([
-        User.findOne({ _id: userId, role: "user" }).select("-password").lean(),
-        Profile.findOne({ userId }).lean(),
-        Payment.find({ userId }).sort({ createdAt: -1 }).lean(),
-        Verification.find({ userId }).sort({ createdAt: -1 }).lean(),
-        ProfileView.find({ $or: [{ viewerId: userId }, { viewedId: userId }] }).sort({ createdAt: -1 }).lean(),
+      const [user, profile] = await Promise.all([
+        User.findOne({ _id: userId, role: "user" }).select(ADMIN_ONBOARDING_USER_FIELDS).lean(),
+        Profile.findOne({ userId }).select(ADMIN_ONBOARDING_PROFILE_FIELDS).lean(),
       ]);
 
       if (!user) return NextResponse.json({ error: "Public user not found" }, { status: 404 });
@@ -45,9 +43,6 @@ export async function GET(request: NextRequest) {
         user: {
           ...user,
           profile: profile || null,
-          payments,
-          verifications,
-          profileViews,
         },
       });
     }
@@ -58,8 +53,17 @@ export async function GET(request: NextRequest) {
         ? { role: { $in: ["admin", "superadmin"] } }
         : { role: "user" };
 
+    let approvedProfileUserIds: Types.ObjectId[] | null = null;
     if (isPublicUsersView) {
       filter.isProfileVerificationRejected = { $ne: true };
+      const latestProfileReviews = await Verification.aggregate([
+        { $match: { type: "profile" } },
+        { $sort: { createdAt: -1, _id: -1 } },
+        { $group: { _id: "$userId", status: { $first: "$status" } } },
+        { $match: { status: "approved" } },
+      ]);
+      approvedProfileUserIds = latestProfileReviews.map((review) => review._id as Types.ObjectId);
+      filter._id = { $in: approvedProfileUserIds };
     }
 
     if (isPublicUsersView && (segment === "free" || segment === "subscribed")) {
@@ -72,7 +76,14 @@ export async function GET(request: NextRequest) {
       const subscribedUserIds = [...new Set([...paidUserIds, ...premiumProfileUserIds].map(String))]
         .filter((id) => Types.ObjectId.isValid(id))
         .map((id) => new Types.ObjectId(id));
-      filter._id = segment === "subscribed" ? { $in: subscribedUserIds } : { $nin: subscribedUserIds };
+      const subscribedUserIdSet = new Set(subscribedUserIds.map((id) => id.toString()));
+      filter._id = {
+        $in: (approvedProfileUserIds || []).filter((id) =>
+          segment === "subscribed"
+            ? subscribedUserIdSet.has(id.toString())
+            : !subscribedUserIdSet.has(id.toString())
+        ),
+      };
     }
 
     if (search) {

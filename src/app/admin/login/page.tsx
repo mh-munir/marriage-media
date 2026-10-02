@@ -7,15 +7,14 @@ import { Eye, EyeOff, Loader2, LogIn, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuthStore, type AuthUser } from "@/stores/auth-store";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
 
 const DEFAULT_EMAIL = "admin@marriagemedia.com";
 const DEFAULT_PASSWORD = "Admin@12345";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const setUser = useAuthStore((state) => state.setUser);
-  const setTokens = useAuthStore((state) => state.setTokens);
+  const setSession = useAdminAuthStore((state) => state.setSession);
   const [email, setEmail] = React.useState(DEFAULT_EMAIL);
   const [password, setPassword] = React.useState(DEFAULT_PASSWORD);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -31,10 +30,17 @@ export default function AdminLoginPage() {
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error(
+          response.ok
+            ? "Admin login returned an unexpected response."
+            : `Admin login endpoint returned HTTP ${response.status}. Verify the current app build includes /api/admin/auth/login.`
+        );
+      }
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Admin login failed");
-      setTokens(result.accessToken, result.refreshToken);
-      setUser(result.user as AuthUser);
+      setSession(result.user, result.accessToken, result.refreshToken);
       router.replace("/admin");
     } catch (loginError) {
       const message = loginError instanceof Error ? loginError.message : "Admin login failed";

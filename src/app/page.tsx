@@ -24,6 +24,7 @@ import { useTheme } from "@/components/theme-provider";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { useLanguage } from "@/providers/language-provider";
 import { translateLocationLabel } from "@/lib/location-labels";
+import { getProfilePlaceholderImage } from "@/lib/profile-placeholder";
 import type { HomeData } from "@/lib/home-data";
 
 const image = {
@@ -250,7 +251,7 @@ export default function HomePage() {
                     <div data-carousel-card className="w-full overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
                       <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] sm:h-44">
                         <Image
-                          src={member.gender === "Male" ? "/images/male.png" : "/images/female.png"}
+                          src={getProfilePlaceholderImage(member.gender)}
                           alt={member.gender === "Male" ? "Male member" : "Female member"}
                           fill
                           sizes="(max-width: 640px) 85vw, (max-width: 1024px) 248px, 270px"

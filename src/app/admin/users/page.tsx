@@ -4,7 +4,6 @@ import * as React from "react";
 import Image from "next/image";
 import {
   Activity,
-  ChevronDown,
   Crown,
   MailCheck,
   Plus,
@@ -22,7 +21,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { adminFetch } from "@/lib/admin-fetch";
-import { useAuth } from "@/providers/auth-provider";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
+import type { AuthUser } from "@/stores/auth-store";
+import { OnboardingFormSummary } from "@/components/admin/onboarding-form-summary";
 
 interface AdminUser {
   _id: string;
@@ -56,82 +57,23 @@ interface AdminUser {
   biodataVisits?: { totalVisits: number; uniqueBiodatas: number };
 }
 
-type PublicUserDetails = AdminUser & {
-  payments?: unknown[];
-  verifications?: unknown[];
-  profileViews?: unknown[];
-};
+type PublicUserDetails = AdminUser;
 
-const hiddenDisplayKeys = new Set(["password", "__v"]);
-const habitQuestionLabels: Record<string, string> = {
-  Exercise: "আপনি কি নিয়মিত নামাজ পড়েন?",
-  Reading: "আপনি কি ইসলামিক বই পড়েন?",
-  Travel: "আপনি কি হালাল-হারাম মেনে চলেন?",
-  Cooking: "আপনি কি মাহরাম এবং গায়রে মাহরাম মেনে চলেন?",
-};
-
-function humanizeKey(key: string) {
-  if (habitQuestionLabels[key]) return habitQuestionLabels[key];
-  return key
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/^./, (character) => character.toUpperCase());
-}
-
-function formatDisplayValue(value: unknown, fieldKey = ""): string {
-  if (value === null || value === undefined || value === "") return "Not provided";
-  if (habitQuestionLabels[fieldKey] && value === "Yes") return "হ্যাঁ";
-  if (habitQuestionLabels[fieldKey] && value === "No") return "না";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "string" && /T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value)) {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) return date.toLocaleString();
-  }
-  const normalizedKey = fieldKey.toLowerCase().replace(/[^a-z0-9]/g, "");
-  if (typeof value === "string" && value.length >= 24 && (normalizedKey.endsWith("id") || normalizedKey.endsWith("url") || normalizedKey.includes("transaction") || normalizedKey.includes("invoice"))) {
-    return `${value.slice(0, 9)}...${value.slice(-6)}`;
-  }
-  return String(value);
-}
-
-function DataGrid({ data }: { data: Record<string, unknown> }) {
-  const entries = Object.entries(data).filter(([key]) => !hiddenDisplayKeys.has(key));
-  return entries.length ? (
-    <div className="grid gap-x-8 sm:grid-cols-2">
-      {entries.map(([key, value]) => (
-        <div key={key} className="min-w-0 border-b border-slate-100 py-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{humanizeKey(key)}</p>
-          <DataValue value={value} fieldKey={key} />
-        </div>
-      ))}
-    </div>
-  ) : <p className="text-sm text-slate-500">No data available.</p>;
-}
-
-function DataValue({ value, fieldKey = "" }: { value: unknown; fieldKey?: string }) {
-  if (Array.isArray(value)) {
-    if (!value.length) return <p className="mt-1 text-sm text-slate-500">None</p>;
-    if (value.every((item) => item === null || typeof item !== "object")) {
-      return <div className="mt-2 flex flex-wrap gap-1.5">{value.map((item, index) => <span key={`${String(item)}-${index}`} className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm">{formatDisplayValue(item, fieldKey)}</span>)}</div>;
-    }
-    return <div className="mt-2 space-y-2">{value.map((item, index) => <div key={index} className="rounded-lg border border-white bg-white p-2">{item && typeof item === "object" ? <DataGrid data={item as Record<string, unknown>} /> : <p className="text-sm text-slate-700">{formatDisplayValue(item)}</p>}</div>)}</div>;
-  }
-  if (value && typeof value === "object") return <div className="mt-2"><DataGrid data={value as Record<string, unknown>} /></div>;
-  const displayValue = formatDisplayValue(value, fieldKey);
-  return <p title={displayValue === String(value) ? undefined : String(value)} className="mt-1 wrap-break-word text-sm font-medium text-slate-800">{displayValue}</p>;
-}
-
-function pickData(data: object | null | undefined, keys: string[]) {
-  const record = data as Record<string, unknown> | null | undefined;
-  return Object.fromEntries(keys.filter((key) => record && key in record).map((key) => [key, record?.[key]]));
-}
-
-function DataGroup({ title, value, defaultOpen = false }: { title: string; value: Record<string, unknown>; defaultOpen?: boolean }) {
-  return <details open={defaultOpen} className="group overflow-hidden rounded-xl border border-slate-200 bg-white"><summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 font-semibold text-slate-900 [&::-webkit-details-marker]:hidden"><span>{title}</span><span className="flex items-center gap-2 text-xs font-medium text-slate-400"><span className="hidden sm:inline">View details</span><ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" /></span></summary><div className="border-t border-slate-100 px-5 pb-4"><DataGrid data={value} /></div></details>;
+function getUserEmail(user: AdminUser) {
+  return [user.email, user.profile?.email, user.onboardingData?.email].find(
+    (email): email is string => typeof email === "string" && email.trim().length > 0
+  )?.trim() || "No email";
 }
 
 export function AdminUsersPage({ initialView = "members" }: { initialView?: "members" | "admin-team" }) {
-  const { user: currentUser, refreshUser } = useAuth();
+  const currentUser = useAdminAuthStore((state) => state.user);
+  const setAdminUser = useAdminAuthStore((state) => state.setUser);
+  async function refreshUser() {
+    const response = await adminFetch("/api/auth/me", { cache: "no-store" });
+    if (!response.ok) return;
+    const result = await response.json() as { user: AuthUser };
+    setAdminUser(result.user);
+  }
   const [users, setUsers] = React.useState<AdminUser[]>([]);
   const [search, setSearch] = React.useState("");
   const [view] = React.useState<"members" | "admin-team">(initialView);
@@ -295,12 +237,6 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
   const selectedPublicProfile = selectedPublicUser?.profile;
   const selectedPublicPhoto = selectedPublicProfile?.photos?.find((photo) => photo.isPrimary)?.url || selectedPublicProfile?.photos?.[0]?.url || selectedPublicUser?.avatarUrl || "";
   const selectedPublicName = `${selectedPublicProfile?.firstName || selectedPublicUser?.firstName || ""} ${selectedPublicProfile?.lastName || selectedPublicUser?.lastName || ""}`.trim() || "Unnamed public user";
-  const selectedPublicAccountData = pickData(selectedPublicUser, ["_id", "publicId", "role", "email", "phone", "phoneCountryCode", "isEmailVerified", "isPhoneVerified", "isActive", "isBlocked", "onboardingCompleted", "onboardingStep", "profileCompleted", "failedLoginAttempts", "createdAt", "updatedAt"]);
-  const selectedPublicOnboardingData = (selectedPublicUser?.onboardingData || {}) as Record<string, unknown>;
-  const savedHabitAnswers = (selectedPublicOnboardingData.habitAnswers || {}) as Record<string, unknown>;
-  const selectedPublicHabitAnswers = Object.fromEntries(["Exercise", "Reading", "Travel", "Cooking"].map((habit) => [habit, savedHabitAnswers[habit] || "Not answered"]));
-  const selectedPublicAboutData = { ...pickData(selectedPublicProfile, ["aboutYourself", "diet"]), ...selectedPublicHabitAnswers };
-
   async function createAdmin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setActionLoading(true);
@@ -499,7 +435,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                               ? "Platform administrator"
                               : "No profile"}
                         </p>
-                        <p className="text-xs text-slate-500">{user.email || "No email"} · {user.phone || "No phone"}</p>
+                        <p className="text-xs text-slate-500">{getUserEmail(user)} · {user.phone || "No phone"}</p>
                       </td>
                       <td className="px-6 py-4">
                         <Badge
@@ -618,14 +554,14 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
           </form>
         </div>
       </div> : null}
-      {selectedPublicUser ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Public user details" onClick={() => setSelectedPublicUser(null)}>
-        <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-slate-50 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-          <div className="border-b border-slate-200 bg-white px-6 py-5 sm:px-8">
+      {selectedPublicUser ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-label="Public user details" onClick={() => setSelectedPublicUser(null)}>
+        <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-xl border border-white/70 bg-slate-50 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Public user profile</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Onboarding submission</p>
                 <h3 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{selectedPublicName}</h3>
-                <p className="mt-1 text-sm text-slate-500">Account overview and member records</p>
+                <p className="mt-1 text-sm text-slate-500">Information submitted in the member&apos;s onboarding form</p>
               </div>
               <button type="button" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900" onClick={() => setSelectedPublicUser(null)} aria-label="Close public user details"><X className="h-5 w-5" /></button>
             </div>
@@ -643,22 +579,14 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
             </div>
           </div>
           <div className="space-y-5 p-5 sm:p-8">
-            {publicUserLoading ? <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">Loading all database records...</p> : null}
-            {publicUserError ? <p className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-600">{publicUserError}</p> : null}
+            {publicUserLoading ? <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-500">Loading onboarding information...</p> : null}
+            {publicUserError ? <p className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-600">{publicUserError}</p> : null}
             {!publicUserLoading && !publicUserError ? <>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Profession</p><p className="mt-1 font-semibold text-slate-800">{selectedPublicProfile?.profession || "Not added"}</p></div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Location</p><p className="mt-1 font-semibold text-slate-800">{[selectedPublicProfile?.district, selectedPublicProfile?.division].filter(Boolean).join(", ") || "Not added"}</p></div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Contact</p><p className="mt-1 font-semibold text-slate-800">{selectedPublicUser.phone || selectedPublicUser.email || "Not added"}</p></div>
-              </div>
-              <DataGroup title="Account & onboarding" value={selectedPublicAccountData} defaultOpen />
-              <DataGroup title="Saved onboarding form" value={selectedPublicOnboardingData} />
-              <DataGroup title="Basic profile" value={pickData(selectedPublicProfile, ["firstName", "lastName", "gender", "dateOfBirth", "age", "height", "weight", "bloodGroup", "complexion", "maritalStatus", "maritalStatusDate", "childrenCount", "religion", "motherTongue", "nationality", "profileCreatedBy"])} defaultOpen />
-              <DataGroup title="Present & permanent address" value={pickData(selectedPublicProfile, ["country", "division", "district", "thana", "union", "area", "presentAddress", "permanentAddress", "permanentLocation"])} defaultOpen />
-              <DataGroup title="Family & guardian" value={pickData(selectedPublicProfile, ["fatherName", "fatherProfession", "motherName", "motherProfession", "guardianRelation", "guardianName", "guardianMobileNumber", "numberOfSiblings", "siblings"])} />
-              <DataGroup title="Education & work" value={pickData(selectedPublicProfile, ["highestEducation", "institution", "profession", "workingWith", "company", "annualIncome", "educationDetails"])} />
-              <DataGroup title="About" value={selectedPublicAboutData} defaultOpen />
-              <DataGroup title="Expected partner preference" value={pickData(selectedPublicProfile, ["partnerPreference", "partnerPreferences"])} />
+              <OnboardingFormSummary
+                onboardingData={selectedPublicUser.onboardingData}
+                profile={selectedPublicProfile}
+                photos={selectedPublicProfile?.photos || []}
+              />
             </> : null}
           </div>
         </div>

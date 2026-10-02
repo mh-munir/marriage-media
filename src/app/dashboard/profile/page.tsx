@@ -73,7 +73,7 @@ interface ProfileFormData {
   hobbies: string[];
   smoke: string;
   drink: string;
-  diet: string;
+  diet?: string;
   habitAnswers: Record<string, string>;
   permanentAddress: string;
   presentAddress: string;
@@ -154,7 +154,6 @@ const createInitialProfile = (): ProfileFormData => ({
   hobbies: [],
   smoke: "No",
   drink: "No",
-  diet: "No Preference",
   habitAnswers: {},
   permanentAddress: "",
   presentAddress: "",
@@ -509,6 +508,7 @@ export default function DashboardProfilePage() {
         ...profile,
         dateOfBirth: profile.dateOfBirth || undefined,
       };
+      delete payload.diet;
 
       const response = profileExists
         ? await apiClient.put<{ profile: ProfileFormData }>('/api/profile', payload)

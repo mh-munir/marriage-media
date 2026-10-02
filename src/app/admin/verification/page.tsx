@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OnboardingFormSummary } from "@/components/admin/onboarding-form-summary";
 
 interface Verification {
   _id: string;
@@ -33,23 +34,47 @@ interface Verification {
   } | null;
 }
 
-function Detail({ label, value }: { label: string; value: unknown }) {
-  if (value === undefined || value === null || value === "" || value === false) return null;
-  const displayValue = Array.isArray(value) ? value.join(", ") : typeof value === "object" ? JSON.stringify(value) : String(value);
-  return <div className="grid gap-1 border-b border-slate-100 py-2 sm:grid-cols-[10rem_1fr] sm:gap-4"><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="min-w-0 wrap-break-word text-sm text-slate-800">{displayValue}</dd></div>;
-}
-
-function DataSection({ title, data, omit = [] }: { title: string; data: Record<string, unknown>; omit?: string[] }) {
-  return <section className="rounded-xl border border-slate-200 bg-white p-4"><h3 className="mb-2 text-sm font-bold text-slate-900">{title}</h3><dl>{Object.entries(data).filter(([key, value]) => !omit.includes(key) && value !== undefined && value !== null && value !== "" && value !== false).map(([key, value]) => <Detail key={key} label={key.replace(/([A-Z])/g, " $1")} value={value} />)}</dl></section>;
-}
-
 function ProfileReviewModal({ item, onClose, onReview }: { item: Verification; onClose: () => void; onReview: (status: "approved" | "rejected") => void }) {
   const member = typeof item.userId === "object" ? item.userId : null;
-  const profile = item.profile || {};
-  const photos = Array.isArray(profile.photos) ? profile.photos : [];
-  const { partnerPreferences, educationDetails, permanentLocation, ...profileDetails } = profile;
+  const onboardingData = member?.onboardingData || {};
+  const photos = Array.isArray(onboardingData.photos)
+    ? (onboardingData.photos as Array<{ url?: string }>).filter(
+        (photo): photo is { url: string } => typeof photo.url === "string" && photo.url.length > 0
+      )
+    : [];
+  const firstName = typeof onboardingData.firstName === "string" ? onboardingData.firstName : member?.firstName || "Member";
+  const lastName = typeof onboardingData.lastName === "string" ? onboardingData.lastName : member?.lastName || "";
+  const displayName = `${firstName} ${lastName}`.trim();
 
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4 sm:p-8" role="dialog" aria-modal="true" aria-label="Profile review"><div className="mx-auto max-w-4xl rounded-2xl bg-slate-50 shadow-2xl"><div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b bg-white px-5 py-4"><div><h2 className="text-xl font-bold text-slate-900">{profile.firstName || member?.firstName || "Member"} {profile.lastName || member?.lastName || ""}</h2><p className="text-sm text-slate-500">Full account and profile review</p></div><button type="button" onClick={onClose} className="rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-label="Close review"><X className="h-5 w-5" /></button></div><div className="space-y-4 p-4 sm:p-6"><div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{item.status}</Badge><Badge className="bg-amber-100 text-amber-800">{profile.profileCompleted || 100}% complete</Badge><span className="text-xs text-slate-500">Submitted {new Date(item.createdAt).toLocaleString()}</span></div>{photos.length ? <section className="rounded-xl border border-slate-200 bg-white p-4"><h3 className="mb-3 text-sm font-bold text-slate-900">Profile Photos</h3><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{photos.map((photo, index) => <div key={photo.url || index} className="relative aspect-square overflow-hidden rounded-lg"><Image src={photo.url} alt={`Profile photo ${index + 1}`} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" /></div>)}</div></section> : null}{member ? <DataSection title="Account" data={member as Record<string, unknown>} omit={["onboardingData"]} /> : null}<DataSection title="Personal Information" data={profileDetails} omit={["partnerPreference"]} />{permanentLocation && typeof permanentLocation === "object" ? <DataSection title="Permanent Location" data={permanentLocation as Record<string, unknown>} /> : null}{educationDetails && Array.isArray(educationDetails) ? <DataSection title="Education Details" data={{ educationDetails }} /> : null}{partnerPreferences && typeof partnerPreferences === "object" ? <DataSection title="Partner Preferences" data={partnerPreferences as Record<string, unknown>} /> : null}{member?.onboardingData ? <DataSection title="Onboarding Submission" data={member.onboardingData} /> : null}</div><div className="sticky bottom-0 flex justify-end gap-2 rounded-b-2xl border-t bg-white px-5 py-4"><Button variant="outline" onClick={onClose}>Close</Button><Button variant="outline" className="text-red-600" onClick={() => onReview("rejected")}><X className="mr-1 h-4 w-4" />Reject</Button><Button onClick={() => onReview("approved")}><Check className="mr-1 h-4 w-4" />Approve</Button></div></div></div>;
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/65 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-label="Profile review">
+      <div className="mx-auto flex min-h-full max-w-5xl items-center py-2">
+        <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-xl border border-white/70 bg-slate-50 shadow-2xl">
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-sm font-bold text-emerald-800">{displayName.slice(0, 2).toUpperCase()}</div>
+              <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Onboarding review</p><h2 className="truncate text-lg font-bold text-slate-900 sm:text-xl">{displayName}</h2></div>
+            </div>
+            <button type="button" onClick={onClose} className="ml-3 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label="Close review"><X className="h-5 w-5" /></button>
+          </header>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
+            {photos.length ? (
+              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                <div className="border-b border-slate-100 px-4 py-3"><h3 className="text-sm font-semibold text-slate-900">Submitted photos</h3></div>
+                <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">{photos.map((photo, index) => <div key={photo.url || index} className="relative aspect-square overflow-hidden rounded-md bg-slate-100"><Image src={photo.url} alt={`Profile photo ${index + 1}`} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" /></div>)}</div>
+              </section>
+            ) : null}
+            <OnboardingFormSummary onboardingData={onboardingData} />
+          </div>
+          <footer className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:px-6">
+            <Button variant="outline" onClick={onClose}>Close</Button>
+            <Button variant="outline" className="text-red-600" onClick={() => onReview("rejected")}><X className="mr-1 h-4 w-4" />Reject</Button>
+            <Button onClick={() => onReview("approved")}><Check className="mr-1 h-4 w-4" />Approve</Button>
+          </footer>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminVerificationPage() {

@@ -12,7 +12,7 @@ interface ProfileInfo {
   religion: string;
   hobbies: string[];
   familyValues: string;
-  diet: string;
+  diet?: string;
   partnerPreference?: string;
   country: string;
   division?: string;
@@ -62,7 +62,7 @@ export function generateBio(profile: ProfileInfo): string {
   }
 
   // Diet
-  if (profile.diet !== "No Preference") {
+  if (profile.diet) {
     sections.push(`I'm ${profile.diet.toLowerCase()} in my dietary preferences`);
   }
 

@@ -541,11 +541,19 @@ const biodataText: Record<string, string> = {
   "Business": "ব্যবসা",
   "Government Service": "সরকারি চাকরি",
   "Private Service": "বেসরকারি চাকরি",
+  "Business Owner": "ব্যবসায়ী",
+  "Farmer": "কৃষক",
+  "Bank Officer": "ব্যাংক কর্মকর্তা",
   "Lawyer": "আইনজীবী",
   "Accountant": "হিসাবরক্ষক",
   "IT Professional": "আইটি পেশাজীবী",
   "Freelancer": "ফ্রিল্যান্সার",
+  "Nurse": "নার্স",
+  "Architect": "স্থপতি",
+  "Civil Servant": "সিভিল সার্ভেন্ট",
+  "Entrepreneur": "উদ্যোক্তা",
   "Homemaker": "গৃহিণী/গৃহকর্তা",
+  "Retired": "অবসরপ্রাপ্ত",
   "Prefer not to say": "জানাতে অনিচ্ছুক",
   "Any family type": "যেকোনো পরিবারের ধরন",
   "Any family status": "যেকোনো পারিবারিক অবস্থা",
@@ -595,7 +603,6 @@ const biodataText: Record<string, string> = {
   "Vegan": "ভেগান",
   "Jain": "জৈন",
   "Halal": "হালাল",
-  "No Preference": "কোনও পছন্দ নেই",
   "Occasionally": "মাঝেমধ্যে",
   "Lifestyle Details": "জীবনযাপনের তথ্য",
   "Preference": "পছন্দ",
@@ -849,6 +856,7 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
   }, [forcedLanguage, hasHydrated, isAdminRoute, language]);
 
   const locationLabelsPromiseRef = React.useRef<Promise<Record<string, string> | null> | null>(null);
+  const [locationLabelsVersion, setLocationLabelsVersion] = React.useState(0);
 
   React.useEffect(() => {
     let active = true;
@@ -861,7 +869,10 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
       }
 
       const result = await locationLabelsPromiseRef.current;
-      if (active && result) registerLocationLabels(result);
+      if (active && result) {
+        registerLocationLabels(result);
+        setLocationLabelsVersion((version) => version + 1);
+      }
     };
 
     void loadLabels();
@@ -891,7 +902,7 @@ export function LanguageProvider({ children, forcedLanguage }: { children: React
         return englishText || text;
       },
     }),
-    [resolvedLanguage, setLanguage, toggleLanguage]
+    [locationLabelsVersion, resolvedLanguage, setLanguage, toggleLanguage]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

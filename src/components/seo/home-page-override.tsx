@@ -10,6 +10,8 @@ import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
 import type { HomeProfile } from "@/lib/home-data";
 import { localizedField } from "@/lib/localized-content";
+import { translateLocationLabel } from "@/lib/location-labels";
+import { getProfilePlaceholderImage } from "@/lib/profile-placeholder";
 import { useLanguage } from "@/providers/language-provider";
 
 export interface HomeSection {
@@ -56,6 +58,21 @@ const sectionReveal = {
     },
   }),
 };
+
+function formatHomeCount(value: number, language: "bn" | "en") {
+  return new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", {
+    notation: value >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function formatHomeLocation(value: string, language: "bn" | "en", translateText: (text: string) => string) {
+  return value.split(",").map((part) => {
+    const label = part.trim();
+    const translatedLocation = translateLocationLabel(label, language);
+    return translatedLocation !== label ? translatedLocation : translateText(label);
+  }).join(", ");
+}
 
 export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
   const { language, translateText } = useLanguage();
@@ -332,7 +349,7 @@ function FaqSection({ section, index }: { section: HomeSection; index: number })
 }
 
 function CommunitySection({ section, memberProfiles, index }: { section: HomeSection; memberProfiles: HomeProfile[]; index: number }) {
-  const { translateText } = useLanguage();
+  const { language, translateText } = useLanguage();
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   const cards = memberProfiles.slice(0, 4).map((member) => ({
@@ -399,7 +416,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
                   <div data-carousel-card className="w-full overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
                     <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] sm:h-44">
                       <Image
-                        src={card.gender === "Male" ? "/images/male.png" : "/images/female.png"}
+                        src={getProfilePlaceholderImage(card.gender)}
                         alt={card.gender === "Male" ? "Male member" : "Female member"}
                         fill
                         sizes="(max-width: 640px) 85vw, (max-width: 1024px) 248px, 270px"
@@ -409,9 +426,9 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
                       {card.isVerified ? <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</div> : null}
                     </div>
                     <div className="space-y-3 p-3.5">
-                      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-lg font-semibold text-[#355350]">{card.publicId}</p><p className="mt-1 text-sm text-[#6f8580]">{card.age ? `${card.age} • ${card.profession || translateText("Profession not added")}` : translateText("Profession not added")}</p></div></div>
-                      <div className="flex items-center gap-2 text-xs text-[#6f8580]"><MapPin className="h-3.5 w-3.5 text-[#e8897f]" /><span className="truncate">{card.text || translateText("Location not added")}</span></div>
-                      <div className="flex items-center justify-between border-t border-[#f0d6d1] pt-3"><span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><span className="inline-flex items-center gap-1"><span className="text-[#61b69e]">◉</span>{card.profileViews} {translateText("views")}</span></span><span className="flex items-center gap-4 text-[#df7890]"><Heart className="h-4 w-4" /><span className="text-sm font-semibold text-[#355350]">{translateText("View profile")} <ArrowRight className="inline h-3.5 w-3.5" /></span></span></div>
+                      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-lg font-semibold text-[#355350]">{card.publicId}</p><p className="mt-1 text-sm text-[#6f8580]">{card.age ? `${formatHomeCount(card.age, language)} • ${translateText(card.profession || "Profession not added")}` : translateText("Profession not added")}</p></div></div>
+                      <div className="flex items-center gap-2 text-xs text-[#6f8580]"><MapPin className="h-3.5 w-3.5 text-[#e8897f]" /><span className="truncate">{card.text ? formatHomeLocation(card.text, language, translateText) : translateText("Location not added")}</span></div>
+                      <div className="flex items-center justify-between border-t border-[#f0d6d1] pt-3"><span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><span className="inline-flex items-center gap-1"><span className="text-[#61b69e]">◉</span>{formatHomeCount(card.profileViews, language)} {translateText("views")}</span></span><span className="flex items-center gap-4 text-[#df7890]"><Heart className="h-4 w-4" /><span className="text-sm font-semibold text-[#355350]">{translateText("View profile")} <ArrowRight className="inline h-3.5 w-3.5" /></span></span></div>
                     </div>
                   </div>
                 </Link>

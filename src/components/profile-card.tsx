@@ -37,7 +37,10 @@ export type ProfileCardData = {
 function formatLocation(profile: ProfileCardData, language: "bn" | "en", translateText: (text: string) => string): string {
   const locationParts = [profile.area ?? "", profile.union ?? "", profile.district, profile.division]
     .filter(Boolean)
-    .map((value) => translateLocationLabel(value ?? "", language) || translateText(value ?? ""));
+    .map((value) => {
+      const translatedLocation = translateLocationLabel(value ?? "", language);
+      return translatedLocation !== value ? translatedLocation : translateText(value ?? "");
+    });
   return locationParts.length ? locationParts.join(", ") : translateText("Location not added");
 }
 
@@ -88,7 +91,7 @@ export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAct
         </div>
         <div className="space-y-3 p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0"><h2 className="truncate text-lg font-semibold text-[#355350] dark:text-foreground">{displayName}</h2><p className="mt-1 text-sm text-[#6f8580]">{profile.age ? `${profile.age} ${translateText("yrs")} · ${translatedProfession}` : translatedProfession}</p></div>
+            <div className="min-w-0"><h2 className="truncate text-lg font-semibold text-[#355350] dark:text-foreground">{displayName}</h2><p className="mt-1 text-sm text-[#6f8580]">{profile.age ? `${formatCount(profile.age, language)} ${translateText("yrs")} · ${translatedProfession}` : translatedProfession}</p></div>
             {profile.isOnline ? <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-label={translateText("Online")} /> : null}
           </div>
           <div className="flex items-center gap-2 text-xs text-[#6f8580]"><MapPin className="h-3.5 w-3.5 shrink-0 text-[#e8897f]" /><span className="truncate">{translatedLocation}</span></div>

@@ -145,7 +145,7 @@ function calculateBasicCompatibility(
   }
 
   // Diet (2 points)
-  if (user.diet === candidate.diet || user.diet === "No Preference" || candidate.diet === "No Preference") {
+  if (!user.diet || !candidate.diet || user.diet === candidate.diet) {
     score += 2;
   }
 

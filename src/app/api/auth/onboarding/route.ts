@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     await migrateDeprecatedLifestyleFields();
     const user = await requireAuth(request);
     const onboardingData = removeDeprecatedLifestyleFields({ ...(user.onboardingData || {}) }) as Record<string, unknown>;
+    delete onboardingData.diet;
     const profile = await Profile.findOne({ userId: user._id })
       .select("profession institution hasMajorHealthIssue majorHealthIssueDetails")
       .lean();
@@ -41,10 +42,12 @@ export async function PATCH(request: NextRequest) {
     if (!body.data || typeof body.data !== "object") return NextResponse.json({ error: "Onboarding data is required." }, { status: 400 });
     const incomingData = { ...body.data } as Record<string, unknown>;
     delete incomingData.highestEducation;
+    delete incomingData.diet;
     removeDeprecatedLifestyleFields(incomingData);
     const isSync = body.sync === true;
     const step = isSync ? user.onboardingStep || 1 : Math.min(8, Math.max(1, Number(body.step) || 1));
     const data = removeDeprecatedLifestyleFields({ ...(user.onboardingData || {}), ...incomingData });
+    delete data.diet;
     const firstName = typeof data.firstName === "string" ? data.firstName.trim() : "";
     const lastName = typeof data.lastName === "string" ? data.lastName.trim() : "";
     const gender = data.gender === "Male" || data.gender === "Female" ? data.gender : undefined;

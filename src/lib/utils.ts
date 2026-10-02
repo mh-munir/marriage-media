@@ -185,7 +185,7 @@ export const FAMILY_TYPES = ["Joint", "Nuclear"] as const;
 export const FAMILY_STATUSES = ["Middle Class", "Upper Middle Class", "Rich", "Affluent"] as const;
 export const FAMILY_VALUES = ["Orthodox", "Traditional", "Moderate", "Liberal", "Secular"] as const;
 
-export const DIETS = ["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal", "No Preference"] as const;
+export const DIETS = ["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal"] as const;
 
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
 

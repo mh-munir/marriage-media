@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
 
   images: {
+    localPatterns: [
+      { pathname: "/**", search: "" },
+      { pathname: "/images/**", search: "?v=2" },
+    ],
     remotePatterns: [
       {
         protocol: "https",

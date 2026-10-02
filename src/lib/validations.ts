@@ -104,7 +104,7 @@ export const profileFamilySchema = z.object({
 });
 
 export const profileLifestyleSchema = z.object({
-  diet: z.enum(["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal", "No Preference"]).optional(),
+  diet: z.enum(["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal"]).optional(),
 });
 
 export const profileAboutSchema = z.object({

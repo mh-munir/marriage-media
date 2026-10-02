@@ -135,17 +135,16 @@ const blank: D = {
   })),
   aboutYourself: "",
   habitAnswers: Object.fromEntries(habitOptions.map((habit) => [habit, ""])),
-  diet: "No Preference",
   photos: [],
   partnerPreferences: {
     age: "",
     height: "",
     weight: "",
     maritalStatus: "",
-    religion: "",
+    religion: "Islam",
     highestEducation: "",
     annualIncome: "",
-    country: "",
+    country: "Bangladesh",
     division: "",
     district: "",
     thana: "",
@@ -196,6 +195,7 @@ export default function OnboardingPage() {
       .then((x) => {
         const cleanOnboardingData = { ...(x.data || {}) } as D;
         delete cleanOnboardingData.highestEducation;
+        delete cleanOnboardingData.diet;
 
         setData({
           ...blank,
@@ -644,6 +644,7 @@ export default function OnboardingPage() {
     try {
       const sanitizedData = { ...data } as D;
       delete sanitizedData.highestEducation;
+      delete sanitizedData.diet;
       delete sanitizedData.hobbies;
       delete sanitizedData.smoke;
       delete sanitizedData.drink;
@@ -663,7 +664,6 @@ export default function OnboardingPage() {
           familyStatus: "Middle Class",
           familyValues: "Moderate",
           languages: [data.motherTongue],
-          diet: "No Preference",
         };
         const existingProfile = await apiClient.get<{ profile?: unknown }>(
           "/api/profile",

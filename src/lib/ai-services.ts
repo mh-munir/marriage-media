@@ -26,7 +26,7 @@ interface ProfileData {
   district: string;
   hobbies: string[];
   familyValues: string;
-  diet: string;
+  diet?: string;
   partnerPreference: string;
   maritalStatus: string;
   photos: { url: string; isPrimary: boolean }[];
@@ -103,7 +103,7 @@ export async function aiMatchRecommendations(
 
     const result = await chatCompletion({
       systemPrompt: `You are an AI matchmaking expert for a Bangladeshi marriage platform. Analyze profiles and rank matches based on compatibility. Return a JSON array of objects with profileIndex (1-based), score (0-100), and reasons (array of strings). Sort by score descending.`,
-      userPrompt: `User profile: ${userProfile.firstName}, age ${userProfile.age}, ${userProfile.profession}, ${userProfile.religion}, ${userProfile.division}, education: ${userProfile.highestEducation}, hobbies: ${userProfile.hobbies.join(", ")}, familyValues: ${userProfile.familyValues}, diet: ${userProfile.diet}, partnerPreference: ${userProfile.partnerPreference || "No preference"}
+      userPrompt: `User profile: ${userProfile.firstName}, age ${userProfile.age}, ${userProfile.profession}, ${userProfile.religion}, ${userProfile.division}, education: ${userProfile.highestEducation}, hobbies: ${userProfile.hobbies.join(", ")}, familyValues: ${userProfile.familyValues}, diet: ${userProfile.diet || "not specified"}, partnerPreference: ${userProfile.partnerPreference || "No preference"}
 
 Candidates:
 ${candidateSummary}
@@ -154,9 +154,9 @@ export async function aiCompatibilityScore(
   try {
     const result = await chatCompletion({
       systemPrompt: `You are a compatibility expert for a marriage platform. Analyze two profiles and return a detailed compatibility score. Return JSON: {"score": 0-100, "breakdown": {"religion": 0-25, "age": 0-15, "education": 0-15, "location": 0-15, "values": 0-10, "hobbies": 0-10, "lifestyle": 0-10}, "summary": "brief summary", "advice": "relationship advice"}`,
-      userPrompt: `Profile 1: ${profile1.firstName}, age ${profile1.age}, ${profile1.profession}, ${profile1.religion}, ${profile1.division}, education: ${profile1.highestEducation}, hobbies: ${profile1.hobbies.join(", ")}, familyValues: ${profile1.familyValues}, diet: ${profile1.diet}
+      userPrompt: `Profile 1: ${profile1.firstName}, age ${profile1.age}, ${profile1.profession}, ${profile1.religion}, ${profile1.division}, education: ${profile1.highestEducation}, hobbies: ${profile1.hobbies.join(", ")}, familyValues: ${profile1.familyValues}, diet: ${profile1.diet || "not specified"}
 
-    Profile 2: ${profile2.firstName}, age ${profile2.age}, ${profile2.profession}, ${profile2.religion}, ${profile2.division}, education: ${profile2.highestEducation}, hobbies: ${profile2.hobbies.join(", ")}, familyValues: ${profile2.familyValues}, diet: ${profile2.diet}`,
+    Profile 2: ${profile2.firstName}, age ${profile2.age}, ${profile2.profession}, ${profile2.religion}, ${profile2.division}, education: ${profile2.highestEducation}, hobbies: ${profile2.hobbies.join(", ")}, familyValues: ${profile2.familyValues}, diet: ${profile2.diet || "not specified"}`,
       maxTokens: 1024,
       temperature: 0.3,
     });
@@ -177,7 +177,7 @@ function basicCompatibility(p1: ProfileData, p2: ProfileData): CompatibilityResu
   breakdown.values = p1.familyValues === p2.familyValues ? 10 : 3;
   const commonHobbies = p1.hobbies.filter((h) => p2.hobbies.includes(h));
   breakdown.hobbies = Math.min(commonHobbies.length * 3, 10);
-  breakdown.lifestyle = p1.diet === p2.diet ? 10 : 4;
+  breakdown.lifestyle = p1.diet && p2.diet && p1.diet === p2.diet ? 10 : 4;
   const score = Object.values(breakdown).reduce((a, b) => a + b, 0);
   return {
     score: Math.min(100, score),
@@ -199,7 +199,7 @@ export async function aiGenerateBio(profile: ProfileData): Promise<string> {
   try {
     const result = await chatCompletion({
       systemPrompt: `You are a professional bio writer for a Bangladeshi marriage platform. Write a warm, authentic, engaging bio (150-250 words) that highlights the person's personality, values, and what they're looking for. Make it sound genuine and personal, not generic.`,
-      userPrompt: `Write a marriage profile bio for: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.highestEducation}, ${profile.religion}, from ${profile.division || profile.country}. Hobbies: ${profile.hobbies.join(", ")}. Family values: ${profile.familyValues}. Diet: ${profile.diet}. Partner preference: ${(profile.partnerPreference || "").slice(0, 200)}`,
+      userPrompt: `Write a marriage profile bio for: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.highestEducation}, ${profile.religion}, from ${profile.division || profile.country}. Hobbies: ${profile.hobbies.join(", ")}. Family values: ${profile.familyValues}. Diet: ${profile.diet || "not specified"}. Partner preference: ${(profile.partnerPreference || "").slice(0, 200)}`,
       maxTokens: 600,
       temperature: 0.8,
     });
@@ -244,7 +244,7 @@ export async function aiInterestPrediction(
   try {
     const result = await chatCompletion({
       systemPrompt: `You are an interest prediction AI for a marriage platform. Based on a user's profile, predict 5-8 interests/activities they might enjoy but haven't listed. Return JSON: {"predictedInterests": ["interest1", ...], "confidence": 0.0-1.0, "reasoning": "brief explanation"}`,
-      userPrompt: `Profile: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.religion}, education: ${profile.highestEducation}, current hobbies: ${profile.hobbies.join(", ")}, familyValues: ${profile.familyValues}, diet: ${profile.diet}, country: ${profile.country}`,
+      userPrompt: `Profile: ${profile.firstName}, age ${profile.age}, ${profile.profession}, ${profile.religion}, education: ${profile.highestEducation}, current hobbies: ${profile.hobbies.join(", ")}, familyValues: ${profile.familyValues}, diet: ${profile.diet || "not specified"}, country: ${profile.country}`,
       maxTokens: 512,
       temperature: 0.5,
     });

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       { name: "Religion", match: userProfile.religion === targetProfile.religion, weight: 25 },
       { name: "Education", match: userProfile.highestEducation === targetProfile.highestEducation, weight: 15 },
       { name: "Family Values", match: userProfile.familyValues === targetProfile.familyValues, weight: 10 },
-      { name: "Diet", match: userProfile.diet === targetProfile.diet || userProfile.diet === "No Preference" || targetProfile.diet === "No Preference", weight: 5 },
+      { name: "Diet", match: !userProfile.diet || !targetProfile.diet || userProfile.diet === targetProfile.diet, weight: 5 },
       { name: "Location", match: userProfile.country === targetProfile.country, weight: 15 },
       { name: "Age Compatibility", match: Math.abs(userProfile.age - targetProfile.age) <= 5, weight: 15 },
       { name: "Lifestyle", match: userProfile.smoke === targetProfile.smoke && userProfile.drink === targetProfile.drink, weight: 5 },

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { User } from "@/models";
 import { generateTokenPair } from "@/lib/security";
+import { verifyToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,20 +58,29 @@ export async function POST(request: NextRequest) {
       refreshToken: tokens.refreshToken,
     });
 
-    response.cookies.set("token", tokens.accessToken, {
+    response.cookies.set("adminToken", tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 15 * 60,
       path: "/",
     });
-    response.cookies.set("refreshToken", tokens.refreshToken, {
+    response.cookies.set("adminRefreshToken", tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60,
       path: "/",
     });
+
+    const legacyAccess = verifyToken(request.cookies.get("token")?.value || "");
+    if (legacyAccess?.role === "admin" || legacyAccess?.role === "superadmin") {
+      response.cookies.set("token", "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 0, path: "/" });
+    }
+    const legacyRefresh = verifyToken(request.cookies.get("refreshToken")?.value || "");
+    if (legacyRefresh?.role === "admin" || legacyRefresh?.role === "superadmin") {
+      response.cookies.set("refreshToken", "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 0, path: "/" });
+    }
 
     return response;
   } catch (error) {

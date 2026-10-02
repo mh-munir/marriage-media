@@ -26,8 +26,8 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/providers/auth-provider";
-import { useNotificationStore } from "@/stores/notification-store";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
+import { useNotificationStore, type AppNotification } from "@/stores/notification-store";
 import { LanguageProvider } from "@/providers/language-provider";
 
 const navItems = [
@@ -53,12 +53,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+  const [greeting, setGreeting] = React.useState("Good morning");
   const notificationRef = React.useRef<HTMLDivElement>(null);
-  const { user, isLoading, logout } = useAuth();
+  const user = useAdminAuthStore((state) => state.user);
+  const isLoading = useAdminAuthStore((state) => state.isLoading);
+  const logoutAdmin = useAdminAuthStore((state) => state.logout);
   const notifications = useNotificationStore((state) => state.notifications);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
   const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+
+  async function logout() {
+    try {
+      await fetch("/api/admin/auth/logout", { method: "POST", credentials: "include" });
+    } finally {
+      useNotificationStore.getState().reset();
+      logoutAdmin();
+      window.location.replace("/admin/login");
+    }
+  }
+
+  React.useEffect(() => {
+    const updateGreeting = () => {
+      const hour = new Date().getHours();
+      setGreeting(hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+    };
+
+    updateGreeting();
+    const interval = window.setInterval(updateGreeting, 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -139,8 +164,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-30 flex h-18 items-center justify-between border-b border-slate-200/80 bg-[#f6f8fb]/90 px-4 backdrop-blur-xl dark:border-border dark:bg-background/90 sm:px-8">
-          <div className="flex items-center gap-3"><button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation"><Menu className="h-6 w-6" /></button><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Control room</p><h1 className="text-lg font-bold">Good morning, Admin</h1></div></div>
-          <div className="flex items-center gap-2"><Button variant="ghost" size="icon" aria-label="Search"><Search className="h-5 w-5" /></Button><div ref={notificationRef} className="relative"><Button variant="ghost" size="icon" aria-label="Notifications" onClick={() => setNotificationsOpen((current) => !current)}><Bell className="h-5 w-5" />{unreadCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}</Button>{notificationsOpen ? <div className="absolute right-0 top-12 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 shadow-xl"><div className="flex items-center justify-between border-b pb-2"><p className="text-sm font-semibold">Notifications</p>{unreadCount > 0 ? <button className="text-xs text-emerald-600" onClick={() => void markAllAsRead()}>Mark all read</button> : null}</div><div className="max-h-80 overflow-y-auto">{notifications.length ? notifications.slice(0, 8).map((notification) => <div key={notification.id} className={`border-b py-3 last:border-0 ${notification.isRead ? "opacity-60" : ""}`}><p className="text-sm font-medium">{notification.title}</p><p className="mt-1 text-xs text-slate-500">{notification.body}</p></div>) : <p className="py-8 text-center text-xs text-slate-500">No notifications</p>}</div></div> : null}</div><div className="ml-2 hidden text-right sm:block"><p className="text-xs font-semibold">{user.email}</p><p className="text-[10px] uppercase tracking-wider text-slate-500">{user.role}</p></div><div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-sm font-bold text-emerald-700" title="Admin profile image">{user.avatar ? <Image src={user.avatar} alt="Admin profile" fill sizes="36px" className="object-cover" /> : user.email.slice(0, 2).toUpperCase()}</div></div>
+          <div className="flex items-center gap-3"><button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Open navigation"><Menu className="h-6 w-6" /></button><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Control room</p><h1 className="text-lg font-bold">{greeting}, Admin</h1></div></div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" aria-label="Search"><Search className="h-5 w-5" /></Button>
+            <div ref={notificationRef} className="relative">
+              <Button variant="ghost" size="icon" aria-label="Notifications" onClick={() => setNotificationsOpen((current) => !current)}>
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 ? <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
+              </Button>
+              {notificationsOpen ? (
+                <div className="absolute right-0 top-12 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 shadow-xl">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <p className="text-sm font-semibold">Notifications</p>
+                    {unreadCount > 0 ? <button className="text-xs text-emerald-600" onClick={() => void markAllAsRead()}>Mark all read</button> : null}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length ? notifications.slice(0, 8).map((notification) => (
+                      <Link
+                        key={notification.id}
+                        href={getAdminNotificationHref(notification)}
+                        onClick={() => {
+                          if (!notification.isRead) void markAsRead(notification.id);
+                          setNotificationsOpen(false);
+                        }}
+                        className={`block border-b py-3 last:border-0 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${notification.isRead ? "opacity-60" : ""}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium">{notification.title}</p>
+                            <p className="mt-1 text-xs text-slate-500">{notification.body}</p>
+                          </div>
+                          <ChevronRight aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                        </div>
+                      </Link>
+                    )) : <p className="py-8 text-center text-xs text-slate-500">No notifications</p>}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="ml-2 hidden text-right sm:block"><p className="text-xs font-semibold">{user.email}</p><p className="text-[10px] uppercase tracking-wider text-slate-500">{user.role}</p></div>
+            <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-sm font-bold text-emerald-700" title="Admin profile image">{user.avatar ? <Image src={user.avatar} alt="Admin profile" fill sizes="36px" className="object-cover" /> : user.email.slice(0, 2).toUpperCase()}</div>
+          </div>
         </header>
         <main className="admin-main min-h-[calc(100vh-4.5rem)] px-3 py-5 sm:px-5 sm:py-6 xl:px-6">{children}</main>
       </div>
@@ -151,4 +215,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 function AdminNav({ title, items, pathname, close }: { title?: string; items: typeof navItems; pathname: string; close: () => void }) {
   return <section>{title ? <p className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">{title}</p> : null}<nav className="space-y-1">{items.map(({ href, label, icon: Icon }) => { const baseHref = href.split("?")[0]; const active = baseHref === "/admin" ? pathname === baseHref : pathname === baseHref || pathname.startsWith(`${baseHref}/`); return <Link key={`${href}-${label}`} href={href} onClick={close} className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${active ? "bg-emerald-400 font-semibold text-[#0d1b2a]" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}><Icon className="h-4 w-4" /><span className="flex-1">{label}</span>{active ? <ChevronRight className="h-4 w-4" /> : null}</Link>; })}</nav></section>;
+}
+
+function getAdminNotificationHref(notification: AppNotification) {
+  const link = notification.link?.trim();
+  if (link?.startsWith("/") && !link.startsWith("//")) return link;
+
+  switch (notification.type) {
+    case "payment":
+      return "/admin/payments";
+    case "verification":
+      return "/admin/verification";
+    case "promotion":
+      return "/admin/cms";
+    default:
+      return "/admin/users";
+  }
 }

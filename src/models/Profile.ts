@@ -75,7 +75,7 @@ export interface IProfile extends Document {
   }[];
 
   // Lifestyle
-  diet: "Veg" | "Non-Veg" | "Eggetarian" | "Vegan" | "Jain" | "Halal" | "No Preference";
+  diet?: "Veg" | "Non-Veg" | "Eggetarian" | "Vegan" | "Jain" | "Halal";
   smoke?: "Yes" | "No" | "Occasionally";
   drink?: "Yes" | "No" | "Occasionally";
   hobbies: string[];
@@ -282,8 +282,8 @@ const ProfileSchema = new Schema<IProfile>(
 
     diet: {
       type: String,
-      enum: ["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal", "No Preference"],
-      default: "No Preference",
+      enum: ["Veg", "Non-Veg", "Eggetarian", "Vegan", "Jain", "Halal"],
+      default: undefined,
     },
     partnerPreference: { type: String, default: "", maxlength: [1000, "Partner preference cannot exceed 1000 characters"] },
     partnerPreferences: {

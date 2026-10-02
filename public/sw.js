@@ -1,7 +1,7 @@
 /* Marriage Media Service Worker */
 
-const STATIC_CACHE = "marriage-media-static-v1";
-const DYNAMIC_CACHE = "marriage-media-dynamic-v1";
+const STATIC_CACHE = "marriage-media-static-v2";
+const DYNAMIC_CACHE = "marriage-media-dynamic-v2";
 
 const PRE_CACHE_URLS = [
   "/",

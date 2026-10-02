@@ -33,7 +33,11 @@ export async function GET(request: NextRequest) {
     const previousSince = new Date(now.getTime() - period * 2 * 24 * 60 * 60 * 1000);
 
     await syncRejectedProfileUserFlags();
-    const publicUserFilter = { role: "user" as const, isProfileVerificationRejected: { $ne: true } };
+    const publicUserFilter = {
+      role: "user" as const,
+      isPhoneVerified: true,
+      isProfileVerificationRejected: { $ne: true },
+    };
     const publicUserIds = await User.distinct("_id", publicUserFilter);
     const publicProfileMatch = { userId: { $in: publicUserIds } };
 
@@ -46,6 +50,7 @@ export async function GET(request: NextRequest) {
       premiumUsers,
       verifiedUsers,
       activeUsers,
+      userGenderCounts,
       totalInterests,
       newInterests,
       totalPayments,
@@ -76,6 +81,29 @@ export async function GET(request: NextRequest) {
       Profile.countDocuments({ ...publicProfileMatch, isPremium: true, premiumExpiry: { $gt: new Date() } }),
       Profile.countDocuments({ ...publicProfileMatch, isVerified: true }),
       Profile.countDocuments({ ...publicProfileMatch, lastActiveAt: { $gte: since } }),
+      User.aggregate([
+        { $match: publicUserFilter },
+        {
+          $lookup: {
+            from: Profile.collection.name,
+            localField: "_id",
+            foreignField: "userId",
+            as: "profiles",
+          },
+        },
+        {
+          $set: {
+            dashboardGender: {
+              $ifNull: [
+                { $arrayElemAt: ["$profiles.gender", 0] },
+                { $ifNull: ["$gender", "$onboardingData.gender"] },
+              ],
+            },
+          },
+        },
+        { $match: { dashboardGender: { $in: ["Male", "Female"] } } },
+        { $group: { _id: "$dashboardGender", count: { $sum: 1 } } },
+      ]),
       Interest.countDocuments(),
       Interest.countDocuments({ createdAt: { $gte: since } }),
       Payment.countDocuments({ status: "completed" }),
@@ -199,6 +227,8 @@ export async function GET(request: NextRequest) {
       priorRevenue > 0 ? Math.round(((currentRevenue - priorRevenue) / priorRevenue) * 100) : 0;
     const registrationGrowthRate =
       previousNewUsers > 0 ? Math.round(((newUsers - previousNewUsers) / previousNewUsers) * 100) : 0;
+    const maleUsers = userGenderCounts.find((item) => item._id === "Male")?.count || 0;
+    const femaleUsers = userGenderCounts.find((item) => item._id === "Female")?.count || 0;
     const premiumConversionRate = totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 100) : 0;
     const paymentSuccessRate =
       totalPayments > 0 ? Math.round((totalPayments / Math.max(totalPayments + paymentStatuses.reduce((sum, item) => sum + (item._id === "failed" ? item.count : 0), 0), 1)) * 100) : 0;
@@ -209,6 +239,8 @@ export async function GET(request: NextRequest) {
         newUsers,
         registrationGrowthRate,
         totalProfiles,
+        maleUsers,
+        femaleUsers,
         premiumUsers,
         verifiedUsers,
         activeUsers,

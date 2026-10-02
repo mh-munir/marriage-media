@@ -1,14 +1,19 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useAuthStore } from "@/stores/auth-store";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
 import { adminFetch } from "@/lib/admin-fetch";
 
 function getAuthToken() {
-  const storedToken = useAuthStore.getState().token;
+  const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  const cookieName = isAdminRoute ? "adminToken" : "token";
+  const storedToken = isAdminRoute
+    ? useAdminAuthStore.getState().token
+    : useAuthStore.getState().token;
   if (storedToken) return storedToken;
   return document.cookie
     .split("; ")
-    .find((cookie) => cookie.startsWith("token="))
+    .find((cookie) => cookie.startsWith(`${cookieName}=`))
     ?.split("=")[1];
 }
 

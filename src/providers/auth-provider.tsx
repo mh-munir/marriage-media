@@ -43,6 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hasCheckedSession = React.useRef(false);
   const previousUserId = React.useRef<string | null>(null);
 
+  React.useEffect(() => {
+    if (hasHydrated && user && user.role !== "user") {
+      logoutUser();
+    }
+  }, [hasHydrated, logoutUser, user]);
+
   const login = React.useCallback(
     async (phone: string, password: string, rememberMe = false) => {
       const result = await apiClient.post<{
@@ -86,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error instanceof Error && error.message === "SESSION_EXPIRED") {
         resetNotifications();
         logoutUser();
-        if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname === "/onboarding") {
+        if (pathname.startsWith("/dashboard") || pathname.startsWith("/payment") || pathname === "/onboarding") {
           router.replace("/login");
         }
       }
@@ -98,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!hasHydrated) return;
 
     const isPublicAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/admin/login";
-    const isProtectedRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/payment") || pathname === "/onboarding";
+    const isProtectedRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/payment") || pathname === "/onboarding";
 
     if (isPublicAuthPage || !isProtectedRoute) {
       return;
