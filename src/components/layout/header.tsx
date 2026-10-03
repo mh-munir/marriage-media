@@ -146,12 +146,15 @@ export function Header() {
 
   return (
     <header
-      className="fixed left-0 right-0 top-0 z-50 px-0 pt-3 transition-all duration-300 sm:px-6 sm:pt-4"
+      className={cn(
+        "fixed left-0 right-0 top-0 z-50 px-0 transition-[padding] duration-500 ease-in-out motion-reduce:transition-none sm:px-6",
+        isScrolled ? "pt-0 sm:pt-0" : "pt-3 sm:pt-4"
+      )}
     >
       <div className="mx-auto w-full max-w-none sm:max-w-7xl">
         <div
           className={cn(
-            "grid grid-cols-[1fr_auto] items-center rounded-full px-3 transition-all duration-300 sm:px-5 md:grid-cols-[1fr_auto_1fr]",
+            "grid grid-cols-[1fr_auto] items-center rounded-full px-3 transition-all duration-500 ease-in-out motion-reduce:transition-none sm:px-5 md:grid-cols-[1fr_auto_1fr]",
             isScrolled
               ? "h-14 border border-border/70 bg-background/98 shadow-xl shadow-rose-950/10 backdrop-blur-2xl sm:h-16"
               : "h-18 border border-white/80 bg-white/95 shadow-lg shadow-rose-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-background/95"

@@ -78,7 +78,7 @@ export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAct
       className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
     >
       <Card className="h-full overflow-hidden rounded-lg border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)] dark:border-border dark:bg-card">
-        <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-t-lg bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef]">
+        <div className="relative flex h-56 items-center justify-center overflow-hidden rounded-t-lg bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] dark:from-[#263332] dark:via-[#1f2d2b] dark:to-[#172220]">
           <Image
             src={displayedImageUrl}
             alt={`${name} profile photo`}

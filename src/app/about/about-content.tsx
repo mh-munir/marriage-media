@@ -2,7 +2,6 @@
 
 export const dynamic = "force-dynamic";
 
-import * as React from "react";
 import { motion } from "framer-motion";
 import {
   Heart,
@@ -73,31 +72,22 @@ const team = [
   },
 ];
 
-const statLabels = ["Active Users", "Premium Profiles", "Verified Profiles", "Happy Families"];
-
 export default function AboutPage() {
   const { translateText: text } = useLanguage();
   const { language } = useLanguage();
   const { page, loading } = useSitePage("about");
   const { sections, loading: managedLoading } = useManagedPage("about");
-  const [liveStats, setLiveStats] = React.useState<Record<string, number> | null>(null);
-  React.useEffect(() => {
-    let mounted = true;
-    fetch("/api/about/stats").then(async (response) => response.ok ? response.json() : { stats: null }).then((data: { stats?: Record<string, number> | null }) => { if (mounted) setLiveStats(data.stats || null); }).catch(() => undefined);
-    return () => { mounted = false; };
-  }, []);
   if (loading || managedLoading) return null;
   if (page?.content || page?.contentBn || page?.contentEn) return <SitePageOverride page={page} />;
 
   const managed = sections.length ? sections : defaultManagedSections("about");
   const hero = sectionValue(managed, "hero", defaultManagedSections("about")[0]);
-  const stats = sectionValue(managed, "stats", defaultManagedSections("about")[1]);
-  const mission = sectionValue(managed, "mission", defaultManagedSections("about")[2]);
-  const vision = sectionValue(managed, "vision", defaultManagedSections("about")[3]);
-  const valuesSection = sectionValue(managed, "values", defaultManagedSections("about")[4]);
-  const teamSection = sectionValue(managed, "team", defaultManagedSections("about")[5]);
-  const why = sectionValue(managed, "why", defaultManagedSections("about")[6]);
-  const recognition = sectionValue(managed, "recognition", defaultManagedSections("about")[7]);
+  const mission = sectionValue(managed, "mission", defaultManagedSections("about")[1]);
+  const vision = sectionValue(managed, "vision", defaultManagedSections("about")[2]);
+  const valuesSection = sectionValue(managed, "values", defaultManagedSections("about")[3]);
+  const teamSection = sectionValue(managed, "team", defaultManagedSections("about")[4]);
+  const why = sectionValue(managed, "why", defaultManagedSections("about")[5]);
+  const recognition = sectionValue(managed, "recognition", defaultManagedSections("about")[6]);
   const managedValues = valuesSection.items.map((item, index) => ({ icon: values[index]?.icon || Heart, title: localizedField(item as unknown as Record<string, unknown>, "title", language, item.title), description: localizedField(item as unknown as Record<string, unknown>, "text", language, item.text) }));
   const managedTeam = teamSection.items.map((item, index) => {
     const member = team[index] || { name: item.title || "Team member", role: "", description: "" };
@@ -132,24 +122,6 @@ export default function AboutPage() {
               {text(localizedField(hero as unknown as Record<string, unknown>, "description", language, hero.description))}
             </p>
           </motion.div>
-        </div>
-      </section> : null}
-
-      {/* Stats */}
-      {stats.visible ? <section className="py-16 border-y border-border bg-card/50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.items.map((item, index) => {
-              const label = localizedField(item as unknown as Record<string, unknown>, "title", language, statLabels[index] || item.title);
-              const key = ["activeUsers", "premiumProfiles", "verifiedProfiles", "happyFamilies"][index] || "happyFamilies";
-              return <div key={label} className="text-center">
-                <div className="text-3xl font-bold text-primary">
-                  {liveStats ? `${liveStats[key].toLocaleString()}+` : "..."}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">{text(label)}</div>
-              </div>
-            })}
-          </div>
         </div>
       </section> : null}
 

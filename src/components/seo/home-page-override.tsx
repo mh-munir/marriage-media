@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
 import { HomeSearchForm } from "@/components/search/home-search-form";
+import { CommunityStats } from "@/components/home/community-stats";
 import type { HomeProfile } from "@/lib/home-data";
 import { localizedField } from "@/lib/localized-content";
 import { translateLocationLabel } from "@/lib/location-labels";
@@ -122,7 +123,26 @@ export function HomePageOverride({ sections }: { sections: HomeSection[] }) {
     };
   }, []);
 
-  return <div className="home-page min-h-screen bg-[#fffdfc] text-[#263b3a] transition-colors duration-300 dark:bg-[#0b1720] dark:text-[#edf6f4]"><Header /><main>{localizedSections.filter((section) => section.visible).map((section, index) => section.type === "hero" ? <HeroSection key={section.id} section={section} index={index} /> : section.type === "community" ? <CommunitySection key={section.id} section={section} memberProfiles={memberProfiles} index={index} /> : <StandardSection key={section.id} section={section} index={index} />)}</main><Footer /></div>;
+  return (
+    <div className="home-page min-h-screen bg-[#fffdfc] text-[#263b3a] transition-colors duration-300 dark:bg-[#0b1720] dark:text-[#edf6f4]">
+      <Header />
+      <main>
+        {localizedSections.filter((section) => section.visible).map((section, index) => (
+          <Fragment key={section.id}>
+            {section.type === "hero" ? (
+              <HeroSection section={section} index={index} />
+            ) : section.type === "community" ? (
+              <CommunitySection section={section} memberProfiles={memberProfiles} index={index} />
+            ) : (
+              <StandardSection section={section} index={index} />
+            )}
+            {section.type === "community" ? <CommunityStats /> : null}
+          </Fragment>
+        ))}
+      </main>
+      <Footer />
+    </div>
+  );
 }
 
 function HeroSection({ section, index }: { section: HomeSection; index: number }) {
@@ -135,7 +155,7 @@ function HeroSection({ section, index }: { section: HomeSection; index: number }
       animate="visible"
       variants={sectionReveal}
       custom={index * 0.12}
-      className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(247,201,195,0.38),transparent_30%),linear-gradient(135deg,#f7efee_0%,#f5f3ef_40%,#edf5f4_100%)] px-5 pb-16 pt-28 sm:px-8 lg:pb-24 lg:pt-36 dark:bg-[radial-gradient(circle_at_top_left,rgba(62,98,110,0.28),transparent_26%),linear-gradient(135deg,#0b1720_0%,#101d28_40%,#111827_100%)]"
+      className="home-hero-section relative overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(247,201,195,0.38),transparent_30%),linear-gradient(135deg,#f7efee_0%,#f5f3ef_40%,#edf5f4_100%)] px-5 pb-16 pt-28 sm:px-8 lg:pb-24 lg:pt-36 dark:bg-[radial-gradient(circle_at_top_left,rgba(62,98,110,0.28),transparent_26%),linear-gradient(135deg,#0b1720_0%,#101d28_40%,#111827_100%)]"
     >
       <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.18),transparent_38%,rgba(255,255,255,0.12))] dark:bg-[linear-gradient(120deg,rgba(255,255,255,0.04),transparent_38%,rgba(148,163,184,0.06))]" />
       <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#f7c9c3]/40 blur-3xl dark:bg-[#1f4d5c]/45" />
@@ -419,7 +439,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
               {cards.map((card, index) => (
                 <Link key={card.publicId} href={card.profileLink} className="group block w-[85vw] max-w-60 shrink-0 snap-start sm:min-w-62 sm:max-w-62 lg:min-w-67.5 lg:max-w-67.5">
                   <div data-carousel-card className="w-full overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
-                    <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] sm:h-44">
+                    <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] dark:from-[#263332] dark:via-[#1f2d2b] dark:to-[#172220] sm:h-44">
                       <Image
                         src={getProfilePlaceholderImage(card.gender)}
                         alt={card.gender === "Male" ? "Male member" : "Female member"}
@@ -428,7 +448,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
                         loading={index === 0 ? "eager" : "lazy"}
                         className="object-contain"
                       />
-                      {card.isVerified ? <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</div> : null}
+                      {card.isVerified ? <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm dark:bg-emerald-950 dark:text-emerald-200"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</div> : null}
                     </div>
                     <div className="space-y-3 p-3.5">
                       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-lg font-semibold text-[#355350]">{card.publicId}</p><p className="mt-1 text-sm text-[#6f8580]">{card.age ? `${formatHomeCount(card.age, language)} • ${translateText(card.profession || "Profession not added")}` : translateText("Profession not added")}</p></div></div>

@@ -21,6 +21,7 @@ import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
 import { HomeHeroStats } from "@/app/home-hero-stats";
 import { HomeSearchForm } from "@/components/search/home-search-form";
+import { CommunityStats } from "@/components/home/community-stats";
 import { useTheme } from "@/components/theme-provider";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { useLanguage } from "@/providers/language-provider";
@@ -51,6 +52,10 @@ export default function HomePage() {
   const [homeData, setHomeData] = useState<HomeData | null>(null);
 
   useEffect(() => {
+    if (loading || page?.sections?.length || page?.content || page?.contentBn || page?.contentEn) {
+      return;
+    }
+
     let isMounted = true;
 
     async function loadHomeData() {
@@ -80,7 +85,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loading, page]);
 
   const formatLocationText = (value: string | null | undefined) => {
     const normalized = value?.trim();
@@ -144,7 +149,7 @@ export default function HomePage() {
           <div className="absolute -left-24 top-12 h-56 w-72 -rotate-12 rounded-[45%] bg-[#fce2df]/70 blur-2xl" />
           <div className="absolute -right-20 top-8 h-52 w-80 rotate-12 rounded-[45%] bg-[#fbe6e1]/65 blur-2xl" />
           <div
-            className="absolute inset-x-0 bottom-0 h-44"
+            className="home-hero-fade absolute inset-x-0 bottom-0 h-44"
             style={{
               backgroundImage: resolvedTheme === "dark"
                 ? "linear-gradient(to top, #171412 0%, rgb(23 20 18 / 0.82) 46%, transparent 100%)"
@@ -253,7 +258,7 @@ export default function HomePage() {
                     className="group block w-[85vw] max-w-60 shrink-0 snap-start sm:min-w-62 sm:max-w-62 lg:min-w-67.5 lg:max-w-67.5"
                   >
                     <div data-carousel-card className="w-full overflow-hidden rounded-[28px] border border-[#e9d6d1] bg-white shadow-[0_18px_35px_rgba(88,111,109,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_45px_rgba(88,111,109,0.16)]">
-                      <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] sm:h-44">
+                      <div className="relative flex h-38 items-center justify-center overflow-hidden rounded-t-[28px] bg-linear-to-br from-[#f8e9e7] via-[#fdf7f5] to-[#e5f2ef] dark:from-[#263332] dark:via-[#1f2d2b] dark:to-[#172220] sm:h-44">
                         <Image
                           src={getProfilePlaceholderImage(member.gender)}
                           alt={member.gender === "Male" ? "Male member" : "Female member"}
@@ -264,7 +269,7 @@ export default function HomePage() {
                         />
 
                         {member.isVerified ? (
-                          <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm">
+                          <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm dark:bg-emerald-950 dark:text-emerald-200">
                             <BadgeCheck className="h-3.5 w-3.5" />
                             {translateText("Verified")}
                           </div>
@@ -316,6 +321,8 @@ export default function HomePage() {
             </div>
           </div>
         </motion.section>
+
+        <CommunityStats />
 
         <motion.section
           initial={false}

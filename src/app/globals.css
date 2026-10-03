@@ -440,59 +440,220 @@
   --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
+.home-page {
+  --home-page: #fff9f8;
+  --home-section: #fffaf9;
+  --home-section-rose: #fff1f3;
+  --home-surface: #fffefd;
+  --home-text: #48343e;
+  --home-muted: #786570;
+  --home-accent: #bd6578;
+  --home-border: #efdce1;
+  background-color: var(--home-page);
+  color: var(--home-text);
+}
+
+.home-page main > section {
+  color: var(--home-text);
+  border-color: var(--home-border);
+}
+
+.home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta) {
+  background-color: var(--home-section) !important;
+}
+
+.home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#eff9f8"],
+.home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#eff8f7"],
+.home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#fff6f5"],
+.home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#fffaf7"] {
+  background-color: var(--home-section-rose) !important;
+}
+
+.home-page main > section.home-final-cta {
+  background-color: #fae9ec !important;
+}
+
+.home-page .home-hero {
+  background-color: var(--home-section) !important;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgb(248 194 199 / 0.32), transparent 34%),
+    linear-gradient(128deg, #fff2ef 0%, #fff9f4 49%, #f7eff8 100%) !important;
+}
+
+.home-page .home-hero-fade {
+  background-image: linear-gradient(to top, #fff9f8 0%, rgb(255 249 248 / 0.55) 48%, transparent 100%) !important;
+}
+
+.home-page .home-hero-section {
+  background-color: var(--home-section) !important;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgb(248 194 199 / 0.32), transparent 34%),
+    linear-gradient(128deg, #fff2ef 0%, #fff9f4 49%, #f7eff8 100%) !important;
+}
+
+.home-page .community-stats-section {
+  background-color: #fff6f5 !important;
+  background-image: linear-gradient(110deg, #fff4f2 0%, #fffaf8 52%, #f8f1f8 100%) !important;
+  border-color: var(--home-border) !important;
+}
+
+.home-page .community-stats-card {
+  border-color: var(--home-border);
+  box-shadow: 0 12px 30px rgb(117 68 87 / 0.08);
+}
+
+.home-page [data-carousel-card],
+.home-page [class*="bg-white"],
+.home-page [class*="bg-[#fffdfd"] {
+  background-color: var(--home-surface) !important;
+}
+
+.home-page [class*="border-[#e9d6d1"],
+.home-page [class*="border-[#f0d6d1"],
+.home-page [class*="border-[#f3dedb"],
+.home-page [class*="border-[#efc5bf"],
+.home-page [class*="border-[#e7d5d0"],
+.home-page [class*="border-[#bdd9d5"] {
+  border-color: var(--home-border) !important;
+}
+
+.home-page [class*="text-[#263b3a"],
+.home-page [class*="text-[#223c3a"],
+.home-page [class*="text-[#174b4a"],
+.home-page [class*="text-[#193f3c"],
+.home-page [class*="text-[#355350"],
+.home-page [class*="text-[#244a46"] {
+  color: var(--home-text) !important;
+}
+
+.home-page [class*="text-[#78908c"],
+.home-page [class*="text-[#708984"],
+.home-page [class*="text-[#6f8580"],
+.home-page [class*="text-[#6c817e"],
+.home-page [class*="text-[#5f7e7b"],
+.home-page [class*="text-[#587875"],
+.home-page [class*="text-[#486866"] {
+  color: var(--home-muted) !important;
+}
+
+.home-page [class*="text-[#e8897f"],
+.home-page [class*="text-[#b96862"],
+.home-page [class*="text-[#df7890"],
+.home-page [class*="text-[#ef7190"] {
+  color: var(--home-accent) !important;
+}
+
+.home-page [class*="bg-[#fef0ef"],
+.home-page [class*="bg-[#fff0ed"],
+.home-page [class*="bg-[#fce2df"] {
+  background-color: #fce8eb !important;
+}
+
+.home-page .home-final-cta > div.absolute.inset-0:nth-of-type(2) {
+  background-image: linear-gradient(to right, rgb(255 248 246 / 0.96), rgb(255 244 245 / 0.86), rgb(248 226 234 / 0.35)) !important;
+}
+
 .dark .home-page {
-  background-color: #0a0a0a !important;
-  color: #fafaf9 !important;
+  --home-page: #151119;
+  --home-section: #1b151e;
+  --home-section-rose: #211720;
+  --home-surface: #251d27;
+  --home-text: #f5eaf0;
+  --home-muted: #c6b4c0;
+  --home-accent: #f09aaa;
+  --home-border: #44313e;
+  background-color: var(--home-page) !important;
+  color: var(--home-text) !important;
 }
 
-.dark .home-page section {
-  background-color: #171412 !important;
+.dark .home-page main > section {
+  background-color: var(--home-section) !important;
+  background-image: none;
+  color: var(--home-text);
+  border-color: var(--home-border);
 }
 
-.dark .home-page [class*="bg-[#fffdfc"],
-.dark .home-page [class*="bg-[#f7efee"],
-.dark .home-page [class*="bg-[#eff8f7"],
-.dark .home-page [class*="bg-white"] {
-  background-color: #1c1917 !important;
+.dark .home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta) {
+  background-color: var(--home-section) !important;
 }
 
-.dark .home-page [class*="border-white"],
-.dark .home-page [class*="border-[#f7efee"] {
-  border-color: #292524 !important;
+.dark .home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#eff9f8"],
+.dark .home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#eff8f7"],
+.dark .home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#fff6f5"],
+.dark .home-page main > section:not(.home-hero):not(.home-hero-section):not(.community-stats-section):not(.home-final-cta)[class*="bg-[#fffaf7"] {
+  background-color: var(--home-section-rose) !important;
 }
 
-.dark .home-page [class*="text-[#263b3a"],
-.dark .home-page [class*="text-[#355350"],
-.dark .home-page [class*="text-[#486866"],
-.dark .home-page [class*="text-[#607572"],
-.dark .home-page [class*="text-[#6c817e"],
-.dark .home-page [class*="text-[#78908c"],
-.dark .home-page [class*="text-[#8aa19d"] {
-  color: #d6d3d1 !important;
+.dark .home-page main > section.home-final-cta {
+  background-color: #261923 !important;
 }
 
-/* The public home page uses a custom palette instead of the shared semantic
-   color tokens. Keep its arbitrary Tailwind values in sync with dark mode. */
+.dark .home-page .home-hero,
+.dark .home-page .home-hero-section {
+  background-color: #19131d !important;
+  background-image:
+    radial-gradient(circle at 10% 18%, rgb(138 66 91 / 0.24), transparent 34%),
+    linear-gradient(128deg, #1a131c 0%, #211720 50%, #1c1726 100%) !important;
+}
+
+.dark .home-page .home-hero-fade {
+  background-image: linear-gradient(to top, #151119 0%, rgb(21 17 25 / 0.58) 48%, transparent 100%) !important;
+}
+
+.dark .home-page .community-stats-section {
+  background-color: #211720 !important;
+  background-image: linear-gradient(110deg, #20161f 0%, #1b151e 52%, #211824 100%) !important;
+  border-color: var(--home-border) !important;
+}
+
+.dark .home-page .community-stats-card {
+  background-color: #281f29 !important;
+  background-image: none !important;
+  border-color: #493543 !important;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.2);
+}
+
+.dark .home-page section.community-stats-section .community-stats-icon {
+  background-color: #342633 !important;
+  border-color: #59414f !important;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05), 0 5px 14px rgb(0 0 0 / 0.2) !important;
+}
+
+.dark .home-page [data-carousel-card],
+.dark .home-page [class*="bg-white"],
+.dark .home-page [class*="bg-[#fffdfd"],
+.dark .home-page [class*="bg-[#fffdfc"] {
+  background-color: var(--home-surface) !important;
+}
+
+.dark .home-page [data-carousel-card] > div:first-child,
+.dark .home-page [class*="bg-linear-to-br from-[#f8e9e7"] {
+  background-color: #29202a !important;
+  background-image: linear-gradient(135deg, #30232e 0%, #261e2a 55%, #1d2024 100%) !important;
+}
+
 .dark .home-page [class*="bg-[#fff9f7"],
 .dark .home-page [class*="bg-[#fff6f5"],
-.dark .home-page [class*="bg-[#fffdfd"],
+.dark .home-page [class*="bg-[#fffdfc"],
 .dark .home-page [class*="bg-[#eff9f8"],
-.dark .home-page [class*="bg-[#eff8f7"] {
-  background-color: #171412 !important;
+.dark .home-page [class*="bg-[#eff8f7"],
+.dark .home-page [class*="bg-[#f7efee"],
+.dark .home-page [class*="bg-[#fffdfd"] {
+  background-color: var(--home-section-rose) !important;
 }
 
 .dark .home-page [class*="bg-[#fef0ef"],
+.dark .home-page [class*="bg-[#fff0ed"],
 .dark .home-page [class*="bg-[#f8faf9"],
 .dark .home-page [class*="bg-[#f4f4f4"],
-.dark .home-page [class*="bg-[#e8e8e8"] {
-  background-color: #292524 !important;
-}
-
+.dark .home-page [class*="bg-[#e8e8e8"],
 .dark .home-page [class*="bg-[#fce2df"],
 .dark .home-page [class*="bg-[#fbe6e1"] {
-  background-color: #5b302d !important;
+  background-color: #392632 !important;
 }
 
+.dark .home-page [class*="border-white"],
+.dark .home-page [class*="border-[#f7efee"],
 .dark .home-page [class*="border-[#efc5bf"],
 .dark .home-page [class*="border-[#f3dedb"],
 .dark .home-page [class*="border-[#e7d5d0"],
@@ -500,26 +661,57 @@
 .dark .home-page [class*="border-[#f0d6d1"],
 .dark .home-page [class*="border-[#bdd9d5"],
 .dark .home-page [class*="border-[#92b9b2"] {
-  border-color: #44403c !important;
+  border-color: var(--home-border) !important;
 }
 
+.dark .home-page [class*="text-[#263b3a"],
+.dark .home-page [class*="text-[#223c3a"],
 .dark .home-page [class*="text-[#174b4a"],
+.dark .home-page [class*="text-[#193f3c"],
+.dark .home-page [class*="text-[#355350"],
+.dark .home-page [class*="text-[#244a46"],
+.dark .home-page [class*="text-[#486866"],
+.dark .home-page [class*="text-[#607572"],
+.dark .home-page [class*="text-[#6c817e"],
+.dark .home-page [class*="text-[#78908c"],
+.dark .home-page [class*="text-[#8aa19d"],
 .dark .home-page [class*="text-[#5f7e7b"],
 .dark .home-page [class*="text-[#6f8580"],
 .dark .home-page [class*="text-[#587875"] {
-  color: #e7e5e4 !important;
+  color: var(--home-muted) !important;
 }
 
-.dark .home-final-cta {
-  background-color: #171412 !important;
+.dark .home-page [class*="text-[#e8897f"],
+.dark .home-page [class*="text-[#b96862"],
+.dark .home-page [class*="text-[#df7890"],
+.dark .home-page [class*="text-[#ef7190"] {
+  color: var(--home-accent) !important;
 }
 
-.dark .home-final-cta h2 {
-  color: #fff7ed !important;
+.dark .home-page [class*="bg-[#fff0ed"],
+.dark .home-page [class*="bg-[#fef0ef"] {
+  background-color: #392632 !important;
 }
 
-.dark .home-final-cta p:not(:first-child) {
-  color: #e7d8d2 !important;
+.dark .home-page .home-final-cta {
+  background-color: #261923 !important;
+}
+
+.dark .home-page .home-final-cta > div.absolute.inset-0:nth-of-type(2) {
+  background-image: linear-gradient(to right, rgb(25 18 28 / 0.96), rgb(33 23 32 / 0.88), rgb(40 24 36 / 0.54)) !important;
+}
+
+.dark .home-page .home-final-cta h2 {
+  color: #fff0f4 !important;
+}
+
+.dark .home-page .home-final-cta p:not(:first-child) {
+  color: #d7c4cf !important;
+}
+
+.home-page footer {
+  background-color: var(--home-section) !important;
+  border-color: var(--home-border) !important;
 }
 
 @layer base {
