@@ -21,10 +21,10 @@ const statItems: Array<{
   border: string;
   glow: string;
 }> = [
-  { label: "Active Users", key: "activeUsers", icon: UsersRound, color: "text-emerald-700 dark:text-emerald-300", number: "text-[#075b53] dark:text-emerald-300", background: "from-[#e7fff5] to-[#d4f5f2]", border: "border-[#c4f2e7]", glow: "bg-[#b8f1df]/50" },
-  { label: "Men", key: "maleUsers", icon: UserRound, color: "text-blue-600 dark:text-blue-300", number: "text-[#1c5cce] dark:text-blue-300", background: "from-[#f0f6ff] to-[#e1edff]", border: "border-[#d5e5ff]", glow: "bg-[#c6dcff]/45" },
-  { label: "Women", key: "femaleUsers", icon: UserRound, color: "text-pink-600 dark:text-pink-300", number: "text-[#db1458] dark:text-pink-300", background: "from-[#fff1f6] to-[#ffe2ed]", border: "border-[#fbd7e5]", glow: "bg-[#ffc8dc]/45" },
-  { label: "Premium Users", key: "premiumUsers", icon: Crown, color: "text-amber-600 dark:text-amber-300", number: "text-[#a66500] dark:text-amber-300", background: "from-[#fff9e8] to-[#fff0c6]", border: "border-[#f7e9c8]", glow: "bg-[#ffe6a0]/50" },
+  { label: "Total brides and grooms", key: "activeUsers", icon: UsersRound, color: "text-emerald-700 dark:text-emerald-300", number: "text-[#075b53] dark:text-emerald-300", background: "from-[#e7fff5] to-[#d4f5f2]", border: "border-[#c4f2e7]", glow: "bg-[#b8f1df]/50" },
+  { label: "Total grooms", key: "maleUsers", icon: UserRound, color: "text-blue-600 dark:text-blue-300", number: "text-[#1c5cce] dark:text-blue-300", background: "from-[#f0f6ff] to-[#e1edff]", border: "border-[#d5e5ff]", glow: "bg-[#c6dcff]/45" },
+  { label: "Total brides", key: "femaleUsers", icon: UserRound, color: "text-pink-600 dark:text-pink-300", number: "text-[#db1458] dark:text-pink-300", background: "from-[#fff1f6] to-[#ffe2ed]", border: "border-[#fbd7e5]", glow: "bg-[#ffc8dc]/45" },
+  { label: "Premium brides and grooms", key: "premiumUsers", icon: Crown, color: "text-amber-600 dark:text-amber-300", number: "text-[#a66500] dark:text-amber-300", background: "from-[#fff9e8] to-[#fff0c6]", border: "border-[#f7e9c8]", glow: "bg-[#ffe6a0]/50" },
 ];
 
 function FemaleProfileIcon() {
