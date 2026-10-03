@@ -64,7 +64,16 @@ function LoginFormInner() {
       }
       const { user } = (await userResponse.json()) as { user: AuthUser };
       setUser(user);
-      router.push(user.onboardingCompleted ? "/dashboard" : "/onboarding");
+      const requestedNext = searchParams.get("next");
+      const searchDestination = requestedNext &&
+        (requestedNext === "/dashboard/search" || requestedNext.startsWith("/dashboard/search?"))
+        ? requestedNext
+        : null;
+      if (!user.onboardingCompleted) {
+        router.push(searchDestination ? `/onboarding?next=${encodeURIComponent(searchDestination)}` : "/onboarding");
+      } else {
+        router.push(searchDestination || "/dashboard");
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
       toast.error(text(message));

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, FileCheck2, X } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
+import { adminFetch } from "@/lib/admin-fetch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingFormSummary } from "@/components/admin/onboarding-form-summary";
@@ -83,19 +84,23 @@ export default function AdminVerificationPage() {
   const [error, setError] = React.useState("");
 
   async function load() {
-    const response = await fetch("/api/admin/verifications?status=pending&limit=50", { credentials: "include" });
+    const response = await adminFetch("/api/admin/verifications?status=pending&limit=50", { cache: "no-store" });
     const data = await response.json();
     setItems(data.verifications || []);
     setError(response.ok ? "" : data.error || "Could not load verifications");
   }
 
   React.useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0);
+    const timer = window.setTimeout(() => {
+      void load().catch((loadError: unknown) => {
+        setError(loadError instanceof Error ? loadError.message : "Could not load verifications");
+      });
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   async function review(id: string, status: "approved" | "rejected") {
-    const response = await fetch("/api/admin/verifications", { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ verificationId: id, status }) });
+    const response = await adminFetch("/api/admin/verifications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ verificationId: id, status }) });
     if (!response.ok) {
       const data = await response.json();
       setError(data.error || "Could not update review status");

@@ -5,6 +5,7 @@ import { ImageIcon, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { adminFetch } from "@/lib/admin-fetch";
 
 interface PendingPhoto { userId: string; username: string; photo: { url: string; publicId: string; isPrimary?: boolean } }
 
@@ -13,18 +14,27 @@ export default function AdminPhotosPage() {
   const [message, setMessage] = React.useState("Loading review queue...");
 
   async function loadPhotos() {
-    const response = await fetch("/api/admin/photos/pending", { credentials: "include" });
+    const response = await adminFetch("/api/admin/photos/pending", { cache: "no-store" });
     const data = await response.json();
     setPhotos(data.pendingPhotos || []);
     setMessage(response.ok ? "" : data.error || "Could not load photos");
   }
   React.useEffect(() => {
-    // Use setTimeout to avoid synchronous state update in effect
-    setTimeout(() => loadPhotos(), 0);
+    const timer = window.setTimeout(() => {
+      void loadPhotos().catch((error: unknown) => {
+        setMessage(error instanceof Error ? error.message : "Could not load photos");
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function review(photo: PendingPhoto) {
-    await fetch("/api/admin/photos/approve", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ userId: photo.userId, publicId: photo.photo.publicId }) });
+    const response = await adminFetch("/api/admin/photos/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: photo.userId, publicId: photo.photo.publicId }) });
+    if (!response.ok) {
+      const data = await response.json();
+      setMessage(data.error || "Could not approve photo");
+      return;
+    }
     setPhotos((current) => current.filter((item) => item.photo.publicId !== photo.photo.publicId));
   }
 

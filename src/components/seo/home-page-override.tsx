@@ -8,6 +8,7 @@ import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, CircleP
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
+import { HomeSearchForm } from "@/components/search/home-search-form";
 import type { HomeProfile } from "@/lib/home-data";
 import { localizedField } from "@/lib/localized-content";
 import { translateLocationLabel } from "@/lib/location-labels";
@@ -176,7 +177,7 @@ function HeroSection({ section, index }: { section: HomeSection; index: number }
           initial={{ opacity: 0, x: 18, scale: 0.98 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
           transition={{ duration: 1, delay: 0.18 }}
-          className="relative mx-auto h-105 w-full max-w-130 sm:h-125"
+          className="relative mx-auto hidden h-105 w-full max-w-130 sm:block sm:h-125"
         >
           <div className="absolute right-0 top-0 h-[88%] w-[78%] overflow-hidden rounded-[180px_180px_24px_24px] border-8 border-white/80 bg-white/70 shadow-[0_30px_80px_rgba(68,86,84,0.18)] backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/70 dark:shadow-[0_30px_80px_rgba(2,6,23,0.5)]">
             <Image
@@ -207,6 +208,9 @@ function HeroSection({ section, index }: { section: HomeSection; index: number }
           </div>
         </motion.div>
       </div>
+      <div className="relative mx-auto mt-8 w-full max-w-6xl">
+        <HomeSearchForm />
+      </div>
     </motion.section>
   );
 }
@@ -214,6 +218,7 @@ function HeroSection({ section, index }: { section: HomeSection; index: number }
 function StandardSection({ section, index }: { section: HomeSection; index: number }) {
   const isValues = section.type === "values";
   const isSteps = section.type === "steps";
+  const finalButtonText = section.buttonText.replace(/\s+/g, " ").trim();
 
   if (section.type === "final") {
     return (
@@ -237,21 +242,21 @@ function StandardSection({ section, index }: { section: HomeSection; index: numb
         ) : null}
         <div className="absolute inset-0 -z-10 bg-linear-to-r from-[#fffaf5]/98 via-[#fffaf5]/88 to-[#173f3c]/38 dark:from-slate-950/96 dark:via-slate-950/82 dark:to-slate-950/42" />
         <div className="absolute -left-24 top-1/2 -z-10 h-72 w-72 -translate-y-1/2 rounded-full bg-rose-200/35 blur-3xl dark:bg-cyan-500/10" />
-        <div className="mx-auto max-w-6xl">
-          <div className="max-w-xl border-l-4 border-rose-400/80 pl-6 sm:pl-9">
+        <div className="relative mx-auto max-w-6xl rounded-4xl border border-white/75 bg-white/70 p-6 shadow-[0_24px_70px_rgba(38,75,70,0.12)] backdrop-blur-xl sm:p-9 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:p-10 xl:gap-10 xl:p-12 dark:border-white/10 dark:bg-slate-900/65">
+          <div className="min-w-0 max-w-3xl flex-1 border-l-4 border-rose-400/80 pl-5 sm:pl-8">
             <p className="inline-flex rounded-full border border-rose-200 bg-white/65 px-3 py-1.5 text-xs font-semibold uppercase tracking-[.18em] text-[#b96862] backdrop-blur-sm dark:border-rose-400/20 dark:bg-slate-900/60 dark:text-rose-200">{section.eyebrow}</p>
-            <h2 className="mt-5 font-serif text-4xl leading-[1.06] text-[#193f3c] sm:text-6xl dark:text-slate-50">{section.title}</h2>
-            <p className="mt-5 max-w-lg text-base leading-7 text-[#52736f] dark:text-slate-300">{section.description}</p>
-            {section.buttonText ? (
-              <Link
-                href={section.buttonLink || "/register"}
-                className="login-gradient-cta mt-8 inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition hover:-translate-y-0.5"
-              >
-                {section.buttonText}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            ) : null}
+            <h2 className="mt-5 font-serif text-3xl leading-[1.08] text-[#193f3c] sm:text-5xl lg:text-6xl dark:text-slate-50">{section.title}</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#52736f] sm:text-base sm:leading-7 dark:text-slate-300">{section.description}</p>
           </div>
+          {finalButtonText ? (
+            <Link
+              href={section.buttonLink || "/register"}
+              className="login-gradient-cta mt-7 inline-flex w-fit max-w-full flex-none items-center justify-center gap-3 rounded-xl px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 lg:mt-0 lg:w-max lg:max-w-none lg:flex-nowrap lg:whitespace-nowrap"
+            >
+              <span className="whitespace-nowrap lg:inline-block">{finalButtonText}</span>
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </Link>
+          ) : null}
         </div>
       </motion.section>
     );
@@ -384,13 +389,13 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
+            <div className="min-w-0 lg:flex-1">
               <p className="text-xs font-semibold uppercase tracking-[.2em] text-[#e8897f]">{section.eyebrow}</p>
               <h2 className="mt-3 font-serif text-4xl text-[#263b3a] sm:text-5xl">{section.title}</h2>
             </div>
 
             {section.buttonText ? (
-              <Link href={section.buttonLink || "/register"} className="login-gradient-cta inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5">
+              <Link href={section.buttonLink || "/register"} className="login-gradient-cta inline-flex items-center gap-3 rounded-xl px-6 py-3.5 text-sm font-semibold transition-transform hover:-translate-y-0.5 lg:flex-none lg:whitespace-nowrap">
                 {section.buttonText}
                 <ArrowRight className="h-4 w-4" />
               </Link>

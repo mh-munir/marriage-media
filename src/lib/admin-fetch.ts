@@ -1,6 +1,8 @@
 "use client";
 
 import { useAdminAuthStore } from "@/stores/admin-auth-store";
+import { useAuthStore } from "@/stores/auth-store";
+import { refreshSession } from "@/lib/api-client";
 
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -37,14 +39,23 @@ export function adminFetch(input: RequestInfo | URL, init: RequestInit = {}) {
 }
 
 async function requestWithAdminSession(input: RequestInfo | URL, init: RequestInit): Promise<Response> {
+  const isAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
   const headers = new Headers(init.headers);
-  const token = useAdminAuthStore.getState().token;
+  const token = isAdminRoute
+    ? useAdminAuthStore.getState().token
+    : useAuthStore.getState().token;
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(input, { ...init, headers, credentials: "include" });
   if (response.status !== 401) return response;
 
-  if (!(await refreshAdminSession())) return response;
-  const accessToken = useAdminAuthStore.getState().token;
+  const refreshed = isAdminRoute
+    ? await refreshAdminSession()
+    : await refreshSession();
+  if (!refreshed) return response;
+
+  const accessToken = isAdminRoute
+    ? useAdminAuthStore.getState().token
+    : useAuthStore.getState().token;
   if (!accessToken) return response;
   const retryHeaders = new Headers(init.headers);
   retryHeaders.set("Authorization", `Bearer ${accessToken}`);

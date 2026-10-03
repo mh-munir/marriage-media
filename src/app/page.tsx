@@ -20,6 +20,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HomeDashboardAction } from "@/app/home-dashboard-action";
 import { HomeHeroStats } from "@/app/home-hero-stats";
+import { HomeSearchForm } from "@/components/search/home-search-form";
 import { useTheme } from "@/components/theme-provider";
 import { SitePageOverride, useSitePage } from "@/components/seo/site-page-override";
 import { useLanguage } from "@/providers/language-provider";
@@ -133,7 +134,7 @@ export default function HomePage() {
   return (
     <div className="home-page min-h-screen overflow-hidden bg-[#fffdfc] text-[#263b3a]">
       <Header />
-      <main>
+      <main className="relative isolate overflow-x-hidden">
         <motion.section
           initial={false}
           animate={{ opacity: 1 }}
@@ -163,11 +164,14 @@ export default function HomePage() {
               </div>
                 <HomeHeroStats stats={homeStats} />
             </div>
-            <div className="relative mx-auto h-115 w-full max-w-xl sm:h-125">
+            <div className="relative mx-auto hidden h-115 w-full max-w-xl sm:block sm:h-125">
               <div className="absolute right-[2%] top-0 h-[94%] w-[84%] overflow-hidden rounded-[32%_32%_12%_12%] border-7 border-white bg-white shadow-[0_24px_55px_rgba(128,88,72,.18)] sm:right-[7%] sm:h-[88%] sm:w-[73%] sm:rounded-[46%_46%_20%_20%]"><Image src={image.couple} alt="Couple walking together" fill priority sizes="(min-width: 1024px) 38vw, 84vw" className="object-cover" /></div>
               <div className="absolute bottom-2 left-0 h-38 w-34 overflow-hidden rounded-3xl border-5 border-[#fff9f7] bg-white shadow-xl sm:h-48 sm:w-44"><Image src={image.celebration} alt="Wedding celebration" fill loading="eager" sizes="176px" className="object-cover" /></div>
               <div className="absolute bottom-10 right-0 flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-xs font-semibold text-[#486866] shadow-xl"><BadgeCheck className="h-5 w-5 text-[#3182ce]" /> {t("verifiedProfiles")}</div>
             </div>
+          </div>
+          <div className="relative mx-auto mt-8 w-full max-w-6xl">
+            <HomeSearchForm />
           </div>
         </motion.section>
 

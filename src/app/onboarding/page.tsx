@@ -676,7 +676,12 @@ export default function OnboardingPage() {
           step: 8,
           completed: true,
         });
-        router.replace("/dashboard");
+        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        const searchDestination = requestedNext &&
+          (requestedNext === "/dashboard/search" || requestedNext.startsWith("/dashboard/search?"))
+          ? requestedNext
+          : "/dashboard";
+        router.replace(searchDestination);
       } else setStep(step + 1);
     } catch (e) {
       setError(

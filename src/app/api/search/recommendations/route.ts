@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { calculateMatchScore } from "@/lib/profile-matching";
+import { calculateMatchScore, type PartnerPreferences } from "@/lib/profile-matching";
 import { ensurePublicIdForProfile } from "@/lib/public-id";
 import { getActiveSubscription } from "@/lib/profile-access";
 
@@ -22,10 +22,22 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Get the current user's profile for matching
-    const myProfile = await Profile.findOne({ userId: user._id }).lean();
-    if (!myProfile) {
+    const savedProfile = await Profile.findOne({ userId: user._id }).lean();
+    if (!savedProfile) {
       return NextResponse.json({ profiles: [], needsProfile: true });
     }
+
+    const onboardingPreferences = user.onboardingData?.partnerPreferences as PartnerPreferences | undefined;
+    const savedPreferences = savedProfile.partnerPreferences as PartnerPreferences | undefined;
+    const partnerPreferences = {
+      ...onboardingPreferences,
+      ...Object.fromEntries(
+        Object.entries(savedPreferences ?? {}).filter(
+          ([, value]) => typeof value === "string" && value.trim().length > 0
+        )
+      ),
+    } as PartnerPreferences;
+    const myProfile = { ...savedProfile, partnerPreferences };
 
     // Target opposite gender
     const targetGender = myProfile.gender === "Male" ? "Female" : "Male";
@@ -40,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // Get all potential matches (limit to reasonable set for scoring)
     const allProfiles = await Profile.find(filter)
-      .select("userId publicId firstName lastName gender age height weight bloodGroup religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified isProfileBoosted boostedAt lastActiveAt profileViews maritalStatus profileCreatedBy createdAt")
+      .select("userId publicId firstName lastName gender age height weight bloodGroup complexion religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified isProfileBoosted boostedAt lastActiveAt profileViews maritalStatus profileCreatedBy createdAt")
       .limit(500)
       .lean();
 

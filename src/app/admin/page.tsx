@@ -6,6 +6,7 @@ import { ArrowUpRight, CheckCircle2, DollarSign, FileCheck2, ImageIcon, ShieldAl
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { adminFetch } from "@/lib/admin-fetch";
 
 type Overview = {
   totalUsers: number;
@@ -26,12 +27,21 @@ type Overview = {
 type DashboardData = { overview?: Overview; reports?: { daily?: Array<{ date: string; registrations: number; revenue: number }> } };
 type PendingPhotos = { pendingPhotos?: Array<{ userId: string; username: string; photo: { url: string; publicId: string } }> };
 type VerificationData = { verifications?: unknown[] };
-const fetcher = (url: string) => fetch(url).then((response) => response.json());
+const fetcher = async (url: string) => {
+  const response = await adminFetch(url, { cache: "no-store" });
+  const result = await response.json();
+  if (!response.ok) {
+    throw Object.assign(new Error(result.error || `Request failed with ${response.status}`), {
+      status: response.status,
+    });
+  }
+  return result;
+};
 
 export default function AdminDashboardPage() {
-  const { data, error } = useSWR<DashboardData>("/api/admin/analytics?period=30", fetcher);
-  const { data: photos } = useSWR<PendingPhotos>("/api/admin/photos/pending", fetcher);
-  const { data: verifications } = useSWR<VerificationData>("/api/admin/verifications?status=pending&limit=1", fetcher);
+  const { data, error } = useSWR<DashboardData>("/api/admin/analytics?period=30", fetcher, { shouldRetryOnError: false });
+  const { data: photos } = useSWR<PendingPhotos>("/api/admin/photos/pending", fetcher, { shouldRetryOnError: false });
+  const { data: verifications } = useSWR<VerificationData>("/api/admin/verifications?status=pending&limit=1", fetcher, { shouldRetryOnError: false });
   const overview = data?.overview;
   const pendingPhotos = photos?.pendingPhotos?.length ?? 0;
   const pendingVerifications = overview?.pendingVerifications ?? verifications?.verifications?.length ?? 0;

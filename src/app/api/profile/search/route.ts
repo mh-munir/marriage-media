@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Favorite, Profile, User } from "@/models";
-import { requireAuth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { calculateMatchScore } from "@/lib/profile-matching";
 import { ensurePublicIdForProfile } from "@/lib/public-id";
 import { getActiveSubscription } from "@/lib/profile-access";
@@ -96,8 +96,8 @@ function getPrimaryPhoto(photos: ProfilePhoto[] | undefined): string | null {
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
-    const user = await requireAuth(request);
-    const canViewProfileImages = Boolean(await getActiveSubscription(user._id));
+    const user = await getCurrentUser(request);
+    const canViewProfileImages = user ? Boolean(await getActiveSubscription(user._id)) : false;
 
     const { searchParams } = new URL(request.url);
 
@@ -105,18 +105,20 @@ export async function GET(request: NextRequest) {
     const filter: Record<string, unknown> = {
       isVisible: true,
       isDeactivated: false,
-      userId: { $ne: user._id },
+      userId: user ? { $ne: user._id } : { $exists: true },
     };
 
     // 1. Gender filter
-    const currentProfile = await Profile.findOne({ userId: user._id })
-      .select("gender age height weight maritalStatus religion caste motherTongue country division district thana union area highestEducation profession annualIncome familyType familyStatus familyValues diet smoke drink hobbies isVerified partnerPreferences")
-      .lean();
+    const currentProfile = user
+      ? await Profile.findOne({ userId: user._id })
+          .select("gender age height weight maritalStatus religion caste motherTongue country division district thana union area highestEducation profession annualIncome familyType familyStatus familyValues diet smoke drink hobbies isVerified partnerPreferences")
+          .lean()
+      : null;
     if (currentProfile?.gender) {
       filter.gender = currentProfile.gender === "Male" ? "Female" : "Male";
     }
     const gender = searchParams.get("gender");
-    if (gender && (!currentProfile?.gender || gender === filter.gender)) {
+    if ((gender === "Male" || gender === "Female") && (!currentProfile?.gender || gender === filter.gender)) {
       filter.gender = gender;
     }
 
@@ -209,7 +211,13 @@ export async function GET(request: NextRequest) {
       filter.district = district;
     }
 
-    // 17. Nationality
+    // 17. Thana
+    const thana = searchParams.get("thana");
+    if (thana) {
+      filter.thana = thana;
+    }
+
+    // 18. Nationality
     const nationality = searchParams.get("nationality");
     if (nationality) {
       filter.nationality = nationality;
@@ -336,16 +344,25 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    const registeredPublicUserIds = await User.distinct("_id", {
+      role: "user",
+      isPhoneVerified: true,
+      isActive: true,
+      isBlocked: false,
+      isProfileVerificationRejected: { $ne: true },
+    });
     const databaseFilter: Record<string, unknown> = {
       isVisible: true,
       isDeactivated: false,
-      userId: { $ne: user._id },
+      userId: {
+        $in: registeredPublicUserIds,
+        ...(user ? { $ne: user._id } : {}),
+      },
       ...(typeof filter.gender === "string" ? { gender: filter.gender } : {}),
+      ...(typeof filter.division === "string" ? { division: filter.division } : {}),
+      ...(typeof filter.district === "string" ? { district: filter.district } : {}),
+      ...(typeof filter.thana === "string" ? { thana: filter.thana } : {}),
     };
-    const adminUserIds = await User.find({ role: { $in: ["admin", "superadmin"] } }).distinct("_id");
-    if (adminUserIds.length) {
-      databaseFilter.userId = { $nin: [user._id, ...adminUserIds] };
-    }
     const basicEducation = searchParams.get("education");
     const location = searchParams.get("location");
     const basicAgeMin = Number(searchParams.get("ageMin"));
@@ -394,7 +411,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const onlineSince = now.getTime() - 15 * 60 * 1000;
     const profileUserIds = paginatedProfiles.map((profile) => profile.userId);
-    const favorites = profileUserIds.length
+    const favorites = user && profileUserIds.length
       ? await Favorite.find({
           userId: user._id,
           profileId: { $in: profileUserIds },
@@ -413,8 +430,8 @@ export async function GET(request: NextRequest) {
         _id: profile._id.toString(),
         userId: profile.userId.toString(),
         publicId,
-        firstName: profile.firstName || "",
-        lastName: profile.lastName || "",
+        firstName: canViewProfileImages ? profile.firstName || "" : "",
+        lastName: canViewProfileImages ? profile.lastName || "" : "",
         gender: profile.gender || "",
         age: profile.age ?? null,
         height: profile.height || "",
@@ -437,7 +454,7 @@ export async function GET(request: NextRequest) {
         ),
         isVerified: Boolean(profile.isVerified),
         isProfileBoosted: Boolean(profile.isProfileBoosted),
-        isFavorite: favoriteIds.has(profile.userId.toString()),
+        isFavorite: Boolean(user && favoriteIds.has(profile.userId.toString())),
         isOnline: Boolean(lastActiveAt && lastActiveAt.getTime() >= onlineSince),
         lastActiveAt: lastActiveAt?.toISOString() ?? null,
         profileViews: profile.profileViews ?? 0,

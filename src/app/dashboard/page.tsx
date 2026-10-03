@@ -90,8 +90,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (!user?.id) return;
     void fetchNotifications(true);
-  }, [fetchNotifications]);
+  }, [fetchNotifications, user?.id]);
 
   React.useEffect(() => {
     if (pathname !== "/dashboard") return;

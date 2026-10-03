@@ -5,6 +5,8 @@ export type PartnerPreferences = {
   age?: string;
   height?: string;
   weight?: string;
+  bloodGroup?: string;
+  complexion?: string;
   maritalStatus?: string;
   religion?: string;
   highestEducation?: string;
@@ -26,6 +28,8 @@ export type MatchableProfile = {
   age?: number;
   height?: string;
   weight?: string;
+  bloodGroup?: string;
+  complexion?: string;
   maritalStatus?: string;
   religion?: string;
   highestEducation?: string;
@@ -47,6 +51,8 @@ const preferenceFields: Array<keyof PartnerPreferences> = [
   "age",
   "height",
   "weight",
+  "bloodGroup",
+  "complexion",
   "maritalStatus",
   "religion",
   "highestEducation",
@@ -73,7 +79,17 @@ function numberRange(value: string): { min: number; max: number } | null {
     };
   }
 
-  const numbers = value.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  const normalizedValue = value.replace(/,/g, "");
+  const firstNumber = normalizedValue.match(/\d+(?:\.\d+)?/)?.[0];
+  if (!firstNumber) return null;
+
+  const boundary = Number(firstNumber);
+  if (/\+/.test(normalizedValue)) return { min: boundary, max: Number.POSITIVE_INFINITY };
+  if (/^(below|under|less than)\b/i.test(normalizedValue.trim())) {
+    return { min: 0, max: boundary };
+  }
+
+  const numbers = normalizedValue.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
   if (!numbers.length) return null;
   return { min: numbers[0], max: numbers[1] ?? numbers[0] };
 }

@@ -171,6 +171,9 @@ export const useNotificationStore = create<NotificationState>()(
               hasMore: data.pagination.page < data.pagination.pages,
               isLoading: false,
             }));
+          } else {
+            const data = await res.json().catch(() => ({ error: "Unable to load notifications." }));
+            throw new Error(data.error || `Request failed with ${res.status}`);
           }
         } catch (error) {
           console.error("Failed to fetch notifications:", error);

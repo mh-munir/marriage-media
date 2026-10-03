@@ -48,12 +48,13 @@ function formatCount(value: number, language: "bn" | "en"): string {
   return new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en", { notation: value >= 1000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value);
 }
 
-export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAction, onViewAction, currentUserIsPremium = false }: {
+export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAction, onViewAction, showFavoriteAction = true, currentUserIsPremium = false }: {
   profile: ProfileCardData;
   index?: number;
   onFavoriteAction: (profileUserId: string) => void;
   onMessageAction?: (profileUserId: string) => void;
   onViewAction: (profileUserId: string) => void;
+  showFavoriteAction?: boolean;
   currentUserIsPremium?: boolean;
 }) {
   const user = useAuthStore((state) => state.user);
@@ -98,7 +99,7 @@ export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAct
           <div className="flex items-center justify-between gap-3 border-t border-[#f0d6d1] pt-3">
             <span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><Eye className="h-3.5 w-3.5 text-[#61b69e]" />{formatCount(profile.profileViews ?? 0, language)} {translateText("views")}</span>
             <div className="flex items-center gap-1">
-              <button type="button" aria-label={translateText(profile.isFavorite ? "Remove from favorites" : "Add to favorites")} onClick={(event) => { event.stopPropagation(); if (profile.userId) onFavoriteAction(profile.userId); }} className="flex h-8 w-8 items-center justify-center rounded-full text-[#df7890] transition hover:bg-[#fef0ef]"><Star className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} /></button>
+              {showFavoriteAction ? <button type="button" aria-label={translateText(profile.isFavorite ? "Remove from favorites" : "Add to favorites")} onClick={(event) => { event.stopPropagation(); if (profile.userId) onFavoriteAction(profile.userId); }} className="flex h-8 w-8 items-center justify-center rounded-full text-[#df7890] transition hover:bg-[#fef0ef]"><Star className={profile.isFavorite ? "h-4 w-4 fill-current" : "h-4 w-4"} /></button> : null}
               {isPremiumUser ? <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#587875] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onMessageAction?.(profile.userId); }} aria-label={translateText("Message")}><MessageCircle className="h-4 w-4" /></Button> : null}
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-[#355350] hover:bg-[#eff8f7]" onClick={(event) => { event.stopPropagation(); if (profile.userId) onViewAction(profile.userId); }} aria-label={translateText("View profile")}><ChevronRight className="h-5 w-5" /></Button>
             </div>

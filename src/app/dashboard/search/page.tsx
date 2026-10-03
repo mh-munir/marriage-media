@@ -70,6 +70,10 @@ type ProfileResponse = {
 };
 
 type BasicSearchFilters = {
+  gender: string;
+  division: string;
+  district: string;
+  thana: string;
   education: string;
   location: string;
   ageMin: string;
@@ -100,6 +104,10 @@ const sortOptions = [
 function buildSearchUrl(page: number, sortBy: string, filters: BasicSearchFilters) {
   const params = new URLSearchParams();
 
+  if (filters.gender) params.set("gender", filters.gender);
+  if (filters.division) params.set("division", filters.division);
+  if (filters.district) params.set("district", filters.district);
+  if (filters.thana) params.set("thana", filters.thana);
   if (filters.education) params.set("education", filters.education);
   if (filters.location) params.set("location", filters.location);
   if (filters.ageMin) params.set("ageMin", filters.ageMin);
@@ -139,13 +147,17 @@ async function fetchJson(url: string, init?: RequestInit): Promise<ProfileRespon
   return data;
 }
 
-export default function DashboardSearchPage() {
+export default function DashboardSearchPage({ publicSearch = false }: { publicSearch?: boolean }) {
   const { language, translateText: text } = useLanguage();
   const router = useRouter();
   const { user } = useAuthStore();
   const [view, setView] = React.useState<"browse" | "recent">("browse");
   const [sortBy, setSortBy] = React.useState("relevance");
   const [filters, setFilters] = React.useState<BasicSearchFilters>({
+    gender: "",
+    division: "",
+    district: "",
+    thana: "",
     education: "",
     location: "",
     ageMin: "",
@@ -160,8 +172,22 @@ export default function DashboardSearchPage() {
   const [isAppending, setIsAppending] = React.useState(false);
   const [error, setError] = React.useState("");
   const [infiniteScroll, setInfiniteScroll] = React.useState(true);
+  const [filtersInitialized, setFiltersInitialized] = React.useState(false);
   const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
   const requestIdRef = React.useRef(0);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedGender = params.get("gender");
+    setFilters((current) => ({
+      ...current,
+      gender: requestedGender === "Male" || requestedGender === "Female" ? requestedGender : "",
+      division: params.get("division") || "",
+      district: params.get("district") || "",
+      thana: params.get("thana") || "",
+    }));
+    setFiltersInitialized(true);
+  }, []);
 
   const hasNextPage =
     view === "browse"
@@ -278,10 +304,10 @@ export default function DashboardSearchPage() {
   );
 
   React.useEffect(() => {
-    if (view === "browse") {
+    if (filtersInitialized && view === "browse") {
       queueMicrotask(() => void loadBrowseProfiles(1));
     }
-  }, [loadBrowseProfiles, sortBy, view]);
+  }, [filtersInitialized, loadBrowseProfiles, sortBy, view]);
 
   const toggleFavorite = React.useCallback(async (profileUserId: string) => {
     const update = (list: BrowseProfile[]) =>
@@ -316,6 +342,11 @@ export default function DashboardSearchPage() {
   }, []);
 
   const recordProfileView = React.useCallback(async (profileUserId: string) => {
+    if (publicSearch && !user) {
+      router.push(`/profile/${profileUserId}`);
+      return;
+    }
+
     try {
       await fetchJson("/api/search/recently-viewed", {
         method: "POST",
@@ -329,11 +360,11 @@ export default function DashboardSearchPage() {
             : profile
         )
       );
-        router.push(`/dashboard/profile/${profileUserId}`);
+      router.push(`${publicSearch ? "/profile" : "/dashboard/profile"}/${profileUserId}`);
     } catch (viewError) {
       setError(viewError instanceof Error ? viewError.message : "Unable to record profile view.");
     }
-    }, [router]);
+  }, [publicSearch, router, user]);
 
   const openProfileMessages = React.useCallback(async (profileUserId: string) => {
     if (!profileUserId) return;
@@ -366,11 +397,11 @@ export default function DashboardSearchPage() {
       <main id="main-content" className="pt-30 pb-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
-            href="/dashboard"
+            href={publicSearch ? "/" : "/dashboard"}
             className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            {text("Back to Dashboard")}
+            {text(publicSearch ? "Back to Home" : "Back to Dashboard")}
           </Link>
 
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -381,12 +412,12 @@ export default function DashboardSearchPage() {
               </Badge>
               <h1 className="text-2xl font-bold sm:text-3xl">{text("Discover Matches")}</h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                {text("Browse live profiles from the database and view your recent profile history.")}
+                {text(publicSearch ? "Browse available public profiles." : "Browse live profiles from the database and view your recent profile history.")}
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="grid grid-cols-2 rounded-xl border border-border bg-card p-1">
+              <div className={`grid ${publicSearch ? "grid-cols-1" : "grid-cols-2"} rounded-xl border border-border bg-card p-1`}>
                 <Button
                   type="button"
                   variant={view === "browse" ? "default" : "ghost"}
@@ -396,15 +427,17 @@ export default function DashboardSearchPage() {
                   <Search className="h-4 w-4" />
                   {text("Browse")}
                 </Button>
-                <Button
-                  type="button"
-                  variant={view === "recent" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setView("recent")}
-                >
-                  <Eye className="h-4 w-4" />
-                  {text("Recent")}
-                </Button>
+                {!publicSearch ? (
+                  <Button
+                    type="button"
+                    variant={view === "recent" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setView("recent")}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {text("Recent")}
+                  </Button>
+                ) : null}
               </div>
               <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-sm">
                 <span className="text-muted-foreground">{text("Infinite scroll")}</span>
@@ -519,6 +552,7 @@ export default function DashboardSearchPage() {
               <ProfileGrid
                 profiles={currentProfiles}
                 currentUserIsPremium={Boolean(user?.isPremium)}
+                showFavorites={Boolean(user)}
                 onFavorite={toggleFavorite}
                 onMessage={openProfileMessages}
                 onView={recordProfileView}
@@ -575,12 +609,14 @@ function ProfileGrid({
   onFavorite,
   onMessage,
   onView,
+  showFavorites,
   currentUserIsPremium = false,
 }: {
   profiles: BrowseProfile[];
   onFavorite: (profileUserId: string) => void;
   onMessage: (profileUserId: string) => void;
   onView: (profileUserId: string) => void;
+  showFavorites: boolean;
   currentUserIsPremium?: boolean;
 }) {
   return (
@@ -591,6 +627,7 @@ function ProfileGrid({
           profile={profile}
           index={index}
           currentUserIsPremium={currentUserIsPremium}
+          showFavoriteAction={showFavorites}
           onFavoriteAction={onFavorite}
           onMessageAction={onMessage}
           onViewAction={onView}
