@@ -28,6 +28,7 @@ export { default as SitePage } from "./SitePage";
 export { default as SiteBranding } from "./SiteBranding";
 export { default as LookupOption } from "./LookupOption";
 export { default as ContactMessage } from "./ContactMessage";
+export { default as SiteVisitor } from "./SiteVisitor";
 
 export type { IUser } from "./User";
 export type { IProfile } from "./Profile";

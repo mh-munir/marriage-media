@@ -4,6 +4,7 @@ import { ThemeInit } from "@/components/theme-init";
 import { MonetagScript } from "@/components/monetag-script";
 import { Providers } from "@/providers/providers";
 import { getPageMetadata } from "@/lib/page-seo";
+import { VisitorTracker } from "@/components/visitor-tracker";
 
 const monetagScriptUrl = process.env.NEXT_PUBLIC_MONETAG_SCRIPT_URL;
 
@@ -32,7 +33,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <ThemeInit />
         <MonetagScript src={monetagScriptUrl} />
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <VisitorTracker />
+        </Providers>
       </body>
     </html>
   );

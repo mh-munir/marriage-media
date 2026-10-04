@@ -10,6 +10,7 @@ import {
   Payment,
   Profile,
   Report,
+  SiteVisitor,
   User,
   Verification,
 } from "@/models";
@@ -39,12 +40,27 @@ export async function GET(request: NextRequest) {
       isPhoneVerified: true,
       isProfileVerificationRejected: { $ne: true },
     };
+    const registrationUserFilter = { role: "user" as const };
     const publicUserIds = await User.distinct("_id", publicUserFilter);
     const publicProfileMatch = { userId: { $in: publicUserIds } };
+    const activePublicUserIds = await User.distinct("_id", {
+      role: "user",
+      isPhoneVerified: true,
+      isActive: true,
+      isBlocked: false,
+      isProfileVerificationRejected: { $ne: true },
+    });
+    const activePublicProfileMatch = {
+      userId: { $in: activePublicUserIds },
+      isVisible: true,
+      isDeactivated: false,
+      lastActiveAt: { $gte: since },
+    };
 
     // Core metrics
     const [
       totalUsers,
+      totalVisitors,
       newUsers,
       previousNewUsers,
       totalProfiles,
@@ -76,34 +92,16 @@ export async function GET(request: NextRequest) {
       monthlyReports,
     ] = await Promise.all([
       User.countDocuments(publicUserFilter),
-      User.countDocuments({ ...publicUserFilter, createdAt: { $gte: since } }),
-      User.countDocuments({ ...publicUserFilter, createdAt: { $gte: previousSince, $lt: since } }),
+      SiteVisitor.countDocuments({}),
+      User.countDocuments({ ...registrationUserFilter, createdAt: { $gte: since } }),
+      User.countDocuments({ ...registrationUserFilter, createdAt: { $gte: previousSince, $lt: since } }),
       Profile.countDocuments(publicProfileMatch),
       Profile.countDocuments({ ...publicProfileMatch, isPremium: true, premiumExpiry: { $gt: new Date() } }),
       Profile.countDocuments({ ...publicProfileMatch, isVerified: true }),
-      Profile.countDocuments({ ...publicProfileMatch, lastActiveAt: { $gte: since } }),
-      User.aggregate([
-        { $match: publicUserFilter },
-        {
-          $lookup: {
-            from: Profile.collection.name,
-            localField: "_id",
-            foreignField: "userId",
-            as: "profiles",
-          },
-        },
-        {
-          $set: {
-            dashboardGender: {
-              $ifNull: [
-                { $arrayElemAt: ["$profiles.gender", 0] },
-                { $ifNull: ["$gender", "$onboardingData.gender"] },
-              ],
-            },
-          },
-        },
-        { $match: { dashboardGender: { $in: ["Male", "Female"] } } },
-        { $group: { _id: "$dashboardGender", count: { $sum: 1 } } },
+      Profile.countDocuments(activePublicProfileMatch),
+      Profile.aggregate([
+        { $match: activePublicProfileMatch },
+        { $group: { _id: "$gender", count: { $sum: 1 } } },
       ]),
       Interest.countDocuments(),
       Interest.countDocuments({ createdAt: { $gte: since } }),
@@ -124,7 +122,7 @@ export async function GET(request: NextRequest) {
       FraudLog.countDocuments({ createdAt: { $gte: since } }),
       FraudLog.countDocuments({ status: "detected", createdAt: { $gte: since } }),
       User.aggregate([
-        { $match: { ...publicUserFilter, createdAt: { $gte: since } } },
+        { $match: { ...registrationUserFilter, createdAt: { $gte: since } } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -234,6 +232,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       overview: {
         totalUsers,
+        totalVisitors,
         newUsers,
         registrationGrowthRate,
         totalProfiles,

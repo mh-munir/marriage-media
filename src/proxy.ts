@@ -28,6 +28,21 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
 export function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
+  const visitorId = request.cookies.get("siteVisitorId")?.value;
+  if (
+    request.method === "GET" &&
+    request.headers.get("accept")?.includes("text/html") &&
+    (!visitorId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(visitorId))
+  ) {
+    response.cookies.set("siteVisitorId", crypto.randomUUID(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+    });
+  }
+
   // Enhanced Security Headers
   response.headers.set("X-DNS-Prefetch-Control", "on");
   response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");

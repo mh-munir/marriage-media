@@ -10,6 +10,7 @@ import { adminFetch } from "@/lib/admin-fetch";
 
 type Overview = {
   totalUsers: number;
+  totalVisitors: number;
   newUsers: number;
   registrationGrowthRate: number;
   totalProfiles: number;
@@ -46,10 +47,10 @@ export default function AdminDashboardPage() {
   const pendingPhotos = photos?.pendingPhotos?.length ?? 0;
   const pendingVerifications = overview?.pendingVerifications ?? verifications?.verifications?.length ?? 0;
   const stats = [
-    { label: "Total users", value: overview?.totalUsers, detail: `+${overview?.newUsers ?? 0} this month`, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Male users", value: overview?.maleUsers, detail: "Of all users", icon: Users, color: "text-cyan-700", bg: "bg-cyan-50" },
-    { label: "Female users", value: overview?.femaleUsers, detail: "Of all users", icon: Users, color: "text-rose-600", bg: "bg-rose-50" },
+    { label: "Total visitors", value: overview?.totalVisitors, detail: "Unique devices", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "Active profiles", value: overview?.activeUsers, detail: `${overview?.totalProfiles ?? 0} profiles total`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Active male profiles", value: overview?.maleUsers, detail: "Of active profiles", icon: Users, color: "text-cyan-700", bg: "bg-cyan-50" },
+    { label: "Active female profiles", value: overview?.femaleUsers, detail: "Of active profiles", icon: Users, color: "text-rose-600", bg: "bg-rose-50" },
     { label: "Revenue · 30 days", value: overview ? `৳${overview.totalRevenue.toLocaleString()}` : undefined, detail: `${overview?.revenueGrowthRate ?? 0}% vs previous period`, icon: DollarSign, color: "text-violet-600", bg: "bg-violet-50" },
     { label: "Trust & safety", value: overview?.verifiedUsers, detail: `${overview?.fraudAlerts ?? 0} fraud alerts`, icon: ShieldAlert, color: "text-amber-600", bg: "bg-amber-50" },
   ];
