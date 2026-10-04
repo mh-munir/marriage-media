@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
     const status = new URL(request.url).searchParams.get("status") || "pending";
     const filter: Record<string, unknown> = { "metadata.submissionType": "manual" };
-    if (status !== "all") filter.status = "pending";
+    filter.status = status === "all" ? { $ne: "failed" } : "pending";
     const payments = await Payment.find(filter)
       .sort({ createdAt: -1 })
       .populate("userId", "email phone")
@@ -60,35 +60,36 @@ export async function PATCH(request: NextRequest) {
     }
 
     await connectToDatabase();
-    const payment = await Payment.findOne({
+    if (action === "reject") {
+      const rejectedPayment = await Payment.findOneAndUpdate(
+        { _id: paymentId, "metadata.submissionType": "manual", status: "pending" },
+        { $set: { status: "failed" } },
+        { new: true },
+      );
+      if (!rejectedPayment) return NextResponse.json({ error: "Only a pending manual payment can be rejected" }, { status: 409 });
+      return NextResponse.json({ success: true, status: rejectedPayment.status });
+    }
+
+    const pendingPayment = await Payment.findOne({
       _id: paymentId,
       "metadata.submissionType": "manual",
-      status: { $in: ["pending", "completed"] },
-    });
-    if (!payment) return NextResponse.json({ error: "Pending manual payment not found" }, { status: 404 });
+      status: "pending",
+    }).select("planDuration");
+    if (!pendingPayment) return NextResponse.json({ error: "Only a pending manual payment can be approved" }, { status: 409 });
 
-    if (action === "reject") {
-      if (payment.status !== "pending") {
-        return NextResponse.json({ error: "A completed payment cannot be rejected" }, { status: 409 });
-      }
-      payment.status = "failed";
-      await payment.save();
-      return NextResponse.json({ success: true, status: payment.status });
-    }
+    const startDate = new Date();
+    const expiryDate = new Date(startDate.getTime() + pendingPayment.planDuration * 24 * 60 * 60 * 1000);
+    const approvedPayment = await Payment.findOneAndUpdate(
+      { _id: paymentId, "metadata.submissionType": "manual", status: "pending" },
+      { $set: { status: "completed", startDate, expiryDate } },
+      { new: true },
+    );
+    if (!approvedPayment) return NextResponse.json({ error: "Only a pending manual payment can be approved" }, { status: 409 });
 
-    const shouldNotify = payment.status === "pending";
-    if (shouldNotify) {
-      payment.status = "completed";
-      payment.startDate = new Date();
-      payment.expiryDate = new Date(Date.now() + payment.planDuration * 24 * 60 * 60 * 1000);
-      await payment.save();
-    }
-    await Profile.findOneAndUpdate({ userId: payment.userId }, { isPremium: true, premiumExpiry: payment.expiryDate, premiumPlan: payment.metadata?.planId || payment.plan });
-    if (shouldNotify) {
-      await notifyPaymentConfirmation(payment.userId.toString(), String(payment.metadata?.planId || payment.plan), `BDT ${payment.amount}`, payment.expiryDate.toLocaleDateString(), "/dashboard");
-    }
+    await Profile.findOneAndUpdate({ userId: approvedPayment.userId }, { isPremium: true, premiumExpiry: expiryDate, premiumPlan: approvedPayment.metadata?.planId || approvedPayment.plan });
+    await notifyPaymentConfirmation(approvedPayment.userId.toString(), String(approvedPayment.metadata?.planId || approvedPayment.plan), `BDT ${approvedPayment.amount}`, expiryDate.toLocaleDateString(), "/dashboard");
 
-    return NextResponse.json({ success: true, status: payment.status });
+    return NextResponse.json({ success: true, status: approvedPayment.status });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not update payment";
     return NextResponse.json({ error: message }, { status: message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500 });

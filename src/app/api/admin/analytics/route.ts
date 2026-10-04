@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const since = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
     const previousSince = new Date(now.getTime() - period * 2 * 24 * 60 * 60 * 1000);
+    const approvedManualPaymentFilter = { "metadata.submissionType": "manual", status: "completed" } as const;
 
     await syncRejectedProfileUserFlags();
     const publicUserFilter = {
@@ -106,13 +107,13 @@ export async function GET(request: NextRequest) {
       ]),
       Interest.countDocuments(),
       Interest.countDocuments({ createdAt: { $gte: since } }),
-      Payment.countDocuments({ status: "completed" }),
+      Payment.countDocuments(approvedManualPaymentFilter),
       Payment.aggregate([
-        { $match: { status: "completed", createdAt: { $gte: since } } },
+        { $match: { ...approvedManualPaymentFilter, createdAt: { $gte: since } } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       Payment.aggregate([
-        { $match: { status: "completed", createdAt: { $gte: previousSince, $lt: since } } },
+        { $match: { ...approvedManualPaymentFilter, createdAt: { $gte: previousSince, $lt: since } } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       Report.countDocuments({ status: "pending" }),
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
         { $sort: { _id: 1 } },
       ]),
       Payment.aggregate([
-        { $match: { status: "completed", createdAt: { $gte: since } } },
+        { $match: { ...approvedManualPaymentFilter, createdAt: { $gte: since } } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -144,17 +145,17 @@ export async function GET(request: NextRequest) {
         { $sort: { _id: 1 } },
       ]),
       Payment.aggregate([
-        { $match: { createdAt: { $gte: since } } },
+        { $match: { status: { $ne: "failed" }, createdAt: { $gte: since } } },
         { $group: { _id: "$paymentMethod", count: { $sum: 1 }, total: { $sum: "$amount" } } },
         { $sort: { total: -1 } },
       ]),
       Payment.aggregate([
-        { $match: { createdAt: { $gte: since } } },
+        { $match: { status: { $ne: "failed" }, createdAt: { $gte: since } } },
         { $group: { _id: "$status", count: { $sum: 1 }, total: { $sum: "$amount" } } },
         { $sort: { count: -1 } },
       ]),
       Payment.aggregate([
-        { $match: { status: "completed", createdAt: { $gte: since } } },
+        { $match: { ...approvedManualPaymentFilter, createdAt: { $gte: since } } },
         { $group: { _id: "$plan", count: { $sum: 1 }, total: { $sum: "$amount" } } },
         { $sort: { total: -1 } },
       ]),
@@ -184,7 +185,7 @@ export async function GET(request: NextRequest) {
         { $sort: { _id: 1 } },
       ]),
       Payment.aggregate([
-        { $match: { status: "completed", createdAt: { $gte: since } } },
+        { $match: { ...approvedManualPaymentFilter, createdAt: { $gte: since } } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -208,7 +209,7 @@ export async function GET(request: NextRequest) {
         { $sort: { "_id.dayOfWeek": 1, "_id.hour": 1 } },
       ]),
       Payment.aggregate([
-        { $match: { createdAt: { $gte: previousSince } } },
+        { $match: { "metadata.submissionType": "manual", status: { $ne: "failed" }, createdAt: { $gte: previousSince } } },
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
@@ -230,9 +231,6 @@ export async function GET(request: NextRequest) {
     const maleUsers = userGenderCounts.find((item) => item._id === "Male")?.count || 0;
     const femaleUsers = userGenderCounts.find((item) => item._id === "Female")?.count || 0;
     const premiumConversionRate = totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 100) : 0;
-    const paymentSuccessRate =
-      totalPayments > 0 ? Math.round((totalPayments / Math.max(totalPayments + paymentStatuses.reduce((sum, item) => sum + (item._id === "failed" ? item.count : 0), 0), 1)) * 100) : 0;
-
     return NextResponse.json({
       overview: {
         totalUsers,
@@ -253,7 +251,6 @@ export async function GET(request: NextRequest) {
         pendingVerifications,
         fraudAlerts,
         premiumConversionRate,
-        paymentSuccessRate,
         activeConversations,
         sentMessages,
       },

@@ -44,7 +44,11 @@ async function completeVerifiedPayment(
   }
 
   await connectToDatabase();
-  const payment = await Payment.findOne({ transactionId, paymentMethod: provider });
+  const payment = await Payment.findOne({
+    transactionId,
+    paymentMethod: provider,
+    "metadata.submissionType": { $ne: "manual" },
+  });
   if (!payment) return NextResponse.json({ error: "Pending payment not found" }, { status: 404 });
   const grantPremium = (premiumExpiry: Date = payment.expiryDate) => Profile.findOneAndUpdate(
     { userId: payment.userId },

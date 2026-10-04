@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         url,
         publicId: cloudinaryPublicId,
         isPrimary: isFirstPhoto,
-        isApproved: isFirstPhoto, // Auto-approve the first photo
+      isApproved: false,
     };
 
     if (profile) {

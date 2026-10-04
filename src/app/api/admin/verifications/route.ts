@@ -175,6 +175,10 @@ export async function PUT(request: NextRequest) {
       await updateProfileBadge(verification.userId.toString());
       if (verification.type === "profile") {
         await Profile.findOneAndUpdate({ userId: verification.userId }, { isVisible: true });
+        await Profile.updateOne(
+          { userId: verification.userId, "photos.0": { $exists: true } },
+          { $set: { "photos.$[].isApproved": true } },
+        );
       }
 
       const user = await User.findById(verification.userId);
