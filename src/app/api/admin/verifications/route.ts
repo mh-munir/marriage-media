@@ -1,12 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import connectToDatabase from "@/lib/mongodb";
 import { Verification, User, Profile } from "@/models";
 import { requireAdmin } from "@/lib/auth";
 import { sendVerificationApprovedEmail } from "@/lib/email";
 import { updateProfileBadge } from "@/lib/verification";
 import { createNotification } from "@/lib/notifications";
+import { parsePaginationParams } from "@/lib/validation";
 
 // Get pending verifications
 export async function GET(request: NextRequest) {
@@ -20,15 +22,14 @@ export async function GET(request: NextRequest) {
     const statusFilter = validStatuses.includes(statusParam as (typeof validStatuses)[number])
       ? (statusParam as (typeof validStatuses)[number])
       : "pending";
-    const typeFilter = searchParams.get("type") || "profile";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const skip = (page - 1) * limit;
+    const typeParam = searchParams.get("type") || "profile";
+    const validTypes = ["profile", "phone", "email"] as const;
+    const typeFilter = validTypes.includes(typeParam as (typeof validTypes)[number])
+      ? (typeParam as (typeof validTypes)[number])
+      : "profile";
+    const { page, limit, skip } = parsePaginationParams(searchParams, { defaultPage: 1, defaultLimit: 20, maxLimit: 100 });
 
-    const filter: Record<string, unknown> = { status: statusFilter, type: "profile" };
-    if (typeFilter !== "profile") {
-      filter.type = typeFilter;
-    }
+    const filter: Record<string, unknown> = { status: statusFilter, type: typeFilter };
 
     const [verifications, total] = await Promise.all([
       Verification.find(filter)
@@ -90,9 +91,23 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { verificationId, status, rejectionReason } = body;
 
-    if (!verificationId || !status) {
+    if (!verificationId || !Types.ObjectId.isValid(String(verificationId))) {
       return NextResponse.json(
-        { error: "Verification ID and status are required" },
+        { error: "A valid verification ID is required" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof status !== "string" || !status) {
+      return NextResponse.json(
+        { error: "Verification status is required" },
+        { status: 400 }
+      );
+    }
+
+    if (rejectionReason !== undefined && typeof rejectionReason !== "string") {
+      return NextResponse.json(
+        { error: "Rejection reason must be a string" },
         { status: 400 }
       );
     }

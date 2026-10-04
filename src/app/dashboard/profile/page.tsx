@@ -12,7 +12,9 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  ImagePlus,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -319,6 +321,8 @@ async function fetchLocationOptions(level: LocationLevel, params: Record<string,
 export default function DashboardProfilePage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
+  const [deletingPhotoId, setDeletingPhotoId] = React.useState<string | null>(null);
   const [saved, setSaved] = React.useState(false);
   const [activeSection, setActiveSection] = React.useState("all");
   const [error, setError] = React.useState("");
@@ -326,6 +330,7 @@ export default function DashboardProfilePage() {
   const [profile, setProfile] = React.useState<ProfileFormData>(createInitialProfile());
   const [locationOptions, setLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
   const [permanentLocationOptions, setPermanentLocationOptions] = React.useState<LocationOptions>(emptyLocationOptions);
+  const photoInputRef = React.useRef<HTMLInputElement>(null);
   const { updateUser } = useAuthStore();
   const { language, translateText: text } = useLanguage();
 
@@ -490,6 +495,62 @@ export default function DashboardProfilePage() {
     return missingFields;
   };
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+
+    const availableSlots = 4 - profile.photos.length;
+    if (availableSlots <= 0) {
+      setError("Maximum 4 photos allowed.");
+      input.value = "";
+      return;
+    }
+
+    setError("");
+    setIsUploadingPhoto(true);
+    try {
+      for (const file of files.slice(0, availableSlots)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const result = await apiClient.request<{ photo: ProfileFormData["photos"][number] }>(
+          "/api/profile/photos/upload",
+          { method: "POST", body: formData },
+        );
+        setProfile((current) => ({ ...current, photos: [...current.photos, result.photo] }));
+        if (result.photo.isPrimary) updateUser({ avatar: result.photo.url });
+      }
+      if (files.length > availableSlots) setError("Maximum 4 photos allowed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      input.value = "";
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handlePhotoDelete = async (publicId: string) => {
+    if (!publicId || deletingPhotoId) return;
+
+    setDeletingPhotoId(publicId);
+    setError("");
+    try {
+      await apiClient.request(`/api/profile/photos?publicId=${encodeURIComponent(publicId)}`, {
+        method: "DELETE",
+      });
+      const remainingPhotos = profile.photos.filter((photo) => photo.publicId !== publicId);
+      if (remainingPhotos.length && !remainingPhotos.some((photo) => photo.isPrimary)) {
+        remainingPhotos[0] = { ...remainingPhotos[0], isPrimary: true };
+      }
+      setProfile((current) => ({ ...current, photos: remainingPhotos }));
+      updateUser({ avatar: remainingPhotos.find((photo) => photo.isPrimary)?.url || "" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete photo.");
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
+
   const handleSave = async () => {
     if (isSaving) return;
 
@@ -624,7 +685,30 @@ export default function DashboardProfilePage() {
                       </CardHeader>
                       <CardContent className="space-y-8">
                         <div className="space-y-4">
-                          <h2 className="text-lg font-semibold">{text("Basic Information")}</h2>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <h2 className="text-lg font-semibold">{text("Profile Photos")}</h2>
+                            <>
+                              <input
+                                ref={photoInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="sr-only"
+                                onChange={handlePhotoUpload}
+                                aria-label={text("Upload profile photos")}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => photoInputRef.current?.click()}
+                                disabled={isUploadingPhoto || isSaving || deletingPhotoId !== null || profile.photos.length >= 4}
+                              >
+                                {isUploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                                {text("Upload photos")}
+                              </Button>
+                            </>
+                          </div>
 
                           {profile.photos.length > 0 ? (
                             <div className="grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-5">
@@ -635,10 +719,22 @@ export default function DashboardProfilePage() {
                                 >
                                   <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 16vw, 50vw" className="object-cover" />
                                   {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute right-2 top-2 h-8 w-8"
+                                    title={text("Delete photo")}
+                                    aria-label={text("Delete photo")}
+                                    disabled={isUploadingPhoto || isSaving || deletingPhotoId !== null}
+                                    onClick={() => void handlePhotoDelete(photo.publicId)}
+                                  >
+                                    {deletingPhotoId === photo.publicId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                  </Button>
                                 </div>
                               ))}
                             </div>
-                          ) : null}
+                          ) : <p className="text-sm text-muted-foreground">{text("No profile photos yet.")}</p>}
                         </div>
 
                         <section>

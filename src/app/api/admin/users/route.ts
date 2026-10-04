@@ -12,6 +12,7 @@ import { removeDeprecatedLifestyleFields } from "@/lib/remove-deprecated-lifesty
 import { syncRejectedProfileUserFlags } from "@/lib/rejected-profile-users";
 import { getProfileDetailLimit } from "@/lib/pricing";
 import { ADMIN_ONBOARDING_PROFILE_FIELDS, ADMIN_ONBOARDING_USER_FIELDS } from "@/lib/admin-onboarding-fields";
+import { parsePaginationParams } from "@/lib/validation";
 
 // Get all users with admin filters
 export async function GET(request: NextRequest) {
@@ -22,8 +23,11 @@ export async function GET(request: NextRequest) {
     await syncRejectedProfileUserFlags();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const { page, limit, skip } = parsePaginationParams(searchParams, {
+      defaultPage: 1,
+      defaultLimit: 20,
+      maxLimit: 100,
+    });
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const role = searchParams.get("role") || "user";
@@ -46,8 +50,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-    const skip = (page - 1) * limit;
-
     const filter: Record<string, unknown> =
       role === "admin-team"
         ? { role: { $in: ["admin", "superadmin"] } }
