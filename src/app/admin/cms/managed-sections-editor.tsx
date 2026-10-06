@@ -270,7 +270,7 @@ function ImageField({
       <p className="text-sm font-medium">{label}</p>
       {value ? (
         <div className="relative h-28 w-48 overflow-hidden rounded-xl">
-          <Image src={value} alt="Selected preview" fill className="object-cover" sizes="192px" />
+          <Image src={value} alt="Selected preview" fill className="object-cover" sizes="192px" unoptimized={value.startsWith("https://res.cloudinary.com/")} />
         </div>
       ) : null}
       <label className="inline-flex cursor-pointer items-center rounded-lg border bg-white px-3 py-2 text-sm font-medium">

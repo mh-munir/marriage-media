@@ -27,6 +27,7 @@ import { OnboardingFormSummary } from "@/components/admin/onboarding-form-summar
 
 interface AdminUser {
   _id: string;
+  publicId?: string;
   email: string;
   phone?: string;
   avatarUrl?: string;
@@ -373,7 +374,9 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
             <Input
               aria-label="Search members"
               placeholder={
-                isAdminTeam ? "Search admin email" : "Search member email"
+                isAdminTeam
+                  ? "Search admin email"
+                  : "Search mobile number or Member ID"
               }
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -386,6 +389,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
             <table className="w-full text-left text-sm">
               <thead className="border-y bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
+                  {!isAdminTeam ? <th className="px-6 py-3">Member ID</th> : null}
                   <th className="px-6 py-3">Member</th>
                   <th className="px-6 py-3">Role</th>
                   <th className="px-6 py-3">Trust</th>
@@ -400,7 +404,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-slate-500"
-                      colSpan={7}
+                      colSpan={isAdminTeam ? 7 : 8}
                     >
                       Loading {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"}...
                     </td>
@@ -409,20 +413,25 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                   <tr>
                     <td
                       className="px-6 py-10 text-center text-red-600"
-                      colSpan={7}
+                      colSpan={isAdminTeam ? 7 : 8}
                     >
                       {error}
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-10 text-center text-slate-500" colSpan={7}>
+                    <td className="px-6 py-10 text-center text-slate-500" colSpan={isAdminTeam ? 7 : 8}>
                       No {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"} found.
                     </td>
                   </tr>
                 ) : (
                   users.map((user) => (
                     <React.Fragment key={user._id}><tr className="cursor-pointer hover:bg-slate-50" onClick={isAdminTeam ? () => openAccount(user) : () => void openPublicUser(user)}>
+                      {!isAdminTeam ? (
+                        <td className="whitespace-nowrap px-6 py-4 font-mono text-xs font-semibold text-slate-600">
+                          {user.publicId || "—"}
+                        </td>
+                      ) : null}
                       <td className="px-6 py-4">
                         <p className="font-semibold">
                           {isAdminTeam
@@ -545,7 +554,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
         <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
           <div className="flex items-center justify-between border-b px-5 py-4"><div><h3 className="text-xl font-bold">Account details</h3><p className="text-sm text-slate-500">Edit account, access and profile image</p></div><button type="button" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" onClick={() => setSelectedAccount(null)} aria-label="Close account details"><X className="h-5 w-5" /></button></div>
           <form className="space-y-5 p-5" onSubmit={saveAccount}>
-            <div className="flex items-center gap-4 rounded-xl border bg-slate-50 p-4"><div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">{accountAvatar ? <Image src={accountAvatar} alt="Account avatar" fill sizes="80px" className="object-cover" /> : selectedAccount.email.slice(0, 2).toUpperCase()}</div><div><p className="font-semibold">{selectedAccount.role === "superadmin" ? "Superadmin" : "Admin"}</p><p className="text-sm text-slate-500">Upload a profile image for this admin account.</p><label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 py-2 text-xs font-semibold hover:bg-slate-100"><UploadCloud className="h-3.5 w-3.5" />Upload image<input type="file" accept="image/*" className="sr-only" disabled={actionLoading} onChange={(event) => void uploadAccountAvatar(event)} /></label></div></div>
+            <div className="flex items-center gap-4 rounded-xl border bg-slate-50 p-4"><div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">{accountAvatar ? <Image src={accountAvatar} alt="Account avatar" fill sizes="80px" className="object-cover" unoptimized={accountAvatar.startsWith("https://res.cloudinary.com/")} /> : selectedAccount.email.slice(0, 2).toUpperCase()}</div><div><p className="font-semibold">{selectedAccount.role === "superadmin" ? "Superadmin" : "Admin"}</p><p className="text-sm text-slate-500">Upload a profile image for this admin account.</p><label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 py-2 text-xs font-semibold hover:bg-slate-100"><UploadCloud className="h-3.5 w-3.5" />Upload image<input type="file" accept="image/*" className="sr-only" disabled={actionLoading} onChange={(event) => void uploadAccountAvatar(event)} /></label></div></div>
             <div className="grid gap-4 sm:grid-cols-2"><Input label="First name" value={accountForm.firstName} onChange={(event) => setAccountForm((current) => ({ ...current, firstName: event.target.value }))} disabled={!isSuperadmin} required /><Input label="Last name" value={accountForm.lastName} onChange={(event) => setAccountForm((current) => ({ ...current, lastName: event.target.value }))} disabled={!isSuperadmin} required /><Input label="Email" type="email" value={accountForm.email} onChange={(event) => setAccountForm((current) => ({ ...current, email: event.target.value }))} disabled={!isSuperadmin || selectedAccount.role === "superadmin"} required /><Input label="Mobile number" type="tel" value={accountForm.phone} onChange={(event) => setAccountForm((current) => ({ ...current, phone: event.target.value }))} disabled={!isSuperadmin} />{isSuperadmin ? <Input label="New password" type="password" placeholder="Leave blank to keep current password" value={accountForm.password} onChange={(event) => setAccountForm((current) => ({ ...current, password: event.target.value }))} minLength={8} /> : null}</div>
             <div className="flex flex-wrap gap-4 border-t pt-4 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={accountForm.isActive} onChange={(event) => setAccountForm((current) => ({ ...current, isActive: event.target.checked }))} disabled={selectedAccount.role !== "admin" || currentUser?.role !== "superadmin"} />Active account</label><label className="flex items-center gap-2"><input type="checkbox" checked={accountForm.isBlocked} onChange={(event) => setAccountForm((current) => ({ ...current, isBlocked: event.target.checked }))} disabled={selectedAccount.role !== "admin" || currentUser?.role !== "superadmin"} />Blocked</label><span className="text-slate-500">Email verified: {selectedAccount.isEmailVerified ? "Yes" : "No"}</span><span className="text-slate-500">Mobile verified: {selectedAccount.isPhoneVerified ? "Yes" : "No"}</span></div>
             {selectedAccount.profile ? <div className="rounded-xl border bg-slate-50 p-4"><h4 className="mb-2 font-semibold">Stored profile data</h4><pre className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word text-xs text-slate-600">{JSON.stringify(selectedAccount.profile, null, 2)}</pre></div> : null}
@@ -567,7 +576,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
             </div>
             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-emerald-50 text-2xl font-bold text-emerald-800">
-                {selectedPublicPhoto ? <Image src={selectedPublicPhoto} alt={`${selectedPublicName} profile`} fill sizes="112px" className="object-cover" /> : <span className="flex h-full items-center justify-center">{selectedPublicName.slice(0, 2).toUpperCase()}</span>}
+                {selectedPublicPhoto ? <Image src={selectedPublicPhoto} alt={`${selectedPublicName} profile`} fill sizes="112px" className="object-cover" unoptimized={selectedPublicPhoto.startsWith("https://res.cloudinary.com/")} /> : <span className="flex h-full items-center justify-center">{selectedPublicName.slice(0, 2).toUpperCase()}</span>}
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                 <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">{selectedPublicProfile?.gender || "Gender not added"}</span>

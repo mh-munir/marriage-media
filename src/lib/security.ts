@@ -242,27 +242,37 @@ export function generateTokenPair(payload: JWTPayload): TokenPair {
 export async function rotateTokens(
   oldRefreshToken: string
 ): Promise<TokenPair | null> {
+  let payload: JWTPayload & { type: string };
   try {
-    const payload = jwt.verify(oldRefreshToken, JWT_SECRET) as JWTPayload & { type: string };
-    if (payload.type !== "refresh") return null;
-
-    // Check if refresh token has been revoked
-    await connectToDatabase();
-    const isRevoked = await RevokedToken.findOne({ token: oldRefreshToken });
-    if (isRevoked) return null;
-
-    // Revoke old refresh token
-    await RevokedToken.create({ token: oldRefreshToken, revokedAt: new Date() });
-
-    // Issue new pair
-    return generateTokenPair({
-      userId: payload.userId,
-      email: payload.email,
-      role: payload.role,
-    });
+    payload = jwt.verify(oldRefreshToken, JWT_SECRET) as JWTPayload & { type: string };
   } catch {
     return null;
   }
+  if (payload.type !== "refresh") return null;
+
+  await connectToDatabase();
+  const isRevoked = await RevokedToken.findOne({ token: oldRefreshToken });
+  if (isRevoked) return null;
+
+  try {
+    await RevokedToken.create({ token: oldRefreshToken, revokedAt: new Date() });
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      return null;
+    }
+    throw error;
+  }
+
+  return generateTokenPair({
+    userId: payload.userId,
+    email: payload.email,
+    role: payload.role,
+  });
 }
 
 /**

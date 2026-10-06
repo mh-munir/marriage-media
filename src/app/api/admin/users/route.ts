@@ -89,12 +89,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      filter.$or = [
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-        { firstName: { $regex: search, $options: "i" } },
-        { lastName: { $regex: search, $options: "i" } },
-      ];
+      const searchableFields = isPublicUsersView
+        ? ["phone", "publicId"]
+        : ["email", "phone", "firstName", "lastName"];
+      filter.$or = searchableFields.map((field) => ({
+        [field]: { $regex: search, $options: "i" },
+      }));
     }
 
     if (status === "active") filter.isActive = true;

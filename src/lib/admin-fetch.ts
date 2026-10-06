@@ -18,7 +18,15 @@ async function refreshAdminSession() {
         credentials: "include",
         body: refreshToken ? JSON.stringify({ refreshToken }) : undefined,
       });
-      if (!response.ok) return false;
+      if (!response.ok) {
+        if (response.status === 401) {
+          useAdminAuthStore.getState().logout();
+          if (window.location.pathname.startsWith("/admin") && window.location.pathname !== "/admin/login") {
+            window.location.replace("/admin/login");
+          }
+        }
+        return false;
+      }
 
       const tokens = await response.json();
       if (!tokens.accessToken || !tokens.refreshToken) return false;

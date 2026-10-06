@@ -39,7 +39,11 @@ export async function POST(request: NextRequest) {
     response.cookies.set("adminToken", tokens.accessToken, { ...cookieOptions, maxAge: 15 * 60 });
     response.cookies.set("adminRefreshToken", tokens.refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 });
     return response;
-  } catch {
-    return NextResponse.json({ error: "Unable to refresh admin session" }, { status: 401 });
+  } catch (error: unknown) {
+    console.error("Admin session refresh failed:", error);
+    return NextResponse.json(
+      { error: "Unable to refresh admin session. Please try again." },
+      { status: 503 },
+    );
   }
 }

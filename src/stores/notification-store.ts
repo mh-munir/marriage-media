@@ -75,7 +75,7 @@ interface NotificationState {
   };
 
   // Actions
-  fetchNotifications: (reset?: boolean) => Promise<void>;
+  fetchNotifications: (reset?: boolean) => Promise<boolean>;
   fetchPreferences: () => Promise<void>;
   setNotifications: (notifications: AppNotification[]) => void;
   addNotification: (notification: AppNotification) => void;
@@ -135,7 +135,7 @@ export const useNotificationStore = create<NotificationState>()(
 
       fetchNotifications: async (reset = false) => {
         const state = get();
-        if (state.isLoading) return;
+        if (state.isLoading) return true;
 
         const page = reset ? 1 : state.page;
         set({ isLoading: true });
@@ -171,6 +171,7 @@ export const useNotificationStore = create<NotificationState>()(
               hasMore: data.pagination.page < data.pagination.pages,
               isLoading: false,
             }));
+            return true;
           } else {
             const data = await res.json().catch(() => ({ error: "Unable to load notifications." }));
             throw new Error(data.error || `Request failed with ${res.status}`);
@@ -178,6 +179,7 @@ export const useNotificationStore = create<NotificationState>()(
         } catch (error) {
           console.error("Failed to fetch notifications:", error);
           set({ isLoading: false });
+          return false;
         }
       },
 
@@ -235,7 +237,7 @@ export const useNotificationStore = create<NotificationState>()(
         try {
           const token = getAuthToken();
 
-          await fetch("/api/notifications/read", {
+          await adminFetch("/api/notifications/read", {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -258,7 +260,7 @@ export const useNotificationStore = create<NotificationState>()(
         try {
           const token = getAuthToken();
 
-          await fetch("/api/notifications/read", {
+          await adminFetch("/api/notifications/read", {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
