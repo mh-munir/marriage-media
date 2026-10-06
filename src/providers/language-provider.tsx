@@ -203,6 +203,7 @@ const biodataText: Record<string, string> = {
   "AI Recommended Matches": "এআই প্রস্তাবিত মিল",
   "View All": "সব দেখুন",
   "Add your Expected partner preferences to see profiles with more than 50% matches.": "৫০%-এর বেশি মিলের প্রোফাইল দেখতে প্রত্যাশিত জীবনসঙ্গীর পছন্দগুলো যোগ করুন।",
+  "No eligible profiles are available yet. Complete your profile and partner preferences to improve your recommendations.": "এখনো ৫০%-এর বেশি মিল আছে এমন কোনো প্রোফাইল পাওয়া যায়নি। আরও ভালো পরামর্শ পেতে আপনার প্রোফাইল ও জীবনসঙ্গী সম্পর্কে পছন্দগুলো সম্পূর্ণ করুন।",
   "Quick Actions": "দ্রুত কাজ",
   "Search Profiles": "প্রোফাইল খুঁজুন",
   "View Interests": "আগ্রহ দেখুন",

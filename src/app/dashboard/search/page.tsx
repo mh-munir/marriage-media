@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -148,21 +148,43 @@ async function fetchJson(url: string, init?: RequestInit): Promise<ProfileRespon
 }
 
 export default function DashboardSearchPage({ publicSearch = false }: { publicSearch?: boolean }) {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="mx-auto max-w-7xl px-4 pb-12 pt-30 sm:px-6 lg:px-8">
+            <ProfileGridSkeleton />
+          </main>
+          <Footer />
+        </div>
+      }
+    >
+      <DashboardSearchContent publicSearch={publicSearch} />
+    </React.Suspense>
+  );
+}
+
+function DashboardSearchContent({ publicSearch = false }: { publicSearch?: boolean }) {
   const { language, translateText: text } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuthStore();
   const [view, setView] = React.useState<"browse" | "recent">("browse");
   const [sortBy, setSortBy] = React.useState("relevance");
-  const [filters, setFilters] = React.useState<BasicSearchFilters>({
-    gender: "",
-    division: "",
-    district: "",
-    thana: "",
-    education: "",
-    location: "",
-    ageMin: "",
-    ageMax: "",
-    premiumOnly: false,
+  const [filters, setFilters] = React.useState<BasicSearchFilters>(() => {
+    const requestedGender = searchParams.get("gender");
+    return {
+      gender: requestedGender === "Male" || requestedGender === "Female" ? requestedGender : "",
+      division: searchParams.get("division") || "",
+      district: searchParams.get("district") || "",
+      thana: searchParams.get("thana") || "",
+      education: searchParams.get("education") || "",
+      location: searchParams.get("location") || "",
+      ageMin: searchParams.get("ageMin") || "",
+      ageMax: searchParams.get("ageMax") || "",
+      premiumOnly: searchParams.get("premiumOnly") === "true",
+    };
   });
   const [profiles, setProfiles] = React.useState<BrowseProfile[]>([]);
   const [pagination, setPagination] = React.useState<PaginationState>(emptyPagination);
@@ -172,22 +194,8 @@ export default function DashboardSearchPage({ publicSearch = false }: { publicSe
   const [isAppending, setIsAppending] = React.useState(false);
   const [error, setError] = React.useState("");
   const [infiniteScroll, setInfiniteScroll] = React.useState(true);
-  const [filtersInitialized, setFiltersInitialized] = React.useState(false);
   const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
   const requestIdRef = React.useRef(0);
-
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const requestedGender = params.get("gender");
-    setFilters((current) => ({
-      ...current,
-      gender: requestedGender === "Male" || requestedGender === "Female" ? requestedGender : "",
-      division: params.get("division") || "",
-      district: params.get("district") || "",
-      thana: params.get("thana") || "",
-    }));
-    setFiltersInitialized(true);
-  }, []);
 
   const hasNextPage =
     view === "browse"
@@ -304,10 +312,10 @@ export default function DashboardSearchPage({ publicSearch = false }: { publicSe
   );
 
   React.useEffect(() => {
-    if (filtersInitialized && view === "browse") {
+    if (view === "browse") {
       queueMicrotask(() => void loadBrowseProfiles(1));
     }
-  }, [filtersInitialized, loadBrowseProfiles, sortBy, view]);
+  }, [loadBrowseProfiles, sortBy, view]);
 
   const toggleFavorite = React.useCallback(async (profileUserId: string) => {
     const update = (list: BrowseProfile[]) =>

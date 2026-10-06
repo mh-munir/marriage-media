@@ -94,6 +94,11 @@ export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAct
         <div className="space-y-3 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0"><h2 className="truncate text-lg font-semibold text-[#355350] dark:text-foreground">{displayName}</h2><p className="mt-1 text-sm text-[#6f8580]">{profile.age ? `${formatCount(profile.age, language)} ${translateText("yrs")} · ${translatedProfession}` : translatedProfession}</p></div>
+            {user ? (
+              <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                {formatCount(profile.matchPercentage, language)}%
+              </span>
+            ) : null}
             {profile.isOnline ? <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-label={translateText("Online")} /> : null}
           </div>
           <div className="flex items-center gap-2 text-xs text-[#6f8580]"><MapPin className="h-3.5 w-3.5 shrink-0 text-[#e8897f]" /><span className="truncate">{translatedLocation}</span></div>

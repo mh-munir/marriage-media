@@ -367,14 +367,30 @@ export async function GET(request: NextRequest) {
     const location = searchParams.get("location");
     const basicAgeMin = Number(searchParams.get("ageMin"));
     const basicAgeMax = Number(searchParams.get("ageMax"));
-    if (basicEducation) databaseFilter.highestEducation = basicEducation;
+    const additionalConditions: Record<string, unknown>[] = [];
+    if (basicEducation) {
+      const educationAliases: Record<string, string[]> = {
+        Secondary: ["Secondary", "SSC"],
+        "Higher Secondary": ["Higher Secondary", "HSC"],
+        "Bachelor's Degree": ["Bachelor's Degree", "Graduation"],
+      };
+      const educationValues = educationAliases[basicEducation] || [basicEducation];
+      additionalConditions.push({
+        $or: [
+          { highestEducation: { $in: educationValues } },
+          { "educationDetails.level": { $in: educationValues } },
+        ],
+      });
+    }
     if (location) {
-      databaseFilter.$or = [
-        { country: { $regex: location, $options: "i" } },
-        { division: { $regex: location, $options: "i" } },
-        { district: { $regex: location, $options: "i" } },
-        { area: { $regex: location, $options: "i" } },
-      ];
+      additionalConditions.push({
+        $or: ["country", "division", "district", "thana", "union", "area"].map((field) => ({
+          [field]: { $regex: location, $options: "i" },
+        })),
+      });
+    }
+    if (additionalConditions.length) {
+      databaseFilter.$and = additionalConditions;
     }
     if ((basicAgeMin > 0 && Number.isFinite(basicAgeMin)) || (basicAgeMax > 0 && Number.isFinite(basicAgeMax))) {
       databaseFilter.age = {};

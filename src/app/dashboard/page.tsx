@@ -347,7 +347,7 @@ export default function DashboardPage() {
                     </div>
                   ) : recommendations.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                      {text("Add your Expected partner preferences to see profiles with more than 50% matches.")}
+                      {text("No eligible profiles are available yet. Complete your profile and partner preferences to improve your recommendations.")}
                     </div>
                   ) : (
                     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
