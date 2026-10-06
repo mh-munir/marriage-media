@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     const profileUserIds = verifications.filter((item) => item.type === "profile").map((item) => typeof item.userId === "object" ? item.userId._id : item.userId).filter(Boolean);
     const profiles = profileUserIds.length
-      ? await Profile.find({ userId: { $in: profileUserIds } }).select("_id userId firstName lastName profileCompleted photos").lean()
+      ? await Profile.find({ userId: { $in: profileUserIds } }).select("_id userId email firstName lastName profileCompleted photos").lean()
       : [];
     const profileByUserId = new Map(profiles.map((profile) => [profile.userId.toString(), profile]));
     const reviewItems = verifications.map((item) => {

@@ -65,17 +65,21 @@ export async function DELETE(request: NextRequest) {
     }
 
     const remainingPhotos = profile.photos.filter((photo) => photo.publicId !== publicId);
-
-    if (photoToDelete.isPrimary && remainingPhotos.length > 0) {
-      remainingPhotos[0] = {
-        ...remainingPhotos[0],
-        isPrimary: true,
-      };
-    }
+    const currentPrimaryIndex = remainingPhotos.findIndex(
+      (photo) => photo.isPrimary && photo.url,
+    );
+    const nextPrimaryIndex =
+      photoToDelete.isPrimary || currentPrimaryIndex === -1
+        ? remainingPhotos.findIndex((photo) => photo.url)
+        : currentPrimaryIndex;
+    const normalizedPhotos = remainingPhotos.map((photo, index) => ({
+      ...photo,
+      isPrimary: index === nextPrimaryIndex,
+    }));
 
     const updatedProfile = await Profile.findOneAndUpdate(
       { userId: user._id },
-      { $set: { photos: remainingPhotos } },
+      { $set: { photos: normalizedPhotos } },
       { returnDocument: "after" }
     );
 
@@ -83,11 +87,17 @@ export async function DELETE(request: NextRequest) {
       return jsonError("Failed to update profile after deleting the image.", 500);
     }
 
+    await User.findByIdAndUpdate(user._id, {
+      $set: {
+        avatarUrl: normalizedPhotos.find((photo) => photo.isPrimary)?.url || "",
+      },
+    });
+
     return NextResponse.json({
       success: true,
       photo: {
         publicId,
-        remainingPhotosCount: remainingPhotos.length,
+        remainingPhotosCount: normalizedPhotos.length,
       },
     });
   } catch (error) {

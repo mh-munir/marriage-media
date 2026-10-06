@@ -153,7 +153,7 @@ export function OnboardingFormSummary({
           <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
             {submittedPhotos.map((photo, index) => (
               <div key={`${photo.url}-${index}`} className="relative aspect-square overflow-hidden rounded-md bg-slate-100">
-                <Image src={photo.url!} alt={`Submitted profile photo ${index + 1}`} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" />
+                <Image src={photo.url!} alt={`Submitted profile photo ${index + 1}`} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" unoptimized />
               </div>
             ))}
           </div>

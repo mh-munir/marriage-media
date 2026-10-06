@@ -200,6 +200,17 @@ const createInitialProfile = (): ProfileFormData => ({
   photos: [],
 });
 
+const normalizeProfilePhotos = (photos: ProfileFormData["photos"]) => {
+  const existingPrimaryIndex = photos.findIndex((photo) => photo.isPrimary && photo.url);
+  const primaryIndex = existingPrimaryIndex >= 0
+    ? existingPrimaryIndex
+    : photos.findIndex((photo) => photo.url);
+  return photos.map((photo, index) => ({
+    ...photo,
+    isPrimary: index === primaryIndex,
+  }));
+};
+
 const mergeProfileFormData = (
   profileData: Partial<ProfileFormData> | null | undefined,
   onboardingData: Partial<ProfileFormData> | null | undefined,
@@ -243,7 +254,13 @@ const mergeProfileFormData = (
       : Array.isArray(onboardingData?.educationDetails) && onboardingData.educationDetails.length
         ? onboardingData.educationDetails
         : base.educationDetails,
-    photos: Array.isArray(profileData?.photos) ? profileData.photos : Array.isArray(onboardingData?.photos) ? onboardingData.photos : base.photos,
+    photos: normalizeProfilePhotos(
+      Array.isArray(profileData?.photos)
+        ? profileData.photos
+        : Array.isArray(onboardingData?.photos)
+          ? onboardingData.photos
+          : base.photos,
+    ),
     siblings: Array.isArray(profileData?.siblings) ? profileData.siblings : Array.isArray(onboardingData?.siblings) ? onboardingData.siblings : base.siblings,
     hobbies: Array.isArray(profileData?.hobbies) ? profileData.hobbies : Array.isArray(onboardingData?.hobbies) ? onboardingData.hobbies : base.hobbies,
   };
@@ -415,17 +432,26 @@ export default function DashboardProfilePage() {
         const profileData = response.profile;
 
         if (profileData) {
-          setProfile(
-            mergeProfileFormData(profileData as Partial<ProfileFormData>, response.onboarding as Partial<ProfileFormData>, response.mobileNumber || "")
+          const mergedProfile = mergeProfileFormData(
+            profileData as Partial<ProfileFormData>,
+            response.onboarding as Partial<ProfileFormData>,
+            response.mobileNumber || "",
           );
+          setProfile(mergedProfile);
           updateUser({
-            avatar: profileData.photos?.find((photo) => photo.isPrimary)?.url || "",
+            avatar: mergedProfile.photos.find((photo) => photo.isPrimary)?.url || "",
           });
           setProfileExists(true);
         } else {
-          setProfile(
-            mergeProfileFormData(null, response.onboarding as Partial<ProfileFormData>, response.mobileNumber || "")
+          const mergedProfile = mergeProfileFormData(
+            null,
+            response.onboarding as Partial<ProfileFormData>,
+            response.mobileNumber || "",
           );
+          setProfile(mergedProfile);
+          updateUser({
+            avatar: mergedProfile.photos.find((photo) => photo.isPrimary)?.url || "",
+          });
           setProfileExists(false);
         }
       } catch (err) {
@@ -510,6 +536,10 @@ export default function DashboardProfilePage() {
     setError("");
     setIsUploadingPhoto(true);
     try {
+      let primaryPhotoUrl =
+        profile.photos.find((photo) => photo.isPrimary)?.url ||
+        profile.photos.find((photo) => photo.url)?.url ||
+        "";
       for (const file of files.slice(0, availableSlots)) {
         const formData = new FormData();
         formData.append("file", file);
@@ -517,9 +547,15 @@ export default function DashboardProfilePage() {
           "/api/profile/photos/upload",
           { method: "POST", body: formData },
         );
-        setProfile((current) => ({ ...current, photos: [...current.photos, result.photo] }));
-        if (result.photo.isPrimary) updateUser({ avatar: result.photo.url });
+        if (result.photo.isPrimary || !primaryPhotoUrl) {
+          primaryPhotoUrl = result.photo.url;
+        }
+        setProfile((current) => ({
+          ...current,
+          photos: normalizeProfilePhotos([...current.photos, result.photo]),
+        }));
       }
+      updateUser({ avatar: primaryPhotoUrl });
       if (files.length > availableSlots) setError("Maximum 4 photos allowed.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
@@ -538,10 +574,9 @@ export default function DashboardProfilePage() {
       await apiClient.request(`/api/profile/photos?publicId=${encodeURIComponent(publicId)}`, {
         method: "DELETE",
       });
-      const remainingPhotos = profile.photos.filter((photo) => photo.publicId !== publicId);
-      if (remainingPhotos.length && !remainingPhotos.some((photo) => photo.isPrimary)) {
-        remainingPhotos[0] = { ...remainingPhotos[0], isPrimary: true };
-      }
+      const remainingPhotos = normalizeProfilePhotos(
+        profile.photos.filter((photo) => photo.publicId !== publicId),
+      );
       setProfile((current) => ({ ...current, photos: remainingPhotos }));
       updateUser({ avatar: remainingPhotos.find((photo) => photo.isPrimary)?.url || "" });
     } catch (err) {
@@ -585,7 +620,7 @@ export default function DashboardProfilePage() {
         firstName: savedProfile.firstName,
         lastName: savedProfile.lastName,
         profileCompleted: profileCompletion,
-        avatar: savedProfile.photos?.find((photo) => photo.isPrimary)?.url || "",
+        avatar: normalizeProfilePhotos(savedProfile.photos || []).find((photo) => photo.isPrimary)?.url || "",
       });
       setSaved(true);
       window.setTimeout(() => setSaved(false), 3000);
@@ -717,7 +752,7 @@ export default function DashboardProfilePage() {
                                   key={photo.publicId}
                                   className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted shadow-sm"
                                 >
-                                  <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 16vw, 50vw" className="object-cover" />
+                                  <Image src={photo.url} alt="Profile" fill sizes="(min-width: 640px) 16vw, 50vw" className="object-cover" unoptimized />
                                   {photo.isPrimary ? <Badge className="absolute bottom-2 left-2">Primary</Badge> : null}
                                   <Button
                                     type="button"

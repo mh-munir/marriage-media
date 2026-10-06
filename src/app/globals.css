@@ -251,6 +251,46 @@
 @keyframes onboarding-float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 24px); } }
 @keyframes onboarding-content-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+.dark .min-h-screen.bg-rose-50:has(.max-w-3xl) {
+  background:
+    radial-gradient(circle at 12% 18%, rgb(244 63 94 / 0.12), transparent 28rem),
+    radial-gradient(circle at 88% 82%, rgb(249 115 22 / 0.1), transparent 26rem),
+    linear-gradient(135deg, #171110, #0f0d0c 48%, #1d1410);
+}
+
+.dark .min-h-screen.bg-rose-50:has(.max-w-3xl) .onboarding-form-layout > .max-w-3xl {
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(28 25 23 / 0.9);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.38);
+}
+
+.dark .onboarding-root input:not([type="radio"]):not([type="file"]),
+.dark .onboarding-root select,
+.dark .onboarding-root textarea {
+  border-color: #57534e;
+  background-color: #1c1917;
+  color: #fafaf9;
+  color-scheme: dark;
+}
+
+.dark .onboarding-root input::placeholder,
+.dark .onboarding-root textarea::placeholder {
+  color: #a8a29e;
+}
+
+.dark .onboarding-root input[type="radio"] {
+  accent-color: #fb7185;
+}
+
+.dark .onboarding-root .onboarding-step:not(.done):not(.active) .onboarding-step-dot {
+  background: #292524;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 0.2);
+}
+
+.dark .onboarding-root .onboarding-step.active .onboarding-step-dot {
+  background: #172554;
+}
+
 @media (max-width: 640px) {
   .min-h-screen.bg-rose-50:has(.max-w-3xl) {
     display: block;

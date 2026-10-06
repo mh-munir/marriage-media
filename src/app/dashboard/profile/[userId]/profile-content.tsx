@@ -234,7 +234,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
               <p className="mt-1 text-sm font-semibold text-[#9c4a55]">{displayName}</p>
               <div onClick={handlePhotoClick} className={`absolute right-0 top-6 h-28 w-24 overflow-hidden rounded-sm border border-[#c99aa1] bg-[#ead8da] sm:h-32 sm:w-28 ${!currentUserIsPremium ? "cursor-pointer opacity-50 hover:opacity-75" : ""}`}>
                 {currentUserIsPremium && activePhoto.url ? (
-                  <Image src={activePhoto.url} alt={name} fill priority loading="eager" sizes="112px" className="object-cover" />
+                  <Image src={activePhoto.url} alt={name} fill priority loading="eager" sizes="112px" className="object-cover" unoptimized />
                 ) : (
                   <div className="flex h-full items-center justify-center text-2xl font-bold text-[#a45b67]">{(currentUserIsPremium ? name : "Premium").slice(0, 2).toUpperCase()}</div>
                 )}
@@ -249,7 +249,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {photos.map((photo, index) => (
                     <div key={photo.url || `profile-photo-${index}`} className="relative aspect-[.82] overflow-hidden border border-[#d9a0a6] bg-[#ead8da] shadow-sm">
-                      <Image src={photo.url} alt={`${name} profile photo ${index + 1}`} fill loading={index === 0 ? "eager" : "lazy"} sizes="(min-width: 640px) 150px, 45vw" className="object-cover transition duration-300 hover:scale-105" />
+                      <Image src={photo.url} alt={`${name} profile photo ${index + 1}`} fill loading={index === 0 ? "eager" : "lazy"} sizes="(min-width: 640px) 150px, 45vw" className="object-cover transition duration-300 hover:scale-105" unoptimized />
                     </div>
                   ))}
                 </div>

@@ -85,6 +85,7 @@ export function ProfileCard({ profile, index = 0, onFavoriteAction, onMessageAct
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
             className="object-contain"
+            unoptimized={displayedImageUrl.startsWith("https://res.cloudinary.com/")}
             onError={() => setFailedImageUrl(imageUrl)}
           />
           {profile.isVerified ? <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</span> : null}

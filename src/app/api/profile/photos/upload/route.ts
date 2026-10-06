@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const compressedBuffer = await normalizeProfileImageBuffer(buffer);
 
     const timestamp = Date.now();
-    const publicIdBase = `profiles/${user._id.toString()}/avatar/${timestamp}`;
+    const publicIdBase = `${user._id.toString()}/avatar/${timestamp}`;
 
     const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
         const uploadStream = configuredCloudinary.uploader.upload_stream(
