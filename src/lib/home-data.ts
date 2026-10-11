@@ -111,7 +111,7 @@ function toIsoString(value: Date | undefined): string | null {
   return value instanceof Date ? value.toISOString() : null;
 }
 
-async function mapProfile(profile: RawHomeProfile): Promise<HomeProfile> {
+async function mapProfile(profile: RawHomeProfile, isPremium = Boolean(profile.isPremium)): Promise<HomeProfile> {
   const location = [profile.district, profile.division, profile.country]
     .filter(Boolean)
     .join(", ");
@@ -131,7 +131,7 @@ async function mapProfile(profile: RawHomeProfile): Promise<HomeProfile> {
     maritalStatus: profile.maritalStatus || "",
     // Home cards deliberately never receive members' photo URLs.
     imageUrl: null,
-    isPremium: Boolean(profile.isPremium),
+    isPremium,
     isVerified: Boolean(profile.isVerified),
     isProfileBoosted: Boolean(profile.isProfileBoosted),
     profileViews: profile.profileViews ?? 0,
@@ -167,10 +167,11 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
     await syncRejectedProfileUserFlags();
 
     const now = new Date();
-    const [{ default: Profile }, { default: User }, { default: Interest }, { default: Blog }] =
+    const [{ default: Profile }, { default: User }, { default: Payment }, { default: Interest }, { default: Blog }] =
       await Promise.all([
         import("@/models/Profile"),
         import("@/models/User"),
+        import("@/models/Payment"),
         import("@/models/Interest"),
         import("@/models/Blog"),
       ]);
@@ -185,11 +186,18 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
       ...publicProfileFilter,
       userId: { $in: publicUserIds },
     };
+    const activeSubscriptionUserIds = await Payment.distinct("userId", {
+      userId: { $in: publicUserIds },
+      status: "completed",
+      expiryDate: { $gt: now },
+    });
 
     const activePremiumFilter = {
       ...userScopedPublicProfileFilter,
-      isPremium: true,
-      premiumExpiry: { $gt: now },
+      $or: [
+        { isPremium: true, premiumExpiry: { $gt: now } },
+        { userId: { $in: activeSubscriptionUserIds } },
+      ],
     };
 
     const successStoryFilter = {
@@ -210,7 +218,6 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
       Profile.find(activePremiumFilter)
         .select(PROFILE_SELECT)
         .sort({ premiumExpiry: -1, lastActiveAt: -1 })
-        .limit(12)
         .lean<RawHomeProfile[]>()
         .exec(),
       Blog.find(successStoryFilter)
@@ -232,7 +239,7 @@ export const getHomeData = cache(async (): Promise<HomeData> => {
 
     return {
       featuredProfiles: [],
-      premiumMembers: await Promise.all(premiumMembers.map(mapProfile)),
+      premiumMembers: await Promise.all(premiumMembers.map((profile) => mapProfile(profile, true))),
       recentMembers: [],
       successStories: successStories.map(mapSuccessStory),
       stats: {

@@ -69,22 +69,25 @@ export async function GET(request: NextRequest) {
     }
 
     if (isPublicUsersView && (segment === "free" || segment === "subscribed")) {
+      const now = new Date();
       const [paidUserIds, premiumProfileUserIds] = await Promise.all([
         Payment.distinct("userId", {
           status: "completed",
+          expiryDate: { $gt: now },
         }),
-        Profile.distinct("userId", { isPremium: true }),
+        Profile.distinct("userId", {
+          isPremium: true,
+          premiumExpiry: { $gt: now },
+        }),
       ]);
       const subscribedUserIds = [...new Set([...paidUserIds, ...premiumProfileUserIds].map(String))]
         .filter((id) => Types.ObjectId.isValid(id))
         .map((id) => new Types.ObjectId(id));
       const subscribedUserIdSet = new Set(subscribedUserIds.map((id) => id.toString()));
       filter._id = {
-        $in: (approvedProfileUserIds || []).filter((id) =>
-          segment === "subscribed"
-            ? subscribedUserIdSet.has(id.toString())
-            : !subscribedUserIdSet.has(id.toString())
-        ),
+        $in: segment === "subscribed"
+          ? subscribedUserIds
+          : (approvedProfileUserIds || []).filter((id) => !subscribedUserIdSet.has(id.toString())),
       };
     }
 

@@ -108,17 +108,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   React.useEffect(() => {
     if (!user || (user.role !== "admin" && user.role !== "superadmin")) return;
-    const refreshNotifications = async (intervalId: number) => {
-      const succeeded = await fetchNotifications(true);
-      if (!succeeded) {
-        window.clearInterval(intervalId);
-      }
-    };
-    const refresh = window.setInterval(
-      () => void refreshNotifications(refresh),
-      15000,
-    );
-    void refreshNotifications(refresh);
+    const refresh = window.setInterval(() => void fetchNotifications(true), 15000);
+    void fetchNotifications(true);
     return () => window.clearInterval(refresh);
   }, [fetchNotifications, user]);
 

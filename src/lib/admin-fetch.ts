@@ -6,12 +6,37 @@ import { refreshSession } from "@/lib/api-client";
 
 let refreshPromise: Promise<boolean> | null = null;
 
+const adminAuthStorageKey = "marriage-media-admin-auth";
+
+function getPersistedAdminTokens(): { token: string; refreshToken: string } | null {
+  try {
+    const persisted = localStorage.getItem(adminAuthStorageKey);
+    if (!persisted) return null;
+
+    const parsed: unknown = JSON.parse(persisted);
+    if (typeof parsed !== "object" || parsed === null || !("state" in parsed)) return null;
+    const state = parsed.state;
+    if (typeof state !== "object" || state === null || !("token" in state) || !("refreshToken" in state)) return null;
+    if (typeof state.token !== "string" || typeof state.refreshToken !== "string") return null;
+    return { token: state.token, refreshToken: state.refreshToken };
+  } catch {
+    return null;
+  }
+}
+
 async function refreshAdminSession() {
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = (async () => {
+  const refresh = async () => {
     try {
-      const refreshToken = useAdminAuthStore.getState().refreshToken;
+      const currentRefreshToken = useAdminAuthStore.getState().refreshToken;
+      const persistedTokens = getPersistedAdminTokens();
+      if (persistedTokens?.refreshToken && persistedTokens.refreshToken !== currentRefreshToken) {
+        useAdminAuthStore.getState().setTokens(persistedTokens.token, persistedTokens.refreshToken);
+        return true;
+      }
+
+      const refreshToken = persistedTokens?.refreshToken || currentRefreshToken;
       const response = await fetch("/api/admin/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,7 +62,13 @@ async function refreshAdminSession() {
     } finally {
       refreshPromise = null;
     }
-  })();
+  };
+
+  refreshPromise = typeof navigator !== "undefined" && navigator.locks
+    ? navigator.locks
+      .request<Promise<boolean>>("marriage-media-admin-session-refresh", () => refresh())
+      .then((result) => result)
+    : refresh();
 
   return refreshPromise;
 }

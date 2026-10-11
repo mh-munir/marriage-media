@@ -391,6 +391,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
     age: member.age,
     profession: member.profession,
     profileViews: member.profileViews,
+    isPremium: member.isPremium,
     isVerified: member.isVerified,
     profileLink: `/profile/${member.id}`,
   }));
@@ -458,7 +459,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
                       {card.isVerified ? <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#dff8ee] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#235945] shadow-sm dark:bg-emerald-950 dark:text-emerald-200"><BadgeCheck className="h-3.5 w-3.5" />{translateText("Verified")}</div> : null}
                     </div>
                     <div className="space-y-3 p-3.5">
-                      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-lg font-semibold text-[#355350]">{card.publicId}</p><p className="mt-1 text-sm text-[#6f8580]">{card.age ? `${formatHomeCount(card.age, language)} • ${translateText(card.profession || "Profession not added")}` : translateText("Profession not added")}</p></div></div>
+                      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-lg font-semibold text-[#355350]">{card.publicId}</p><p className="mt-1 text-sm text-[#6f8580]">{card.age ? `${formatHomeCount(card.age, language)} • ${translateText(card.profession || "Profession not added")}` : translateText("Profession not added")}</p></div>{card.isPremium ? <span className="shrink-0 rounded-full bg-[#fef0ef] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#b96862]">{translateText("Premium")}</span> : null}</div>
                       <div className="flex items-center gap-2 text-xs text-[#6f8580]"><MapPin className="h-3.5 w-3.5 text-[#e8897f]" /><span className="truncate">{card.text ? formatHomeLocation(card.text, language, translateText) : translateText("Location not added")}</span></div>
                       <div className="flex items-center justify-between border-t border-[#f0d6d1] pt-3"><span className="inline-flex items-center gap-1 text-[11px] text-[#6f8580]"><span className="inline-flex items-center gap-1"><span className="text-[#61b69e]">◉</span>{formatHomeCount(card.profileViews, language)} {translateText("views")}</span></span><span className="flex items-center gap-4 text-[#df7890]"><Heart className="h-4 w-4" /><span className="text-sm font-semibold text-[#355350]">{translateText("View profile")} <ArrowRight className="inline h-3.5 w-3.5" /></span></span></div>
                     </div>

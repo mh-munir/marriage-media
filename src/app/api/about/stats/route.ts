@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
-import { Profile, User } from "@/models";
+import { Payment, Profile, User } from "@/models";
 import { syncRejectedProfileUserFlags } from "@/lib/rejected-profile-users";
 
 export async function GET() {
@@ -18,6 +18,17 @@ export async function GET() {
     } as const;
     const now = new Date();
     const activeUserIds = await User.distinct("_id", activeUserFilter);
+    const publicUserIds = await User.distinct("_id", {
+      role: "user",
+      isActive: true,
+      isBlocked: false,
+      isProfileVerificationRejected: { $ne: true },
+    });
+    const activeSubscriptionUserIds = await Payment.distinct("userId", {
+      userId: { $in: publicUserIds },
+      status: "completed",
+      expiryDate: { $gt: now },
+    });
     const verifiedProfileFilter = {
       userId: { $in: activeUserIds },
       isVisible: true,
@@ -29,9 +40,13 @@ export async function GET() {
       Profile.distinct("userId", { ...verifiedProfileFilter, gender: "Male" }),
       Profile.distinct("userId", { ...verifiedProfileFilter, gender: "Female" }),
       Profile.distinct("userId", {
-        ...verifiedProfileFilter,
-        isPremium: true,
-        premiumExpiry: { $gt: now },
+        userId: { $in: publicUserIds },
+        isVisible: true,
+        isDeactivated: false,
+        $or: [
+          { isPremium: true, premiumExpiry: { $gt: now } },
+          { userId: { $in: activeSubscriptionUserIds } },
+        ],
       }),
     ]);
 

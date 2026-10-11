@@ -479,7 +479,7 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
                               Verified
                             </Badge>
                           ) : null}
-                          {user.profile?.isPremium ? (
+                          {publicSegment === "subscribed" || user.profile?.isPremium ? (
                             <Badge className="bg-amber-100 text-amber-700">
                               Premium
                             </Badge>
