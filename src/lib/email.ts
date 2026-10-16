@@ -21,6 +21,23 @@ interface EmailResult {
   error?: string;
 }
 
+async function getEmailProviderError(response: Response): Promise<string> {
+  let message = "";
+  try {
+    const body = (await response.json()) as { message?: unknown; error?: unknown };
+    if (typeof body.message === "string") {
+      message = body.message;
+    } else if (typeof body.error === "string") {
+      message = body.error;
+    }
+  } catch {
+    // Keep the status code when the provider response is not valid JSON.
+  }
+
+  const detail = message.trim().slice(0, 500);
+  return `Email provider rejected the message (${response.status})${detail ? `: ${detail}` : "."}`;
+}
+
 /**
  * Render a template by replacing {{variable}} placeholders.
  */
@@ -81,8 +98,7 @@ export async function sendTemplatedEmail(
         body: JSON.stringify({ from: resendFrom, to: [params.to], subject, html: htmlContent }),
       });
       if (!response.ok) {
-        const details = await response.text();
-        return { success: false, error: `Email provider rejected the message: ${details}` };
+        return { success: false, error: await getEmailProviderError(response) };
       }
       const result = (await response.json()) as { id?: string };
       return { success: true, messageId: result.id || `msg_${Date.now()}` };
@@ -124,7 +140,7 @@ export async function sendEmail(
         },
         body: JSON.stringify({ from: resendFrom, to: [to], subject, html: htmlContent }),
       });
-      if (!response.ok) return { success: false, error: `Email provider rejected the message (${response.status}).` };
+      if (!response.ok) return { success: false, error: await getEmailProviderError(response) };
       const result = (await response.json()) as { id?: string };
       return { success: true, messageId: result.id || `msg_${Date.now()}` };
     }
