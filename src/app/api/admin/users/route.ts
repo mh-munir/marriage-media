@@ -55,19 +55,6 @@ export async function GET(request: NextRequest) {
         ? { role: { $in: ["admin", "superadmin"] } }
         : { role: "user" };
 
-    let approvedProfileUserIds: Types.ObjectId[] | null = null;
-    if (isPublicUsersView) {
-      filter.isProfileVerificationRejected = { $ne: true };
-      const latestProfileReviews = await Verification.aggregate([
-        { $match: { type: "profile" } },
-        { $sort: { createdAt: -1, _id: -1 } },
-        { $group: { _id: "$userId", status: { $first: "$status" } } },
-        { $match: { status: "approved" } },
-      ]);
-      approvedProfileUserIds = latestProfileReviews.map((review) => review._id as Types.ObjectId);
-      filter._id = { $in: approvedProfileUserIds };
-    }
-
     if (isPublicUsersView && (segment === "free" || segment === "subscribed")) {
       const now = new Date();
       const [paidUserIds, premiumProfileUserIds] = await Promise.all([
@@ -83,12 +70,9 @@ export async function GET(request: NextRequest) {
       const subscribedUserIds = [...new Set([...paidUserIds, ...premiumProfileUserIds].map(String))]
         .filter((id) => Types.ObjectId.isValid(id))
         .map((id) => new Types.ObjectId(id));
-      const subscribedUserIdSet = new Set(subscribedUserIds.map((id) => id.toString()));
-      filter._id = {
-        $in: segment === "subscribed"
-          ? subscribedUserIds
-          : (approvedProfileUserIds || []).filter((id) => !subscribedUserIdSet.has(id.toString())),
-      };
+      filter._id = segment === "subscribed"
+        ? { $in: subscribedUserIds }
+        : { $nin: subscribedUserIds };
     }
 
     if (search) {

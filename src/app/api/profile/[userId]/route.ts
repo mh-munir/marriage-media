@@ -9,7 +9,7 @@ import { getActiveSubscription, reserveProfileDetailAccess } from "@/lib/profile
 import { normalizeProfileDistricts } from "@/lib/location-normalization";
 
 const FULL_ACCESS_FIELDS = "firstName lastName gender age height weight bloodGroup complexion hasMajorHealthIssue majorHealthIssueDetails maritalStatus maritalStatusDate childrenCount profileCreatedBy religion caste subCaste motherTongue languages country division district thana union area nationality highestEducation institution profession workingWith company annualIncome familyType familyStatus familyValues fatherName guardianRelation guardianName guardianMobileNumber fatherProfession motherName permanentAddress presentAddress permanentLocation educationDetails aboutYourself familyAwareOfBiodata informationAccurate truthDeclaration acceptsFalseInformationLiability motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies partnerPreference partnerPreferences photos isPremium isVerified profileViews showContactInfo createdAt";
-const FREE_FIELDS = "gender age height bloodGroup complexion hasMajorHealthIssue majorHealthIssueDetails maritalStatus maritalStatusDate religion country division district thana union highestEducation institution profession familyType familyStatus familyValues fatherProfession motherProfession numberOfSiblings siblingDetails siblings diet smoke drink hobbies partnerPreference partnerPreferences isVerified profileViews createdAt";
+const FREE_FIELDS = "gender age height bloodGroup complexion hasMajorHealthIssue majorHealthIssueDetails maritalStatus maritalStatusDate religion country division district thana union highestEducation institution profession familyType familyStatus familyValues fatherProfession motherProfession numberOfSiblings siblingDetails siblings educationDetails diet smoke drink hobbies partnerPreference partnerPreferences isVerified profileViews createdAt";
 
 export async function GET(
   request: NextRequest,
@@ -54,9 +54,9 @@ export async function GET(
       return NextResponse.json({ error: "Profile not found." }, { status: 404 });
     }
 
-    const ownerUser = fullAccess
-      ? await User.findById(userId).select("onboardingData whatsappNumber").lean()
-      : undefined;
+    const ownerUser = await User.findById(userId)
+      .select(fullAccess ? "onboardingData whatsappNumber" : "onboardingData.educationDetails")
+      .lean();
     const onboardingData = ownerUser?.onboardingData;
     const owner = fullAccess && profile.showContactInfo
       ? await User.findById(userId).select("phone").lean()
@@ -65,9 +65,9 @@ export async function GET(
     return NextResponse.json({
       profile: {
         ...normalizeProfileDistricts(profile),
+        educationDetails: profile.educationDetails?.length ? profile.educationDetails : onboardingData?.educationDetails,
         ...(fullAccess ? {
           permanentLocation: profile.permanentLocation || onboardingData?.permanentLocation,
-          educationDetails: profile.educationDetails?.length ? profile.educationDetails : onboardingData?.educationDetails,
           familyAwareOfBiodata: profile.familyAwareOfBiodata || onboardingData?.familyAwareOfBiodata,
           informationAccurate: profile.informationAccurate || onboardingData?.informationAccurate,
           truthDeclaration: profile.truthDeclaration || onboardingData?.truthDeclaration,

@@ -76,11 +76,18 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
     setAdminUser(result.user);
   }
   const [users, setUsers] = React.useState<AdminUser[]>([]);
+  const [totalUsers, setTotalUsers] = React.useState(0);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [hasMoreUsers, setHasMoreUsers] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [view] = React.useState<"members" | "admin-team">(initialView);
   const [publicSegment, setPublicSegment] = React.useState<"free" | "subscribed">("free");
   const [loading, setLoading] = React.useState(true);
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [loadMoreError, setLoadMoreError] = React.useState("");
+  const requestGeneration = React.useRef(0);
+  const loadingMoreRef = React.useRef(false);
   const [createForm, setCreateForm] = React.useState({ email: "", phone: "", password: "", firstName: "", lastName: "" });
   const [profileForm, setProfileForm] = React.useState({ firstName: "", lastName: "", email: "", password: "" });
   const [emailCode, setEmailCode] = React.useState("");
@@ -211,27 +218,95 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
   }
 
   React.useEffect(() => {
+    const generation = ++requestGeneration.current;
+    const controller = new AbortController();
+    loadingMoreRef.current = false;
+
     const timer = window.setTimeout(async () => {
+      setUsers([]);
+      setTotalUsers(0);
+      setCurrentPage(1);
+      setHasMoreUsers(false);
       setLoading(true);
+      setLoadingMore(false);
+      setError("");
+      setLoadMoreError("");
+
+      try {
+        const response = await adminFetch(
+          `/api/admin/users?page=1&limit=10&role=${view}&segment=${view === "admin-team" ? "" : publicSegment}&search=${encodeURIComponent(search)}`,
+          { credentials: "include", signal: controller.signal },
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Could not load users");
+        }
+        if (generation !== requestGeneration.current) return;
+
+        const loadedUsers = data.users || [];
+        setUsers(loadedUsers);
+        setTotalUsers(data.pagination?.total ?? loadedUsers.length);
+        setHasMoreUsers((data.pagination?.page ?? 1) < (data.pagination?.pages ?? 1));
+        const loadedSuperadmin = loadedUsers.find((account: AdminUser) => account.role === "superadmin");
+        if (loadedSuperadmin) {
+          setProfileForm({
+            firstName: loadedSuperadmin.firstName || "",
+            lastName: loadedSuperadmin.lastName || "",
+            email: loadedSuperadmin.email || "", password: "",
+          });
+        }
+        setError("");
+      } catch (requestError) {
+        if (controller.signal.aborted || generation !== requestGeneration.current) return;
+        setError(requestError instanceof Error ? requestError.message : "Could not load users");
+      } finally {
+        if (generation === requestGeneration.current) setLoading(false);
+      }
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [publicSegment, search, view]);
+
+  async function loadMoreUsers() {
+    if (loadingMoreRef.current || !hasMoreUsers) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setLoadMoreError("");
+    const generation = requestGeneration.current;
+    const nextPage = currentPage + 1;
+
+    try {
       const response = await adminFetch(
-        `/api/admin/users?limit=50&role=${view}&segment=${view === "admin-team" ? "" : publicSegment}&search=${encodeURIComponent(search)}`,
+        `/api/admin/users?page=${nextPage}&limit=10&role=${view}&segment=${view === "admin-team" ? "" : publicSegment}&search=${encodeURIComponent(search)}`,
         { credentials: "include" },
       );
       const data = await response.json();
-      setUsers(data.users || []);
-      const loadedSuperadmin = (data.users || []).find((account: AdminUser) => account.role === "superadmin");
-      if (loadedSuperadmin) {
-        setProfileForm({
-          firstName: loadedSuperadmin.firstName || "",
-          lastName: loadedSuperadmin.lastName || "",
-          email: loadedSuperadmin.email || "", password: "",
-        });
+      if (!response.ok) {
+        throw new Error(data.error || "Could not load more users");
       }
-      setError(response.ok ? "" : data.error || "Could not load users");
-      setLoading(false);
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [publicSegment, search, view]);
+      if (generation !== requestGeneration.current) return;
+
+      const nextUsers = data.users || [];
+      setUsers((current) => {
+        const existingIds = new Set(current.map((user) => user._id));
+        return [...current, ...nextUsers.filter((user: AdminUser) => !existingIds.has(user._id))];
+      });
+      setTotalUsers(data.pagination?.total ?? totalUsers);
+      setCurrentPage(data.pagination?.page ?? nextPage);
+      setHasMoreUsers((data.pagination?.page ?? nextPage) < (data.pagination?.pages ?? nextPage));
+    } catch (requestError) {
+      if (generation === requestGeneration.current) {
+        setLoadMoreError(requestError instanceof Error ? requestError.message : "Could not load more users");
+      }
+    } finally {
+      if (generation === requestGeneration.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  }
 
   const isAdminTeam = view === "admin-team";
   const isSuperadmin = currentUser?.role === "superadmin";
@@ -549,6 +624,24 @@ export function AdminUsersPage({ initialView = "members" }: { initialView?: "mem
             </table>
           </div>
         </CardContent>
+        {!loading && !error && users.length > 0 ? (
+          <div className="flex flex-col items-center gap-3 border-t px-6 py-5">
+            <p className="text-sm text-slate-500">
+              Showing {users.length} of {totalUsers} {isAdminTeam ? "admin accounts" : publicSegment === "free" ? "free registration users" : "subscription users"}
+            </p>
+            {loadMoreError ? <p className="text-sm text-red-600" role="alert">{loadMoreError}</p> : null}
+            {hasMoreUsers ? (
+              <button
+                type="button"
+                onClick={() => void loadMoreUsers()}
+                disabled={loadingMore}
+                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingMore ? "Loading..." : "Load more"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </Card>
       {selectedAccount ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Account details" onClick={() => setSelectedAccount(null)}>
         <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>

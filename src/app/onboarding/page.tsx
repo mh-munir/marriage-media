@@ -66,6 +66,7 @@ function StepTracker({ current }: { current: number }) {
   );
 }
 const habitOptions = ["Exercise", "Reading", "Travel", "Cooking"];
+const educationLevels = ["SSC", "HSC", "Graduation", "Postgraduate", "Other"];
 const heightLabels: Record<string, string> = {
   "4'10\" (147 cm)": "৪'১০\" (১৪৭ সেমি)",
   "4'11\" (150 cm)": "৪'১১\" (১৫০ সেমি)",
@@ -128,7 +129,7 @@ const blank: D = {
   motherProfession: "",
   numberOfSiblings: 0,
   siblings: [],
-  educationDetails: ["SSC", "HSC", "Graduation", "Other"].map((level) => ({
+  educationDetails: educationLevels.map((level) => ({
     level,
     instituteName: "",
     year: "",
@@ -194,6 +195,12 @@ export default function OnboardingPage() {
       .get<{ data?: D; step?: number }>("/api/auth/onboarding")
       .then((x) => {
         const cleanOnboardingData = { ...(x.data || {}) } as D;
+        const savedEducationDetails = Array.isArray(cleanOnboardingData.educationDetails)
+          ? cleanOnboardingData.educationDetails
+          : [];
+        const savedEducationByLevel = new Map(
+          savedEducationDetails.map((entry: D) => [entry.level, entry]),
+        );
         delete cleanOnboardingData.highestEducation;
         delete cleanOnboardingData.diet;
 
@@ -202,7 +209,9 @@ export default function OnboardingPage() {
           ...cleanOnboardingData,
           photos: cleanOnboardingData.photos || [],
           siblings: cleanOnboardingData.siblings || [],
-          educationDetails: cleanOnboardingData.educationDetails || blank.educationDetails,
+          educationDetails: educationLevels.map((level) =>
+            savedEducationByLevel.get(level) || { level, instituteName: "", year: "" },
+          ),
           partnerPreferences: {
             ...blank.partnerPreferences,
             ...(cleanOnboardingData.partnerPreferences || {}),

@@ -59,7 +59,7 @@ export interface IProfile extends Document {
   permanentAddress?: string;
   presentAddress?: string;
   permanentLocation?: { country: string; division: string; district: string; thana: string; union: string; area: string };
-  educationDetails?: { level: "SSC" | "HSC" | "Graduation" | "Other"; instituteName: string; year: string }[];
+  educationDetails?: { level: "SSC" | "HSC" | "Graduation" | "Postgraduate" | "Other"; instituteName: string; year: string }[];
   aboutYourself?: string;
   familyAwareOfBiodata?: "Yes" | "No";
   informationAccurate?: "Yes" | "No";
@@ -263,7 +263,7 @@ const ProfileSchema = new Schema<IProfile>(
     permanentAddress: { type: String, default: "" },
     presentAddress: { type: String, default: "" },
     permanentLocation: { country: { type: String, default: "Bangladesh" }, division: { type: String, default: "" }, district: { type: String, default: "" }, thana: { type: String, default: "" }, union: { type: String, default: "" }, area: { type: String, default: "" } },
-    educationDetails: [{ level: { type: String, enum: ["SSC", "HSC", "Graduation", "Other"] }, instituteName: { type: String, default: "" }, year: { type: String, default: "" } }],
+    educationDetails: [{ level: { type: String, enum: ["SSC", "HSC", "Graduation", "Postgraduate", "Other"] }, instituteName: { type: String, default: "" }, year: { type: String, default: "" } }],
     aboutYourself: { type: String, default: "", maxlength: 3000 },
     familyAwareOfBiodata: { type: String, enum: ["Yes", "No"], default: undefined },
     informationAccurate: { type: String, enum: ["Yes", "No"], default: undefined },
@@ -352,7 +352,16 @@ ProfileSchema.index({ isProfileBoosted: 1, boostedAt: -1 });
 ProfileSchema.index({ lastActiveAt: -1 });
 ProfileSchema.index({ "photos.isPrimary": 1, "photos.isApproved": 1 });
 
+const cachedProfileModel = mongoose.models.Profile as Model<IProfile> | undefined;
+const cachedEducationLevelPath = cachedProfileModel?.schema.path("educationDetails.level") as
+  | (mongoose.Schema.Types.String & { enumValues: string[] })
+  | undefined;
+if (cachedEducationLevelPath instanceof mongoose.Schema.Types.String) {
+  cachedEducationLevelPath.enumValues = [];
+  cachedEducationLevelPath.enum({ values: ["SSC", "HSC", "Graduation", "Postgraduate", "Other"] });
+}
+
 const Profile: Model<IProfile> =
-  mongoose.models.Profile || mongoose.model<IProfile>("Profile", ProfileSchema);
+  cachedProfileModel || mongoose.model<IProfile>("Profile", ProfileSchema);
 
 export default Profile;

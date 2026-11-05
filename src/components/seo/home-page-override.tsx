@@ -384,7 +384,7 @@ function CommunitySection({ section, memberProfiles, index }: { section: HomeSec
   const { language, translateText } = useLanguage();
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
-  const cards = memberProfiles.slice(0, 4).map((member) => ({
+  const cards = memberProfiles.map((member) => ({
     text: member.location,
     publicId: member.publicId,
     gender: member.gender,

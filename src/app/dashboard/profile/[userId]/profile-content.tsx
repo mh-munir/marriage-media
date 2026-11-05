@@ -204,7 +204,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
   };
 
   if (error) {
-    return <><Header /><main className="mx-auto max-w-3xl px-4 pt-30 text-center"><p className="text-destructive">{error}</p><Link className="mt-4 inline-flex text-sm text-primary" href="/dashboard/search">Back to search</Link></main></>;
+    return <><Header /><main className="mx-auto max-w-3xl px-4 pt-30 text-center"><p className="text-destructive">{error}</p><Link className="mt-4 inline-flex text-sm text-primary" href="/search">Back to search</Link></main></>;
   }
 
   if (!profile) {
@@ -222,7 +222,7 @@ export function PublicProfileContent({ params }: { params: Promise<{ userId: str
     <div className="min-h-screen bg-linear-to-b from-rose-50/60 via-background to-background dark:from-rose-950/10">
       <Header />
       <main className="mx-auto max-w-7xl px-4 pb-16 pt-30 sm:px-6 lg:px-8">
-        <Link href="/dashboard/search" className="mb-5 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back to search</Link>
+        <Link href="/search" className="mb-5 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back to search</Link>
         <article className="relative mx-auto max-w-4xl overflow-hidden border border-[#d58d98] bg-[#fbe8ec] px-5 py-8 text-[#4c3d40] shadow-[0_18px_55px_rgba(102,44,55,0.16)] sm:px-12 sm:py-10">
           <span className="pointer-events-none absolute left-2 top-2 h-12 w-12 border-l-2 border-t-2 border-[#a83f50] sm:left-4 sm:top-4" />
           <span className="pointer-events-none absolute right-2 top-2 h-12 w-12 border-r-2 border-t-2 border-[#a83f50] sm:right-4 sm:top-4" />

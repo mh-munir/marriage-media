@@ -613,6 +613,7 @@ const biodataText: Record<string, string> = {
   "SSC": "এসএসসি",
   "HSC": "এইচএসসি",
   "Graduation": "স্নাতক",
+  "Postgraduate": "স্নাতকোত্তর",
   "Education Details": "শিক্ষার বিস্তারিত তথ্য",
   "Registered mobile number": "নিবন্ধিত মোবাইল নম্বর",
   "Example: 50,000-100,000": "উদাহরণ: ৫০,০০০-১,০০,০০০",

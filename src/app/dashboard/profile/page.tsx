@@ -86,7 +86,7 @@ interface ProfileFormData {
   maritalStatusDate: string;
   permanentLocation: { country: string; division: string; district: string; thana: string; union: string; area: string };
   aboutYourself: string;
-  educationDetails: Array<{ level: "SSC" | "HSC" | "Graduation" | "Other"; instituteName: string; year: string }>;
+  educationDetails: Array<{ level: "SSC" | "HSC" | "Graduation" | "Postgraduate" | "Other"; instituteName: string; year: string }>;
   familyAwareOfBiodata: string;
   informationAccurate: string;
   truthDeclaration: string;
@@ -166,7 +166,7 @@ const createInitialProfile = (): ProfileFormData => ({
   maritalStatusDate: "",
   permanentLocation: { country: "Bangladesh", division: "", district: "", thana: "", union: "", area: "" },
   aboutYourself: "",
-  educationDetails: ["SSC", "HSC", "Graduation", "Other"].map((level) => ({ level: level as "SSC" | "HSC" | "Graduation" | "Other", instituteName: "", year: "" })),
+  educationDetails: ["SSC", "HSC", "Graduation", "Postgraduate", "Other"].map((level) => ({ level: level as "SSC" | "HSC" | "Graduation" | "Postgraduate" | "Other", instituteName: "", year: "" })),
   familyAwareOfBiodata: "",
   informationAccurate: "",
   truthDeclaration: "",
@@ -249,11 +249,16 @@ const mergeProfileFormData = (
       ...(onboardingData?.permanentLocation || {}),
       ...(profileData?.permanentLocation || {}),
     },
-    educationDetails: Array.isArray(profileData?.educationDetails) && profileData.educationDetails.length
-      ? profileData.educationDetails
-      : Array.isArray(onboardingData?.educationDetails) && onboardingData.educationDetails.length
-        ? onboardingData.educationDetails
-        : base.educationDetails,
+    educationDetails: (() => {
+      const savedEducationDetails =
+        Array.isArray(profileData?.educationDetails) && profileData.educationDetails.length
+          ? profileData.educationDetails
+          : Array.isArray(onboardingData?.educationDetails) && onboardingData.educationDetails.length
+            ? onboardingData.educationDetails
+            : [];
+      const savedEducationByLevel = new Map(savedEducationDetails.map((entry) => [entry.level, entry]));
+      return base.educationDetails.map((entry) => savedEducationByLevel.get(entry.level) || entry);
+    })(),
     photos: normalizeProfilePhotos(
       Array.isArray(profileData?.photos)
         ? profileData.photos
@@ -1221,7 +1226,7 @@ export default function DashboardProfilePage() {
                               <label className="block text-sm font-medium text-foreground">{text("Education Details")}</label>
                               {profile.educationDetails.map((education, index) => (
                                 <div className="grid gap-3 md:grid-cols-[140px_1fr_120px]" key={education.level}>
-                                  <p className="self-center text-sm font-medium">{education.level}</p>
+                                  <p className="self-center text-sm font-medium">{text(education.level)}</p>
                                   <Input label="Institute Name" value={education.instituteName} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, instituteName: e.target.value } : item) })} />
                                   <Input label="Year" value={education.year} onChange={(e) => setProfile({ ...profile, educationDetails: profile.educationDetails.map((item, itemIndex) => itemIndex === index ? { ...item, year: e.target.value } : item) })} />
                                 </div>
