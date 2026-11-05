@@ -55,6 +55,12 @@ export async function GET(request: NextRequest) {
         ? { role: { $in: ["admin", "superadmin"] } }
         : { role: "user" };
 
+    let verifiedProfileUserIds: Types.ObjectId[] = [];
+    if (isPublicUsersView) {
+      verifiedProfileUserIds = await Profile.distinct("userId", { isVerified: true });
+      filter._id = { $in: verifiedProfileUserIds };
+    }
+
     if (isPublicUsersView && (segment === "free" || segment === "subscribed")) {
       const now = new Date();
       const [paidUserIds, premiumProfileUserIds] = await Promise.all([
@@ -69,10 +75,15 @@ export async function GET(request: NextRequest) {
       ]);
       const subscribedUserIds = [...new Set([...paidUserIds, ...premiumProfileUserIds].map(String))]
         .filter((id) => Types.ObjectId.isValid(id))
-        .map((id) => new Types.ObjectId(id));
-      filter._id = segment === "subscribed"
-        ? { $in: subscribedUserIds }
-        : { $nin: subscribedUserIds };
+        .map((id) => id.toString());
+      const subscribedUserIdSet = new Set(subscribedUserIds);
+      filter._id = {
+        $in: verifiedProfileUserIds.filter((id) =>
+          segment === "subscribed"
+            ? subscribedUserIdSet.has(id.toString())
+            : !subscribedUserIdSet.has(id.toString()),
+        ),
+      };
     }
 
     if (search) {
